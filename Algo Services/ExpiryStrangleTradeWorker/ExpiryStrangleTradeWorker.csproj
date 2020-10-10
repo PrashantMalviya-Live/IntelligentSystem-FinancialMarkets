@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk.Worker">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <UserSecretsId>dotnet-ExpiryStrangleTradeWorker-780B415A-F3D9-4898-A68D-087267CD45AD</UserSecretsId>
+    <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Alachisoft.NCache.OpenSource.SDK" Version="5.0.3.1" />
+    <PackageReference Include="Apache.Ignite" Version="2.8.1" />
+    <PackageReference Include="Apache.Ignite.Linq" Version="2.8.1" />
+    <PackageReference Include="Microsoft.AspNetCore.Hosting.WindowsServices" Version="3.1.5" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="3.1.5" />
+    <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.10.8" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Algorithms\Algorithms.csproj" />
+    <ProjectReference Include="..\..\Global\Global.csproj" />
+    <ProjectReference Include="..\..\ZeroMQ\ZeroMQMessaging.csproj" />
+  </ItemGroup>
+</Project>

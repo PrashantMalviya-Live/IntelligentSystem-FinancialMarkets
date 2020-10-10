@@ -1,0 +1,26 @@
+.example-headers-align .mat-expansion-panel-header-title,
+.example-headers-align .mat-expansion-panel-header-description {
+  flex-basis: 0;
+}
+
+.example-headers-align .mat-expansion-panel-header-description {
+  justify-content: space-between;
+  align-items: center;
+}
+
+.example-headers-align .mat-form-field + .mat-form-field {
+  margin-left: 8px;
+}
+mat-table{ max-height:600px; overflow-y:auto}
+
+.mat-badge-content {
+  margin-left: 10px;
+  padding: 3px;
+  width: 20px;
+  height: 20px;
+  line-height: 20px;
+  font-size: 10px;
+  /*background-color: yellow;
+  color: black;*/
+  font-weight: normal;
+}

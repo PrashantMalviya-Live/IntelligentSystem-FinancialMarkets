@@ -1,0 +1,10 @@
+﻿{
+  "profiles": {
+    "MarketDataService": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "DOTNET_ENVIRONMENT": "Development"
+      }
+    }
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "/api/position/*": {
+    "target": "http://localhost:5000",
+    "secure": false
+  },
+  "/api/momentumvolume/*": {
+    "target": "http://localhost:8081",
+    "secure": false
+  }
+}

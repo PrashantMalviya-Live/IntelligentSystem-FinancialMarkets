@@ -1,0 +1,4 @@
+﻿Equity investment based on ARIMA model, SMA model
+Pivot
+Time series analysis - EMA, HMA
+Regress close with high, low, open on rolling basis and see the trend

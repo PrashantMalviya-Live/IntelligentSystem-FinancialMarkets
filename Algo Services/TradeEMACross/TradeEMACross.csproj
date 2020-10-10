@@ -1,0 +1,64 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <RuntimeIdentifier>win7-x64</RuntimeIdentifier>
+    <UserSecretsId>aee066a2-17aa-47a9-add7-bd8b9ec99ce1</UserSecretsId>
+    <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+    <Configurations>Debug;Release;Local;Market</Configurations>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Market|AnyCPU'">
+    <DefineConstants>DEBUG;TRACE;market</DefineConstants>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Local|AnyCPU'">
+    <DefineConstants>TRACE;DEBUG;local</DefineConstants>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="DataStorage\**" />
+    <Compile Remove="HubConfig\**" />
+    <Content Remove="DataStorage\**" />
+    <Content Remove="HubConfig\**" />
+    <EmbeddedResource Remove="DataStorage\**" />
+    <EmbeddedResource Remove="HubConfig\**" />
+    <None Remove="DataStorage\**" />
+    <None Remove="HubConfig\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="MarketViewColllection.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CsvTextFieldParser" Version="1.2.1" />
+    <PackageReference Include="Google.Protobuf" Version="3.13.0" />
+    <PackageReference Include="Grpc.Net.Client" Version="2.32.0" />
+    <PackageReference Include="Grpc.Tools" Version="2.32.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.AspNetCore.Hosting.WindowsServices" Version="3.1.5" />
+    <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.10.9" />
+    <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
+    <PackageReference Include="System.Data.SqlClient" Version="4.8.2" />
+    <PackageReference Include="System.Text.Json" Version="4.7.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Algos\Algos.csproj" />
+    <ProjectReference Include="..\..\GlobalCore\GlobalCore.csproj" />
+    <ProjectReference Include="..\..\GrpcLoggerService\GrpcLoggerService.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="client.ncconf">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="config.ncconf">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,31 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <Configurations>Debug;Release;Market;Local</Configurations>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Market|netcoreapp3.1|AnyCPU'">
+    <DefineConstants>TRACE;market</DefineConstants>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Local|netcoreapp3.1|AnyCPU'">
+    <WarningLevel>3</WarningLevel>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.Text.Json" Version="4.7.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\GlobalLayer\GlobalLayer.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="ZeroMQ">
+      <HintPath>ZMQBinaries\ZeroMQ.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,93 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <Configurations>Debug;Release;Market;Local</Configurations>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <WarningLevel>3</WarningLevel>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Local|AnyCPU'">
+    <WarningLevel>3</WarningLevel>
+    <DefineConstants>TRACE;local</DefineConstants>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Market|AnyCPU'">
+    <WarningLevel>3</WarningLevel>
+    <DefineConstants>TRACE;market</DefineConstants>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Algorithms\BOX - 01092018.cs" />
+    <Compile Remove="Algorithms\BOX - 02092018_OnOrderUpdate Logic.cs" />
+    <Compile Remove="Algorithms\BOX - 03092018_working version but no order depth.cs" />
+    <Compile Remove="Algorithms\BOX - NIFTY.cs" />
+    <Compile Remove="Algorithms\BOX -11092018.cs" />
+    <Compile Remove="Algorithms\BOX.cs" />
+    <Compile Remove="Algorithms\ExpiryTrade_StrangleValue.cs" />
+    <Compile Remove="Algorithms\InstantBox.cs" />
+    <Compile Remove="Algorithms\Managed Strangle\ActiveBuyStrangleManagerWithVariableQty - Copy.cs" />
+    <Compile Remove="Algorithms\Managed Strangle\ActiveTradeWithExecutedVWAP.cs" />
+    <Compile Remove="Algorithms\Managed Strangle\ExpiryTrade.cs" />
+    <Compile Remove="Algorithms\Managed Strangle\ExpiryTrade_StrangleValue - OI Volume.cs" />
+    <Compile Remove="Algorithms\Managed Strangle\ExpiryTrade_StrangleValue - WIP TradedStrangle.cs" />
+    <Compile Remove="Algorithms\Managed Strangle\FrequentBuySellWithNodemovementBothSide - Copy.cs" />
+    <Compile Remove="Algorithms\Managed Strangle\FrequentBuySellWithNodemovementBothSide - last async.cs" />
+    <Compile Remove="Algorithms\Managed Strangle\ManageBox.cs" />
+    <Compile Remove="Algorithms\Managed Strangle\ManagedStrangle - 19 April Observer code working with comments.cs" />
+    <Compile Remove="Algorithms\Managed Strangle\ManagedStrangle - 20 April Asyn code.cs" />
+    <Compile Remove="Algorithms\Managed Strangle\ManagedStrangle - Kafka Code.cs" />
+    <Compile Remove="Algorithms\Managed Strangle\ManageStrangleBuyBack - Last Async.cs" />
+    <Compile Remove="Algorithms\Managed Strangle\ManageStrangleValue - One  index for one instrument -  so if it comes back it gives same old index.cs" />
+    <Compile Remove="Algorithms\Technicals\Pivot - CPR Basics - Copy.cs" />
+    <Compile Remove="Algorithms\Technicals\Pivot - CPR Basics - Working code with backtest capability.cs" />
+    <Compile Remove="Algorithms\zStructure.cs" />
+    <Compile Remove="Indicators\AverageDirectionalIndex.cs" />
+    <Compile Remove="Indicators\AverageTrueRange.cs" />
+    <Compile Remove="Indicators\Correlation.cs" />
+    <Compile Remove="Indicators\Covariance.cs" />
+    <Compile Remove="Indicators\MoneyFlowIndex.cs" />
+    <Compile Remove="Indicators\MovingAverageConvergenceDivergence.cs" />
+    <Compile Remove="Indicators\MovingAverageConvergenceDivergenceSignal.cs" />
+    <Compile Remove="Indicators\SimpleMovingAverage.cs" />
+    <Compile Remove="Indicators\VolumeIndicator.cs" />
+    <Compile Remove="Indicators\VolumeProfileIndicator.cs" />
+    <Compile Remove="Indicators\WeightedMovingAverage.cs" />
+    <Compile Remove="Utilities\StockSharp\Derivatives\BasketBlackScholes.cs" />
+    <Compile Remove="Utilities\StockSharp\Derivatives\BasketStrike.cs" />
+    <Compile Remove="Utilities\StockSharp\Derivatives\Black.cs" />
+    <Compile Remove="Utilities\StockSharp\Derivatives\Synthetic.cs" />
+    <Compile Remove="Utilities\zSessionState.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="Algorithms\Idea Pipeline.txt" />
+    <None Remove="Algorithms\Technicals\PivotTriggerMatrix.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Algorithms\Idea Pipeline.txt" />
+    <Content Include="Algorithms\Technicals\PivotTriggerMatrix.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Algo.Utils\Algo.Utils.csproj" />
+    <ProjectReference Include="..\GlobalCore\GlobalCore.csproj" />
+    <ProjectReference Include="..\KiteConnectWrapper\KiteConnectWrapper.csproj" />
+    <ProjectReference Include="..\GlobalLayer\GlobalLayer.csproj" />
+    <ProjectReference Include="..\LocalDBData\LocalDBData.csproj" />
+    <ProjectReference Include="..\KiteConnect\KiteConnect.csproj" />
+    <ProjectReference Include="..\ZMQFacade\ZMQFacade.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Algorithms\Storage\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MathNet.Numerics" Version="4.12.0" />
+  </ItemGroup>
+
+</Project>

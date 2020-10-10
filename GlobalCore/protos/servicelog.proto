@@ -1,0 +1,29 @@
+syntax = "proto3";
+
+option csharp_namespace = "GrpcPeerLoggerService";
+
+import "google/protobuf/timestamp.proto";
+
+package logging;
+
+
+// The logging service definition.
+service ServiceLogger {
+  rpc Log (LogMessage) returns (Status);
+}
+
+
+// The response message containing the log messages
+message LogMessage {
+	int32 algoId = 1;
+	int32 algo_instance = 2;  
+	google.protobuf.Timestamp log_time = 3;
+	string log_level = 4;
+	string message = 5;
+	string messenger_method = 6;
+}
+
+// The response message containing the log messages
+message Status {
+  bool status = 1;
+}
