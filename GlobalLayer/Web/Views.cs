@@ -26,9 +26,22 @@ namespace Global.Web
         public string Type { get; set; }
         public decimal Strike { get; set; }
     }
+    public class ActiveAlgosView
+    {
+        //Algo ID
+        public int Aid { get; set; }
+        //Algo Name
+        public string AN { get; set; }
+        //Algo instance ID
+        public int AIns { get; set; }
+
+        //List of orders in the algo
+        public List<OrderView> Orders { get; set; } = new List<OrderView>();
+    }
 
     public class OrderView
     {
+        public string OrderId { get; set; }
         public UInt32 InstrumentToken { get; set; }
         public string TradingSymbol { get; set; }
         public string TransactionType { get; set; }

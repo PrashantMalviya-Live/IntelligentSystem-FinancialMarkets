@@ -13,6 +13,8 @@ using System.Text;
 using System.Threading.Tasks;
 using ZConnectWrapper;
 using ZMQFacade;
+using System.Timers;
+using System.Threading;
 
 namespace Algorithms.Algorithms
 {
@@ -84,6 +86,8 @@ namespace Algorithms.Algorithms
 
         public List<uint> SubscriptionTokens { get; set; }
 
+        private System.Timers.Timer _healthCheckTimer;
+        private int _healthCounter = 0;
         public OptionVolumeRateEMAThreshold(DateTime endTime, TimeSpan candleTimeSpan, 
             uint baseInstrumentToken, DateTime? expiry, int quantity)
         {
@@ -120,9 +124,15 @@ namespace Algorithms.Algorithms
             candleManger = new CandleManger(TimeCandles, CandleType.Time);
             candleManger.TimeCandleFinished += CandleManger_TimeCandleFinished;
 
-            _algoInstance = Utility.GenerateAlgoInstance(algoIndex, endTime);
-            ZConnect.ZerodhaLogin();
+            _algoInstance = Utility.GenerateAlgoInstance(algoIndex, baseInstrumentToken, endTime, expiry.GetValueOrDefault(DateTime.Now), quantity, candleTimeFrameInMins: (float)candleTimeSpan.TotalMinutes);
+           // ZConnect.ZerodhaLogin();
+
+            //health check after 1 mins
+            _healthCheckTimer = new System.Timers.Timer(interval: 1 * 60 * 100);
+            _healthCheckTimer.Elapsed += CheckHealth;
+            _healthCheckTimer.Start();
         }
+
 
         public void LoadActiveOrders (Order activeOrder)
         {
@@ -188,6 +198,7 @@ namespace Algorithms.Algorithms
                         TriggerEODPositionClose(tick.LastTradeTime);
                     }
                 }
+                Interlocked.Increment(ref _healthCounter);
             }
             catch (Exception ex)
             {
@@ -195,7 +206,7 @@ namespace Algorithms.Algorithms
                 Logger.LogWrite(ex.StackTrace);
                 Logger.LogWrite("Closing Application");
                 //throw new Exception("Trading Stopped as algo encountered an error. Check log file for details");
-                await LoggerCore.PublishLog(_algoInstance, LogLevel.Error, currentTime, String.Format(@"Error occurred! Trading has stopped. \r\n {0}", ex.Message), "ActiveTradeIntraday");
+                LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Error, currentTime, String.Format(@"Error occurred! Trading has stopped. \r\n {0}", ex.Message), "ActiveTradeIntraday");
                 //Environment.Exit(0);
             }
         }
@@ -211,7 +222,7 @@ namespace Algorithms.Algorithms
                     //exit trade
                     Order order = MarketOrders.PlaceOrder(_algoInstance, option.TradingSymbol, 
                         option.InstrumentType, lastPrice, token, false,
-                        TRADE_QTY * Convert.ToInt32(option.LotSize), currentTime);
+                        TRADE_QTY * Convert.ToInt32(option.LotSize), algoIndex, currentTime);
                     //shortTrade.TradingStatus = TradeStatus.Closed;
                 }
                 tokenTradeLevels.Clear();
@@ -237,7 +248,7 @@ namespace Algorithms.Algorithms
 
                 if (candleStartTime.HasValue)
                 {
-                    await LoggerCore.PublishLog(_algoInstance, LogLevel.Info, tick.Timestamp.Value, "Starting first Candle now", "MonitorCandles");
+                    LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Info, tick.Timestamp.Value, String.Format("Starting first Candle now for token: {0}", tick.InstrumentToken), "MonitorCandles");
                     //candle starts from there
                     candleManger.StreamingShortTimeFrameCandle(tick, token, _candleTimeSpan, true, candleStartTime); // TODO: USING LOCAL VERSION
 
@@ -313,7 +324,7 @@ namespace Algorithms.Algorithms
                 if ((firstCandleFormed == 1 || !_firstCandleOpenPriceNeeded[tkn]) && lTokenEMA.ContainsKey(tkn))
                 {
                     _EMALoaded.Add(tkn);
-                    await LoggerCore.PublishLog(_algoInstance, LogLevel.Info, currentTime, String.Format("EMA loaded from DB for {0}", tkn), "MonitorCandles");
+                    LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Info, currentTime, String.Format("EMA loaded from DB for {0}", tkn), "MonitorCandles");
                 }
                 //}
             }
@@ -336,8 +347,8 @@ namespace Algorithms.Algorithms
                     {
                         if (GetCandleFormation(e) == CandleFormation.Bullish)
                         {
-                            Console.WriteLine("Bullish Candle" + lTokenEMA[e.InstrumentToken].IsFormed);
-                            await LoggerCore.PublishLog(_algoInstance, LogLevel.Info, e.CloseTime, String.Format("Bullish Candle: {0}", e.InstrumentToken), "MonitorCandles");
+                            //Console.WriteLine("Bullish Candle" + lTokenEMA[e.InstrumentToken].IsFormed);
+                            LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Info, e.CloseTime, String.Format("Bullish Candle: {0}", e.InstrumentToken), "MonitorCandles");
 
                             foreach (var st in tokenTradeLevels)
                             {
@@ -359,7 +370,7 @@ namespace Algorithms.Algorithms
                 Logger.LogWrite("Closing Application");
                 //Environment.Exit(0);
                 //throw new Exception("Trading Stopped as algo encountered an error. Check log file for details");
-                await LoggerCore.PublishLog(_algoInstance, LogLevel.Error, e.CloseTime, String.Format(@"Error occurred! Trading has stopped. \r\n {0}", ex.Message), "CandleManger_TimeCandleFinished");
+                LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Error, e.CloseTime, String.Format(@"Error occurred! Trading has stopped. \r\n {0}", ex.Message), "CandleManger_TimeCandleFinished");
             }
         }
         private async void TradeEntry(uint token, DateTime currentTime, decimal lastPrice)
@@ -385,12 +396,12 @@ namespace Algorithms.Algorithms
             {
                 //ENTRY ORDER - BUY ALERT
                 Order order = MarketOrders.PlaceOrder(_algoInstance, option.TradingSymbol, option.InstrumentType, lastPrice,
-                    token, true, TRADE_QTY * Convert.ToInt32(option.LotSize), currentTime, Constants.ORDER_TYPE_MARKET);
+                    token, true, TRADE_QTY * Convert.ToInt32(option.LotSize), algoIndex, currentTime, Constants.ORDER_TYPE_MARKET);
 
                 CriticalLevels cl = GetCriticalLevels(previousCandle);
 
                 Order slOrder = MarketOrders.PlaceOrder(_algoInstance, option.TradingSymbol, option.InstrumentType, cl.StopLossPrice,
-                    token, false, TRADE_QTY * Convert.ToInt32(option.LotSize), currentTime, Constants.ORDER_TYPE_SLM);
+                    token, false, TRADE_QTY * Convert.ToInt32(option.LotSize), algoIndex, currentTime, Constants.ORDER_TYPE_SLM);
 
                 tokenTradeLevels.Add(token, new OrderLevels { FirstLegOrder = order, SLOrder = slOrder, Levels = cl });
 
@@ -412,8 +423,8 @@ namespace Algorithms.Algorithms
             }
             else
             {
-                await LoggerCore.PublishLog(_algoInstance, LogLevel.Info, previousCandle.CloseTime, String.Format("13 EMA Formed: {0}.\r\n Candle Body {1}% above 13 EMA at {2}", lTokenEMA[token].IsFormed,
-                  (ema - previousCandle.OpenPrice)/ (previousCandle.ClosePrice - previousCandle.OpenPrice), ema), "TradeEntry");
+                LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Info, previousCandle.CloseTime, String.Format("13 EMA Formed: {0}.\r\n Candle Body {1}% above 13 EMA at {2}", lTokenEMA[token].IsFormed,
+                 string.Format("{0:N2}", (previousCandle.ClosePrice - ema) *100 / (previousCandle.ClosePrice - previousCandle.OpenPrice)) , Decimal.Round(ema,2)), "TradeEntry");
                 return false;
             }
         }
@@ -478,11 +489,11 @@ namespace Algorithms.Algorithms
             (OptionUniverse[(int)InstrumentType.CE].Keys.Last() <= _baseInstrumentPrice - _strikePriceIncrement * 2 || OptionUniverse[(int)InstrumentType.CE].Keys.First() >= _baseInstrumentPrice - _strikePriceIncrement * 0
                || OptionUniverse[(int)InstrumentType.PE].Keys.Last() <= _baseInstrumentPrice + _strikePriceIncrement * 0 || OptionUniverse[(int)InstrumentType.PE].Keys.First() >= _baseInstrumentPrice + _strikePriceIncrement * 2))
             {
-                await LoggerCore.PublishLog(_algoInstance, LogLevel.Info, currentTime, " Loading Tokens from database...", "LoadOptionsToTrade");
+                LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Info, currentTime, " Loading Tokens from database...", "LoadOptionsToTrade");
                 //Load options asynchronously
                 OptionUniverse = dl.LoadCloseByOptions(_expiryDate, _baseInstrumentToken, _baseInstrumentPrice);
 
-                await LoggerCore.PublishLog(_algoInstance, LogLevel.Info, currentTime, " Tokens Loaded", "LoadOptionsToTrade");
+                LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Info, currentTime, " Tokens Loaded", "LoadOptionsToTrade");
             }
 
                 //TODO: Check for exception if less than 2 items are available.
@@ -590,7 +601,7 @@ namespace Algorithms.Algorithms
 #if market
                         //DONOT PUT NEWEXIT ORDER . CHECK FOR SL HIT IN ZERADHA
                         //Check if sl order to executed
-                        Order order = MarketOrders.GetOrder(tt.SLOrder.OrderId, _algoInstance).Result;
+                        Order order = MarketOrders.GetOrder(tt.SLOrder.OrderId, _algoInstance, algoIndex).Result;
 #elif local
                         
                         Order order = tt.SLOrder;
@@ -603,9 +614,9 @@ namespace Algorithms.Algorithms
                         order.Status = "Complete";
 #endif
                         tokenTradeLevels.Remove(token);
-                        await LoggerCore.PublishLog(_algoInstance, LogLevel.Info, tick.LastTradeTime.Value, string.Format("Exited the trade @ {0}", order.AveragePrice), "TradeExit");
+                        LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Info, tick.LastTradeTime.Value, string.Format("Exited the trade @ {0}", order.AveragePrice), "TradeExit");
 
-                        MarketOrders.UpdateOrderDetails(_algoInstance, order);
+                        MarketOrders.UpdateOrderDetails(_algoInstance, algoIndex, order);
 
                         OnTradeExit(order);
                     }
@@ -689,22 +700,24 @@ namespace Algorithms.Algorithms
         private async void UpdateInstrumentSubscription(DateTime currentTime)
         {
             bool dataUpdated = false;
-
-            foreach (var options in OptionUniverse)
+            if (OptionUniverse != null)
             {
-                foreach (var option in options)
+                foreach (var options in OptionUniverse)
                 {
-                    if (!SubscriptionTokens.Contains(option.Value.InstrumentToken))
+                    foreach (var option in options)
                     {
-                        SubscriptionTokens.Add(option.Value.InstrumentToken);
-                        dataUpdated = true;
+                        if (!SubscriptionTokens.Contains(option.Value.InstrumentToken))
+                        {
+                            SubscriptionTokens.Add(option.Value.InstrumentToken);
+                            dataUpdated = true;
+                        }
                     }
                 }
-            }
-            if (dataUpdated)
-            {
-                await LoggerCore.PublishLog(_algoInstance, LogLevel.Info, currentTime, "Subscribing to new tokens", "UpdateInstrumentSubscription");
-                Task task = Task.Run(() => OnOptionUniverseChange(this));
+                if (dataUpdated)
+                {
+                    LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Info, currentTime, "Subscribing to new tokens", "UpdateInstrumentSubscription");
+                    Task task = Task.Run(() => OnOptionUniverseChange(this));
+                }
             }
         }
 
@@ -841,6 +854,20 @@ namespace Algorithms.Algorithms
             return Task.FromResult(true);
         }
 
+        private void CheckHealth(object sender, ElapsedEventArgs e)
+        {
+            //expecting atleast 30 ticks in 1 min
+            if (_healthCounter >= 30)
+            {
+                _healthCounter = 0;
+                LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Health, e.SignalTime, "1", "CheckHealth");
+            }
+            else
+            {
+                LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Health, e.SignalTime, "0", "CheckHealth");
+            }
+        }
+        
         /// <summary>
         /// Modify existing order. This is used to change the SL of existing order
         /// </summary>
@@ -861,60 +888,65 @@ namespace Algorithms.Algorithms
             string tradingSymbol = slOrder.Tradingsymbol;
 
             decimal sl = updatedCLsForSecondLeg.StopLossPrice;
+            
+            
+            
+            Order order = MarketOrders.ModifyOrder(_algoInstance, algoIndex, sl, slOrder, currentTime).Result;
+            
+            OnTradeEntry(order);
+            return order;
 
-            return MarketOrders.ModifyOrder(_algoInstance, sl, slOrder.OrderId, currentTime).Result;
+            //#if market
+            //            Dictionary<string, dynamic> orderStatus = ZObjects.kite.ModifyOrder(slOrder.OrderId, TriggerPrice: sl );
+            //            Order order = null;
+            //            if (orderStatus != null && orderStatus["data"]["order_id"] != null)
+            //            {
+            //                //order = new Order(orderStatus["data"]);
+            //                string orderId = orderStatus["data"]["order_id"];
+            //                order = GetOrder(orderId, true);
 
-//#if market
-//            Dictionary<string, dynamic> orderStatus = ZObjects.kite.ModifyOrder(slOrder.OrderId, TriggerPrice: sl );
-//            Order order = null;
-//            if (orderStatus != null && orderStatus["data"]["order_id"] != null)
-//            {
-//                //order = new Order(orderStatus["data"]);
-//                string orderId = orderStatus["data"]["order_id"];
-//                order = GetOrder(orderId, true);
+            //                //orderId = orderStatus["data"]["order_id"];
+            //                //orderTimestamp = Utils.StringToDate(orderStatus["data"]["order_timestamp"]);
+            //            }
 
-//                //orderId = orderStatus["data"]["order_id"];
-//                //orderTimestamp = Utils.StringToDate(orderStatus["data"]["order_timestamp"]);
-//            }
+            //#elif local
+            //            decimal currentPrice = sl;
+            //           // CurrentPostion = sl;
+            //            ///TEMP, REMOVE Later
+            //            //if (currentPrice == 0)
+            //            //{
+            //            //    DataLogic dl = new DataLogic();
+            //            //    currentPrice = dl.RetrieveLastPrice(instrumentToken, slOrder.OrderTimestamp, false);
+            //            //}
+            //            slOrder.AveragePrice = currentPrice;
+            //            slOrder.Price = currentPrice;
+            //            slOrder.TriggerPrice = currentPrice;
+            //            slOrder.ExchangeTimestamp = currentTime;
+            //            slOrder.OrderTimestamp = currentTime;
 
-//#elif local
-//            decimal currentPrice = sl;
-//           // CurrentPostion = sl;
-//            ///TEMP, REMOVE Later
-//            //if (currentPrice == 0)
-//            //{
-//            //    DataLogic dl = new DataLogic();
-//            //    currentPrice = dl.RetrieveLastPrice(instrumentToken, slOrder.OrderTimestamp, false);
-//            //}
-//            slOrder.AveragePrice = currentPrice;
-//            slOrder.Price = currentPrice;
-//            slOrder.TriggerPrice = currentPrice;
-//            slOrder.ExchangeTimestamp = currentTime;
-//            slOrder.OrderTimestamp = currentTime;
+            //            Order order = slOrder;
 
-//            Order order = slOrder;
-
-//#endif
+            //#endif
 
 
-//            //ShortTrade trade = new ShortTrade();
-//            //trade.InstrumentToken = instrument_Token;
-//            //trade.TradingSymbol = tradingSymbol;
-//            //trade.AveragePrice = order.AveragePrice;
-//            //trade.ExchangeTimestamp = tickTime;// DateTime.Now;
-//            //trade.TradeTime = orderTimestamp ?? tickTime ?? DateTime.Now;
-//            //trade.Quantity = quantity;
-//            //trade.OrderId = order.OrderId;
-//            //trade.TransactionType = buyOrder ? "Buy" : "Sell";
-//            //trade.TriggerID = Convert.ToInt32(AlgoIndex.VolumeThreshold);
-//            //trade.TradingStatus = buyOrder ? TradeStatus.Closed : TradeStatus.Open;
-//            //trade.InstrumentType = instrumenttype;
+            //            //ShortTrade trade = new ShortTrade();
+            //            //trade.InstrumentToken = instrument_Token;
+            //            //trade.TradingSymbol = tradingSymbol;
+            //            //trade.AveragePrice = order.AveragePrice;
+            //            //trade.ExchangeTimestamp = tickTime;// DateTime.Now;
+            //            //trade.TradeTime = orderTimestamp ?? tickTime ?? DateTime.Now;
+            //            //trade.Quantity = quantity;
+            //            //trade.OrderId = order.OrderId;
+            //            //trade.TransactionType = buyOrder ? "Buy" : "Sell";
+            //            //trade.TriggerID = Convert.ToInt32(AlgoIndex.VolumeThreshold);
+            //            //trade.TradingStatus = buyOrder ? TradeStatus.Closed : TradeStatus.Open;
+            //            //trade.InstrumentType = instrumenttype;
 
-//            //UpdateTradeDetails(strategyID: 0, instrument_Token, quantity, trade, Convert.ToInt32(trade.TriggerID));
+            //            //UpdateTradeDetails(strategyID: 0, instrument_Token, quantity, trade, Convert.ToInt32(trade.TriggerID));
 
-//            UpdateOrderDetails(order);
+            //            UpdateOrderDetails(order);
 
-//            return slOrder;
+            //            return slOrder;
         }
         
     }

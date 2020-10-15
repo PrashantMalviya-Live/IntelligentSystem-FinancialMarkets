@@ -6,6 +6,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="Protos\order.proto" />
+    <None Remove="Protos\serviceorder.proto" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Protobuf Include="Protos\log.proto" GrpcServices="Server" />
     <Protobuf Include="Protos\servicelog.proto" GrpcServices="Server" />
   </ItemGroup>
@@ -17,15 +22,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\GlobalLayer\GlobalLayer.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Update="client.ncconf">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="config.ncconf">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
   </ItemGroup>
 
 </Project>

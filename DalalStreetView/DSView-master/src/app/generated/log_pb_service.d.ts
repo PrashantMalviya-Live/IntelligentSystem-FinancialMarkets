@@ -18,6 +18,20 @@ export class Logger {
   static readonly Log: LoggerLog;
 }
 
+type OrderAlerterPublish = {
+  readonly methodName: string;
+  readonly service: typeof OrderAlerter;
+  readonly requestStream: true;
+  readonly responseStream: true;
+  readonly requestType: typeof src_app_protos_log_pb.PublishStatus;
+  readonly responseType: typeof src_app_protos_log_pb.OrderMessage;
+};
+
+export class OrderAlerter {
+  static readonly serviceName: string;
+  static readonly Publish: OrderAlerterPublish;
+}
+
 export type ServiceError = { message: string, code: number; metadata: grpc.Metadata }
 export type Status = { details: string, code: number; metadata: grpc.Metadata }
 
@@ -51,5 +65,12 @@ export class LoggerClient {
 
   constructor(serviceHost: string, options?: grpc.RpcOptions);
   log(metadata?: grpc.Metadata): BidirectionalStream<src_app_protos_log_pb.Status, src_app_protos_log_pb.LogMessage>;
+}
+
+export class OrderAlerterClient {
+  readonly serviceHost: string;
+
+  constructor(serviceHost: string, options?: grpc.RpcOptions);
+  publish(metadata?: grpc.Metadata): BidirectionalStream<src_app_protos_log_pb.PublishStatus, src_app_protos_log_pb.OrderMessage>;
 }
 

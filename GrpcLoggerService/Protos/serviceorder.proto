@@ -1,0 +1,36 @@
+﻿syntax = "proto3";
+
+option csharp_namespace = "GrpcPeerOrderService";
+
+import "google/protobuf/timestamp.proto";
+
+package ordering;
+
+
+
+// The ordering service definition.
+service OrderAlerter {
+  rpc Publish (OrderMessage) returns (PublishStatus);
+}
+
+// The response message containing the log messages
+message OrderMessage {
+	string orderid = 1;
+	uint32 instrumentToken = 2;
+	string tradingSymbol = 3;  
+	string transactionType = 4;  
+	double price = 5;  
+	int32 quantity = 6;  
+	double triggerPrice = 7;  
+	string status = 8;  
+	string statusMessage = 9;  
+	string algorithm = 10;  
+	int32 algoInstance = 11;  
+	google.protobuf.Timestamp  orderTime = 12;  
+	string orderType = 13;
+}
+
+// The response message containing the log messages
+message PublishStatus {
+  bool status = 1;
+}

@@ -20,7 +20,7 @@ namespace GlobalLayer
          }
          public static void LogWrite(string logMessage)
          {
-             m_exePath  = @"D:\\Prashant\Intelligent Software\\2019\\MarketData\\Logs";
+             m_exePath  = @"D:\\Prashant\\IntelligentSoftware\\2020\\Logs";
              try
              {
                  using (StreamWriter w = File.AppendText(m_exePath + "\\" + "log.txt"))

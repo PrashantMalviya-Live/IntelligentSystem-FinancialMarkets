@@ -38,6 +38,7 @@ namespace TradeEMACross
             services.AddControllers();
 
             services.AddSingleton<ILoggerService, LoggerService>();
+            services.AddSingleton<IOrderService, OrderService>();
 
         }
 

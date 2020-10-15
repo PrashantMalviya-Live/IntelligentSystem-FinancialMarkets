@@ -8,7 +8,7 @@ using System.Configuration;
 using GlobalLayer;
 using DataAccess;
 using ZMQFacade;
-
+using GlobalCore;
 namespace KiteConnect
 {
     /// <summary>
@@ -34,6 +34,10 @@ namespace KiteConnect
         // A watchdog timer for monitoring the connection of ticker.
         System.Timers.Timer _timer;
         int _timerTick = 5;
+
+        private System.Timers.Timer _healthCheckTimer;
+        private int _healthCounter = 0;
+
 
         // Instance of WebSocket class that wraps .Net version
         private IWebSocket _ws;
@@ -151,6 +155,11 @@ namespace KiteConnect
             _interval = ReconnectInterval;
             _timerTick = ReconnectInterval;
             _retries = ReconnectTries;
+
+            _healthCheckTimer = new System.Timers.Timer(interval: 1 * 60 * 1000);
+            _healthCheckTimer.Elapsed += CheckHealth;
+            _healthCheckTimer.Start();
+
             if (!String.IsNullOrEmpty(Root))
                 _root = Root;
             _isReconnect = Reconnect;
@@ -179,16 +188,18 @@ namespace KiteConnect
             zmqServer = new ZMQServer();
 
 
-            
-            if (ConfigurationManager.AppSettings["storeticks"] == "true")
-            {
-                _storeTicks = true;
-            }
-            if (ConfigurationManager.AppSettings["storecandles"] == "true")
-            {
-                _storeCandles = true;
-            }
-            storage = new Storage(_storeTicks, _storeCandles);
+
+            //if (ConfigurationManager.AppSettings["storeticks"] == "true")
+            //{
+            //    _storeTicks = true;
+            //}
+            //if (ConfigurationManager.AppSettings["storecandles"] == "true")
+            //{
+            //    _storeCandles = true;
+            //}
+            //storage = new Storage(_storeTicks, _storeCandles);
+            _storeTicks = true; _storeCandles = false;
+            storage = new Storage(true, false);
         }
 
         private void _onError(string Message)
@@ -413,6 +424,7 @@ namespace KiteConnect
                     }
 
                     zmqServer.PublishAllTicks(ticks);
+                    Interlocked.Increment(ref _healthCounter);
                 }
             }
             else if (MessageType == "Text")
@@ -434,6 +446,21 @@ namespace KiteConnect
                 Close();
             }
 
+        }
+
+        private void CheckHealth(object sender, System.Timers.ElapsedEventArgs e)
+        {
+            //expecting atleast 30 ticks in 1 min
+            if (_healthCounter >= 30)
+            {
+                _healthCounter = 0;
+
+                LoggerCore.PublishLog(Constants.MARKET_DATA_SERVICE_INSTANCE, AlgoIndex.KiteConnect, LogLevel.Health, e.SignalTime, "1", "CheckHealth");
+            }
+            else
+            {
+                LoggerCore.PublishLog(Constants.MARKET_DATA_SERVICE_INSTANCE, AlgoIndex.KiteConnect, LogLevel.Health, e.SignalTime, "0", "CheckHealth");
+            }
         }
 
         private void _onTimerTick(object sender, System.Timers.ElapsedEventArgs e)

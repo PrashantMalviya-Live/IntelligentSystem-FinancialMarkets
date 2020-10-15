@@ -102,6 +102,10 @@ namespace GlobalLayer
         public const int LOW = 1;
         public const int HIGH = 2;
 
+        //app instance for market data service
+        public const int MARKET_DATA_SERVICE_INSTANCE = -99;
+        public const string HEALTH_CHECK_LOG_LEVEL = "STOPPED";
+
         public class TIBCO
         {
             public const string FTLRealmServer = "http://localhost:8585";
@@ -116,6 +120,7 @@ namespace GlobalLayer
         public const string StangleValueManager = "http://*:8084";
         public const string OptionOptimizer = "http://*:8085";
         public const string StoreData = "http://*:8086";
+        public const string MarketView = "http://*:8087";
     }
 
    

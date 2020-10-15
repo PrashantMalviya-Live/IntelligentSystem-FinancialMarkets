@@ -119,9 +119,10 @@ namespace Algos.TLogics
             candleManger.TimeCandleFinished += CandleManger_TimeCandleFinished;
             
             _stopTrade = false;
-            
-            _algoInstance = Utility.GenerateAlgoInstance(algoIndex, endTime);
-            ZConnect.ZerodhaLogin();
+
+            _algoInstance = Utility.GenerateAlgoInstance(algoIndex, _baseInstrumentToken,
+                endTime, expiry.Value, QUANTITY, candleTimeFrameInMins: (float)candleTimeSpan.TotalMinutes, candleType: CandleType.Time);
+           // ZConnect.ZerodhaLogin();
         }
 
 
@@ -141,11 +142,11 @@ namespace Algos.TLogics
             (OptionUniverse[(int)InstrumentType.CE].Keys.First() >= _baseInstrumentPrice + maxDistanceFromBaseInstrument || OptionUniverse[(int)InstrumentType.CE].Keys.Last() <= _baseInstrumentPrice - _strikePriceIncrement * 0
                || OptionUniverse[(int)InstrumentType.PE].Keys.First() >= _baseInstrumentPrice - _strikePriceIncrement * 0 || OptionUniverse[(int)InstrumentType.PE].Keys.Last() <= _baseInstrumentPrice - maxDistanceFromBaseInstrument))
             {
-                await LoggerCore.PublishLog(_algoInstance, LogLevel.Info, currentTime, " Loading Tokens from database...", "LoadOptionsToTrade");
+                LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Info, currentTime, " Loading Tokens from database...", "LoadOptionsToTrade");
                 //Load options asynchronously
                 OptionUniverse = dl.LoadCloseByOptions(_expiryDate, _baseInstrumentToken, _baseInstrumentPrice);
 
-                await LoggerCore.PublishLog(_algoInstance, LogLevel.Info, currentTime, " Tokens Loaded", "LoadOptionsToTrade");
+                LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Info, currentTime, " Tokens Loaded", "LoadOptionsToTrade");
 
             }
 
@@ -234,7 +235,7 @@ namespace Algos.TLogics
                 Logger.LogWrite(ex.StackTrace);
                 Logger.LogWrite("Closing Application");
                 //throw new Exception("Trading Stopped as algo encountered an error. Check log file for details");
-                await LoggerCore.PublishLog(_algoInstance, LogLevel.Error, currentTime, String.Format(@"Error occurred! Trading has stopped. \r\n {0}", ex.Message), "ActiveTradeIntraday");
+                LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Error, currentTime, String.Format(@"Error occurred! Trading has stopped. \r\n {0}", ex.Message), "ActiveTradeIntraday");
                 //Environment.Exit(0);
                 throw ex;
             }
@@ -266,7 +267,7 @@ namespace Algos.TLogics
                 {
                     PlaceTrailingOrder(tradedCE, atmCE, tick, InstrumentType.CE);
                     tradedCE.TradingStatus = PositionStatus.Closed;
-                    //await LoggerCore.PublishLog(_algoInstance, LogLevel.Info, tick.Timestamp.Value, "Trailing Order placed", "TrailMarket");
+                    //LoggerCore.PublishLog(_algoInstance, LogLevel.Info, tick.Timestamp.Value, "Trailing Order placed", "TrailMarket");
                 }
                 else if (tradedPE != null && tradedPE.Option.Strike < _baseInstrumentPrice - MAX_DISTANCE_FOR_TRAIL
                     && tokenRSI.TryGetValue(atmPE.InstrumentToken, out pe_rsi) && tokenRSI.TryGetValue(atmCE.InstrumentToken, out ce_rsi)
@@ -274,7 +275,7 @@ namespace Algos.TLogics
                 {
                     PlaceTrailingOrder(tradedPE, atmPE, tick, InstrumentType.PE);
                     tradedPE.TradingStatus = PositionStatus.Closed;
-                    //await LoggerCore.PublishLog(_algoInstance, LogLevel.Info, tick.Timestamp.Value, "Trailing Order placed", "TrailMarket");
+                    //LoggerCore.PublishLog(_algoInstance, LogLevel.Info, tick.Timestamp.Value, "Trailing Order placed", "TrailMarket");
                 }
             }
         }
@@ -404,7 +405,7 @@ namespace Algos.TLogics
 
                 if (candleStartTime.HasValue)
                 {
-                    await LoggerCore.PublishLog(_algoInstance, LogLevel.Info, tick.Timestamp.Value, "Starting first Candle now", "MonitorCandles");
+                    LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Info, tick.Timestamp.Value, "Starting first Candle now", "MonitorCandles");
                     //candle starts from there
                     candleManger.StreamingShortTimeFrameCandle(tick, token, _candleTimeSpan, true, candleStartTime); // TODO: USING LOCAL VERSION
                 }
@@ -492,7 +493,7 @@ namespace Algos.TLogics
                     if ((firstCandleFormed == 1 || !_firstCandleOpenPriceNeeded[tkn]) && tokenRSI.ContainsKey(tkn))
                     {
                         _RSILoaded.Add(tkn);
-                    await LoggerCore.PublishLog(_algoInstance, LogLevel.Info, currentTime, String.Format("RSI loaded from DB for {0}", tkn), "MonitorCandles");
+                    LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Info, currentTime, String.Format("RSI loaded from DB for {0}", tkn), "MonitorCandles");
                 }
                     //}
                // }
@@ -647,7 +648,7 @@ namespace Algos.TLogics
                 }
             if (dataUpdated)
             {
-                await LoggerCore.PublishLog(_algoInstance, LogLevel.Info, currentTime, "Subscribing to new tokens", "UpdateInstrumentSubscription");
+                LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Info, currentTime, "Subscribing to new tokens", "UpdateInstrumentSubscription");
                 Task task = Task.Run(() => OnOptionUniverseChange(this));
             }
         }

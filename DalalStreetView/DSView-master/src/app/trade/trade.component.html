@@ -1,186 +1,198 @@
 <div class="container" style="display:flex;flex-direction:row;flex:0 0 100%">
   <div class="trade-input" style="width:30%; margin-top:20px">
     <mat-card>
-      
-        <!--<div class="inputvals" style="display:flex;flex-direction:column;margin-top:20px">
-          <h2 style="margin-left:20px">Strangles (short)</h2>
-          <div style="display:flex;justify-content:space-around">
-            <div>
-              <mat-form-field appearance="fill">
-                <mat-label>Base Instrument</mat-label>
-                <mat-select [(ngModel)]="selectedInstrument.instrumentToken" name="inst" (selectionChange)="onSelectInstrument($event)">
-                  <mat-option *ngFor="let inst of instrument" [value]="inst.instrumentToken">
-                    {{inst.tradingSymbol}}
-                  </mat-option>
-                </mat-select>
-              </mat-form-field>
-            </div>
-            <div>
-              <mat-form-field appearance="fill">
-                <mat-label>Expiry</mat-label>
-                <mat-select (selectionChange)="onSelectExpiry($event)">
-                  <mat-option *ngFor="let exp of expiry" [value]="exp">
-                    {{exp}}
-                  </mat-option>
-                </mat-select>
-              </mat-form-field>
-            </div>
-          </div>-->
-          <!--<div style="display:none;justify-content:space-around">
-            <mat-form-field appearance="fill">
-              <mat-label>Call</mat-label>
-              <mat-select (selectionChange)="onSelectCall($event)">
-                <mat-option *ngFor="let c of call" [value]="c.tradingSymbol">
-                  {{c.strike}}
-                </mat-option>
-              </mat-select>
-            </mat-form-field>
-            <p><b>Call:&nbsp;</b>{{selectedCallValue}}</p>
 
-            <mat-form-field appearance="fill">
-              <mat-label>Put</mat-label>
-              <mat-select (selectionChange)="onSelectPut($event)">
-                <mat-option *ngFor="let p of put" [value]="p.tradingSymbol">
-                  {{p.strike}}
-                </mat-option>
-              </mat-select>
-            </mat-form-field>
-            <p><b>Put:&nbsp;</b>{{selectedPutValue}}</p>
-          </div>-->
-
-        <!--</div>-->
-        <div class="algorithms" style="display:flex;flex-direction:column">
-          <h2 style="margin-left:20px">Algorithms</h2>
-          <mat-accordion class="example-headers-align">
-            <mat-expansion-panel (opened)="panelOpenState = true" (closed)="panelOpenState = false">
-              <mat-expansion-panel-header>
-                <mat-panel-title>
-                  Momentum Trade - Options
-                </mat-panel-title>
-              </mat-expansion-panel-header>
-              <!--<mat-grid-list cols="2" rowHeight="4:1">-->
-              <form [formGroup]="momentumTradeOptionsForm" (ngSubmit)="executeAlgo()">
-                <div style="display:flex;justify-content:space-around">
-                  <mat-form-field appearance="fill">
-                    <mat-label>Base Instrument</mat-label>
-                    <mat-select [(ngModel)]="selectedInstrument.instrumentToken" name="inst" (selectionChange)="onSelectInstrument($event)">
-                      <mat-option *ngFor="let inst of instrument" [value]="inst.instrumentToken">
-                        {{inst.tradingSymbol}}
-                      </mat-option>
-                    </mat-select>
-                  </mat-form-field>
-                  <mat-form-field appearance="fill">
-                    <mat-label>Expiry</mat-label>
-                    <mat-select (selectionChange)="onSelectExpiry($event)">
-                      <mat-option *ngFor="let exp of expiry" [value]="exp">
-                        {{exp}}
-                      </mat-option>
-                    </mat-select>
-                  </mat-form-field>
-                  </div>
-                  <div style="display:flex;justify-content:space-around">
-                    <mat-form-field appearance="fill"><input type="number" matInput placeholder="Candle Time (in mins)" formControlName="ctf"></mat-form-field>
-                    <mat-form-field appearance="fill"><input type="number" matInput placeholder="Quantity (in lots)" formControlName="quantity"></mat-form-field>
-                  </div>
-
-                  <!--</mat-grid-list>-->
-                  <div class="example-button-row">
-                    <button type="submit" mat-raised-button color="primary">Trade</button>
-                  </div>
-            </form>
-            </mat-expansion-panel>
-
-            <mat-expansion-panel (opened)="panelOpenState = true" (closed)="panelOpenState = false">
-              <mat-expansion-panel-header>
-                <mat-panel-title>
-                  Expiry Trade
-                </mat-panel-title>
-              </mat-expansion-panel-header>
-              <mat-grid-list cols="2" rowHeight="4:1">
-                <mat-grid-tile><mat-form-field><input matInput placeholder="Value1"></mat-form-field></mat-grid-tile>
-                <mat-grid-tile><mat-form-field><input matInput placeholder="Value2"></mat-form-field></mat-grid-tile>
-                <mat-grid-tile><mat-form-field><input matInput placeholder="Value3"></mat-form-field></mat-grid-tile>
-                <mat-grid-tile><mat-form-field><input matInput placeholder="Value4"></mat-form-field></mat-grid-tile>
-              </mat-grid-list>
-            </mat-expansion-panel>
-
-            <mat-expansion-panel (opened)="panelOpenState = true" (closed)="panelOpenState = false">
-              <mat-expansion-panel-header>
-                <mat-panel-title>
-                  Active Buyback
-                </mat-panel-title>
-              </mat-expansion-panel-header>
-              <mat-grid-list cols="2" rowHeight="4:1">
-                <mat-grid-tile><mat-form-field><input matInput placeholder="Value1"></mat-form-field></mat-grid-tile>
-                <mat-grid-tile><mat-form-field><input matInput placeholder="Value2"></mat-form-field></mat-grid-tile>
-                <mat-grid-tile><mat-form-field><input matInput placeholder="Value3"></mat-form-field></mat-grid-tile>
-                <mat-grid-tile><mat-form-field><input matInput placeholder="Value4"></mat-form-field></mat-grid-tile>
-              </mat-grid-list>
-            </mat-expansion-panel>
-
-            <mat-expansion-panel (opened)="panelOpenState = true" (closed)="panelOpenState = false">
-              <mat-expansion-panel-header>
-                <mat-panel-title>
-                  Strangle - Delta Neutral
-                </mat-panel-title>
-              </mat-expansion-panel-header>
-              <mat-grid-list cols="2" rowHeight="4:1">
-                <mat-grid-tile><mat-form-field><input matInput placeholder="Value1"></mat-form-field></mat-grid-tile>
-                <mat-grid-tile><mat-form-field><input matInput placeholder="Value2"></mat-form-field></mat-grid-tile>
-                <mat-grid-tile><mat-form-field><input matInput placeholder="Value3"></mat-form-field></mat-grid-tile>
-                <mat-grid-tile><mat-form-field><input matInput placeholder="Value4"></mat-form-field></mat-grid-tile>
-              </mat-grid-list>
-            </mat-expansion-panel>
-
-            <mat-expansion-panel (opened)="panelOpenState = true" (closed)="panelOpenState = false">
-              <mat-expansion-panel-header>
-                <mat-panel-title>
-                  Strangle - Constant Width
-                </mat-panel-title>
-              </mat-expansion-panel-header>
-              <mat-grid-list cols="2" rowHeight="4:1">
-                <mat-grid-tile><mat-form-field><input matInput placeholder="Value1"></mat-form-field></mat-grid-tile>
-                <mat-grid-tile><mat-form-field><input matInput placeholder="Value2"></mat-form-field></mat-grid-tile>
-                <mat-grid-tile><mat-form-field><input matInput placeholder="Value3"></mat-form-field></mat-grid-tile>
-                <mat-grid-tile><mat-form-field><input matInput placeholder="Value4"></mat-form-field></mat-grid-tile>
-              </mat-grid-list>
-            </mat-expansion-panel>
-
-            <mat-expansion-panel (opened)="panelOpenState = true" (closed)="panelOpenState = false">
-              <mat-expansion-panel-header>
-                <mat-panel-title>
-                  Momentum Trade - Volume
-                </mat-panel-title>
-              </mat-expansion-panel-header>
-              <mat-grid-list cols="2" rowHeight="4:1">
-                <mat-grid-tile><mat-form-field><input matInput placeholder="Value1"></mat-form-field></mat-grid-tile>
-                <mat-grid-tile><mat-form-field><input matInput placeholder="Value2"></mat-form-field></mat-grid-tile>
-                <mat-grid-tile><mat-form-field><input matInput placeholder="Value3"></mat-form-field></mat-grid-tile>
-                <mat-grid-tile><mat-form-field><input matInput placeholder="Value4"></mat-form-field></mat-grid-tile>
-              </mat-grid-list>
-            </mat-expansion-panel>
-          </mat-accordion>
-
+      <!--<div class="inputvals" style="display:flex;flex-direction:column;margin-top:20px">
+      <h2 style="margin-left:20px">Strangles (short)</h2>
+      <div style="display:flex;justify-content:space-around">
+        <div>
+          <mat-form-field appearance="fill">
+            <mat-label>Base Instrument</mat-label>
+            <mat-select [(ngModel)]="selectedInstrument.instrumentToken" name="inst" (selectionChange)="onSelectInstrument($event)">
+              <mat-option *ngFor="let inst of instrument" [value]="inst.instrumentToken">
+                {{inst.tradingSymbol}}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
         </div>
-      
+        <div>
+          <mat-form-field appearance="fill">
+            <mat-label>Expiry</mat-label>
+            <mat-select (selectionChange)="onSelectExpiry($event)">
+              <mat-option *ngFor="let exp of expiry" [value]="exp">
+                {{exp}}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+        </div>
+      </div>-->
+      <!--<div style="display:none;justify-content:space-around">
+        <mat-form-field appearance="fill">
+          <mat-label>Call</mat-label>
+          <mat-select (selectionChange)="onSelectCall($event)">
+            <mat-option *ngFor="let c of call" [value]="c.tradingSymbol">
+              {{c.strike}}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+        <p><b>Call:&nbsp;</b>{{selectedCallValue}}</p>
+
+        <mat-form-field appearance="fill">
+          <mat-label>Put</mat-label>
+          <mat-select (selectionChange)="onSelectPut($event)">
+            <mat-option *ngFor="let p of put" [value]="p.tradingSymbol">
+              {{p.strike}}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+        <p><b>Put:&nbsp;</b>{{selectedPutValue}}</p>
+      </div>-->
+      <!--</div>-->
+      <div class="algorithms" style="display:flex;flex-direction:column">
+        <h2 style="margin-left:20px">Algorithms</h2>
+        <mat-accordion class="example-headers-align">
+          <mat-expansion-panel (opened)="panelOpenState = true" (closed)="panelOpenState = false">
+            <mat-expansion-panel-header>
+              <mat-panel-title>
+                Momentum Trade - Options
+              </mat-panel-title>
+            </mat-expansion-panel-header>
+            <!--<mat-grid-list cols="2" rowHeight="4:1">-->
+            <form [formGroup]="momentumTradeOptionsForm" (ngSubmit)="executeAlgo()">
+              <div style="display:flex;justify-content:space-around">
+                <mat-form-field appearance="fill">
+                  <mat-label>Base Instrument</mat-label>
+                  <mat-select [(ngModel)]="selectedInstrument.instrumentToken" name="inst" (selectionChange)="onSelectInstrument($event)">
+                    <mat-option *ngFor="let inst of instrument" [value]="inst.instrumentToken">
+                      {{inst.tradingSymbol}}
+                    </mat-option>
+                  </mat-select>
+                </mat-form-field>
+                <mat-form-field appearance="fill">
+                  <mat-label>Expiry</mat-label>
+                  <mat-select (selectionChange)="onSelectExpiry($event)">
+                    <mat-option *ngFor="let exp of expiry" [value]="exp">
+                      {{exp}}
+                    </mat-option>
+                  </mat-select>
+                </mat-form-field>
+              </div>
+              <div style="display:flex;justify-content:space-around">
+                <mat-form-field appearance="fill"><input type="number" matInput placeholder="Candle Time (in mins)" formControlName="ctf"></mat-form-field>
+                <mat-form-field appearance="fill"><input type="number" matInput placeholder="Quantity (in lots)" formControlName="quantity"></mat-form-field>
+              </div>
+
+              <!--</mat-grid-list>-->
+              <div class="example-button-row">
+                <button type="submit" mat-raised-button color="primary">Trade</button>
+              </div>
+            </form>
+          </mat-expansion-panel>
+
+          <mat-expansion-panel (opened)="panelOpenState = true" (closed)="panelOpenState = false">
+            <mat-expansion-panel-header>
+              <mat-panel-title>
+                Expiry Trade
+              </mat-panel-title>
+            </mat-expansion-panel-header>
+            <mat-grid-list cols="2" rowHeight="4:1">
+              <mat-grid-tile><mat-form-field><input matInput placeholder="Value1"></mat-form-field></mat-grid-tile>
+              <mat-grid-tile><mat-form-field><input matInput placeholder="Value2"></mat-form-field></mat-grid-tile>
+              <mat-grid-tile><mat-form-field><input matInput placeholder="Value3"></mat-form-field></mat-grid-tile>
+              <mat-grid-tile><mat-form-field><input matInput placeholder="Value4"></mat-form-field></mat-grid-tile>
+            </mat-grid-list>
+          </mat-expansion-panel>
+
+          <mat-expansion-panel (opened)="panelOpenState = true" (closed)="panelOpenState = false">
+            <mat-expansion-panel-header>
+              <mat-panel-title>
+                Active Buyback
+              </mat-panel-title>
+            </mat-expansion-panel-header>
+            <mat-grid-list cols="2" rowHeight="4:1">
+              <mat-grid-tile><mat-form-field><input matInput placeholder="Value1"></mat-form-field></mat-grid-tile>
+              <mat-grid-tile><mat-form-field><input matInput placeholder="Value2"></mat-form-field></mat-grid-tile>
+              <mat-grid-tile><mat-form-field><input matInput placeholder="Value3"></mat-form-field></mat-grid-tile>
+              <mat-grid-tile><mat-form-field><input matInput placeholder="Value4"></mat-form-field></mat-grid-tile>
+            </mat-grid-list>
+          </mat-expansion-panel>
+
+          <mat-expansion-panel (opened)="panelOpenState = true" (closed)="panelOpenState = false">
+            <mat-expansion-panel-header>
+              <mat-panel-title>
+                Strangle - Delta Neutral
+              </mat-panel-title>
+            </mat-expansion-panel-header>
+            <mat-grid-list cols="2" rowHeight="4:1">
+              <mat-grid-tile><mat-form-field><input matInput placeholder="Value1"></mat-form-field></mat-grid-tile>
+              <mat-grid-tile><mat-form-field><input matInput placeholder="Value2"></mat-form-field></mat-grid-tile>
+              <mat-grid-tile><mat-form-field><input matInput placeholder="Value3"></mat-form-field></mat-grid-tile>
+              <mat-grid-tile><mat-form-field><input matInput placeholder="Value4"></mat-form-field></mat-grid-tile>
+            </mat-grid-list>
+          </mat-expansion-panel>
+
+          <mat-expansion-panel (opened)="panelOpenState = true" (closed)="panelOpenState = false">
+            <mat-expansion-panel-header>
+              <mat-panel-title>
+                Strangle - Constant Width
+              </mat-panel-title>
+            </mat-expansion-panel-header>
+            <mat-grid-list cols="2" rowHeight="4:1">
+              <mat-grid-tile><mat-form-field><input matInput placeholder="Value1"></mat-form-field></mat-grid-tile>
+              <mat-grid-tile><mat-form-field><input matInput placeholder="Value2"></mat-form-field></mat-grid-tile>
+              <mat-grid-tile><mat-form-field><input matInput placeholder="Value3"></mat-form-field></mat-grid-tile>
+              <mat-grid-tile><mat-form-field><input matInput placeholder="Value4"></mat-form-field></mat-grid-tile>
+            </mat-grid-list>
+          </mat-expansion-panel>
+
+          <mat-expansion-panel (opened)="panelOpenState = true" (closed)="panelOpenState = false">
+            <mat-expansion-panel-header>
+              <mat-panel-title>
+                Momentum Trade - Volume
+              </mat-panel-title>
+            </mat-expansion-panel-header>
+            <mat-grid-list cols="2" rowHeight="4:1">
+              <mat-grid-tile><mat-form-field><input matInput placeholder="Value1"></mat-form-field></mat-grid-tile>
+              <mat-grid-tile><mat-form-field><input matInput placeholder="Value2"></mat-form-field></mat-grid-tile>
+              <mat-grid-tile><mat-form-field><input matInput placeholder="Value3"></mat-form-field></mat-grid-tile>
+              <mat-grid-tile><mat-form-field><input matInput placeholder="Value4"></mat-form-field></mat-grid-tile>
+            </mat-grid-list>
+          </mat-expansion-panel>
+        </mat-accordion>
+
+      </div>
+
       <button style="margin-top:30px" (click)="getLog()" mat-raised-button color="primary">Buy/Sell</button>
+
+      <button style="margin-top:30px" (click)="startdsservice()" mat-raised-button [color]="gethealthstatus(-99) ? 'primary':'warn'">Ticker Service</button>
     </mat-card>
   </div>
+
   <div class="trade-view" style="width:70%;margin-top:20px">
     <h2 style="margin-left:20px">Active Algorithms</h2>
     <mat-accordion class="example-headers-align">
-      <mat-expansion-panel (opened)="panelOpenState = true" *ngFor="let order of activeOrders" (closed)="panelOpenState = false">
+      <mat-expansion-panel (opened)="panelOpenState = true" *ngFor="let activeAlgo of activeAlgos" (closed)="panelOpenState = false">
         <mat-expansion-panel-header>
-          
+
           <mat-panel-title>
-            <p>   {{order[0].algorithm}} <span matBadge={{order.length}} matBadgeSize="1px" matBadgeColor="accent" matBadgeOverlap="false"> </span> </p>
-            
+            <p>{{activeAlgo.an}} <span matBadge={{activeAlgo.orders.length}} matBadgeSize="1px" matBadgeColor="accent" matBadgeOverlap="true"> </span></p>
+
+              <div class="warn-button-container" *ngIf ="!gethealthstatus(activeAlgo.aIns)">
+                <button mat-mini-fab class="button-fab" color="warn" mat-mini-fab-size="1px" aria-label="primary button">
+                  <!--<mat-icon>filter_list</mat-icon>-->
+                </button>
+              </div>
+              <div class="warn-button-container" *ngIf ="gethealthstatus(activeAlgo.aIns)">
+                <button mat-mini-fab class="button-fab" color="primary" mat-mini-fab-size="1px" aria-label="warn button">
+                </button>
+              </div>
+
           </mat-panel-title>
         </mat-expansion-panel-header>
         <mat-card>
-          <mat-tab-group animationDuration="0ms" selectedTabChange ="getExchangeData()">
+          <mat-tab-group animationDuration="0ms" selectedTabChange="getExchangeData()">
             <mat-tab label="Orders">
-              <mat-table [dataSource]="order" class="mat-elevation-z8">
+              <mat-table [dataSource]="activeAlgo.orders" class="mat-elevation-z8">
 
                 <!-- Position Column -->
                 <ng-container matColumnDef="orderTime">
@@ -219,9 +231,9 @@
                 </ng-container>
 
                 <!-- Algo name Column -->
-                <ng-container matColumnDef="algorithm">
+                <ng-container matColumnDef="status">
                   <mat-header-cell *matHeaderCellDef> Algorithm </mat-header-cell>
-                  <mat-cell *matCellDef="let element"> {{element.algorithm}} </mat-cell>
+                  <mat-cell *matCellDef="let element"> {{element.status}} </mat-cell>
                 </ng-container>
 
                 <mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></mat-header-row>
@@ -230,11 +242,11 @@
             </mat-tab>
             <mat-tab label="Log">
               <!--Logger-->
-              <div  *ngIf="logs !== undefined">
-                <mat-card [dataSource]="logs" *ngFor="let log of logs">
-                  <div *ngIf="logs[0].algoInstance == order[0].algoInstance">
-                    {{ log.message }}
-                  </div>
+              <div *ngIf="logs !== undefined">
+                <mat-card [dataSource]="logs" *ngFor="let log of filterLogsOfType(activeAlgo)">
+                  <!--<div *ngIf="log.algoInstance == activeAlgo.aIns">-->
+                  {{ log.messengerMethod }} @ {{ log.logTime.seconds * 1000 |  date:'short' }} : {{ log.message }}
+                  <!--</div>-->
                 </mat-card>
               </div>
             </mat-tab>

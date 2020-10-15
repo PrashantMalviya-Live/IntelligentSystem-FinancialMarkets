@@ -13,7 +13,7 @@ using GrpcPeerLoggerService;
 
 namespace GrpcLoggerService
 {
-    public class LoggerService : Logger.LoggerBase , ILoggerService
+    public class LoggerService : Logger.LoggerBase, ILoggerService
     {
         public static LogMessage CurrentLogMessage { get; set; }
 

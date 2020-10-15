@@ -15,11 +15,35 @@ namespace ZConnectWrapper
         public static string MyAPIKey = "af61rvtidnnnyp8p";
         //static string MySecret = "if1ur4umqitbi8kotw95iyuhuinlcj0i";
         // persist these data in settings or db or file
-        public static string MyAccessToken = "UzC9W0dzS1IgVmKHFhB6yn5cA7CQUW3r";
+        public static string UserAccessToken = "RKBY8vTVyU5DRIWQmSd1BHVo7FVhyEuJ";
         public static string CurrentUser = "Prashant Malviya";
         public static string RequestToken = "";
 
-        public static bool ZerodhaLogin(string requestToken = "")
+        public static bool Login(User user)
+        {
+            ZObjects.kite = new Kite(user.APIKey, Debug: true);
+
+            // For handling 403 errors
+            ZObjects.kite.SetSessionExpiryHook(OnTokenExpire);
+
+            UserAccessToken = user.AccessToken;
+            // Initializes the login flow
+
+            try
+            {
+                ZObjects.kite.SetAccessToken(user.AccessToken);
+                Logger.LogWrite("User logged In");
+                return true;
+            }
+            catch (Exception e)
+            {
+                // Cannot continue without proper authentication
+                Logger.LogWrite(e.Message);
+                // Environment.Exit(0);
+            }
+            return false;
+        }
+        public static bool ZerodhaLogin(string _accessToken = "")
         {
             ZObjects.kite = new Kite(MyAPIKey, Debug: true);
 
@@ -30,8 +54,7 @@ namespace ZConnectWrapper
 
             try
             {
-                InitSession();
-                ZObjects.kite.SetAccessToken(MyAccessToken);
+                ZObjects.kite.SetAccessToken(UserAccessToken);
             }
             catch (Exception e)
             {
@@ -43,51 +66,10 @@ namespace ZConnectWrapper
 
             return true;
         }
-        private static void InitSession()
-        {
-            //string loginUrl = ZObjects.kite.GetLoginURL();
-            //string apiRequestToken = Response(loginUrl);
-
-            //Console.WriteLine("Goto " + Global.kite.GetLoginURL());
-            //Console.WriteLine("Enter request token: ");
-
-            //string requestToken = Console.ReadLine();
-            //  if (requestToken != "")
-            // {
-            //      RequestToken = requestToken;
-            // }
-
-            //apiRequestToken = "vG9OYZYLtLCYlfROu1oSCogM46yextWn";
-            //User user = ZObjects.kite.GenerateSession(apiRequestToken, MySecret);
-
-            //CurrentUser = user.UserName;
-            //Console.WriteLine(Utils.JsonSerialize(user));
-
-            //MyAccessToken =  //ConfigurationManager.AppSettings["appsecret"];
-
-            //MyAccessToken = "XUO8MEj980hRixFV2PWjtyl5jB73I1Ip";//user.AccessToken;
-            //MyPublicToken = user.PublicToken;
-        }
         private static void OnTokenExpire()
         {
             Logger.LogWrite("Need to login again");
         }
-
-        //public void LoginUser()
-        //{
-        //    string loginUrl = ZObjects.kite.GetLoginURL();
-        //    string apiRequestToken = Response(loginUrl);
-
-        //    ZerodhaLogin(apiRequestToken);
-
-        //    //if (apiRequestToken != "")
-        //    //{
-        //    //    User user = GlobalObjects.kite.GenerateSession(apiRequestToken, MySecret);
-        //    //    apiAccessToken = user.AccessToken;
-        //    //    GlobalObjects.kite.SetAccessToken(apiAccessToken);
-        //    //    //MyPublicToken = user.PublicToken;
-        //    //}
-        //}
 
 
         //Need to implement Zerodha login

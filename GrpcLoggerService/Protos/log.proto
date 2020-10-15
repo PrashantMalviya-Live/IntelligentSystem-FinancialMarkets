@@ -20,7 +20,7 @@ service Logger {
 
 // The response message containing the log messages
 message LogMessage {
-	int32 algoId = 1;
+	string algoId = 1;
 	int32 algo_instance = 2;  
 	google.protobuf.Timestamp log_time = 3;
 	string log_level = 4;
@@ -30,5 +30,33 @@ message LogMessage {
 
 // The response message containing the log messages
 message Status {
+  bool status = 1;
+}
+
+
+// The logging service definition.
+service OrderAlerter {
+  rpc Publish (stream PublishStatus) returns (stream OrderMessage);
+}
+
+// The response message containing the log messages
+message OrderMessage {
+	string orderid = 1;
+	uint32 instrumentToken = 2;
+	string tradingSymbol = 3;  
+	string transactionType = 4;  
+	double price = 5;  
+	int32 quantity = 6;  
+	double triggerPrice = 7;  
+	string status = 8;  
+	string statusMessage = 9;  
+	string algorithm = 10;  
+	int32 algoInstance = 11;  
+	google.protobuf.Timestamp  orderTime = 12;  
+	string orderType = 13;
+}
+
+// The response message containing the log messages
+message PublishStatus {
   bool status = 1;
 }

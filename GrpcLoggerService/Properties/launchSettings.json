@@ -8,5 +8,13 @@
         "ASPNETCORE_ENVIRONMENT": "Development"
       }
     }
+    //,"GrpcOrderService": {
+    //  "commandName": "Project",
+    //  "launchBrowser": false,
+    //  "applicationUrl": "https://localhost:5002",
+    //  "environmentVariables": {
+    //    "ASPNETCORE_ENVIRONMENT": "Development"
+    //  }
+    //}
   }
 }

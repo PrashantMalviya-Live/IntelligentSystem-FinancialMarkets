@@ -1,17 +1,19 @@
+import { Timestamp } from "google-protobuf/google/protobuf/timestamp_pb"
 export class Order {
   constructor(
-    public instrumentToken: number,
-    public tradingSymbol: string,
-    public transactionType: string,
+    public orderid: string,
+    public instrumenttoken: number,
+    public tradingsymbol: string,
+    public transactiontype: string,
     public price: number,
     public quantity: number,
     public triggerprice: number,
     public status: string,
     public statusmessage: string,
     public algorithm: string,
-    public algoInstance: number,
-    public orderTime: string,
-    public orderType: string,
+    public algoinstance: number,
+    public ordertype: string,
+    public ordertime?: Timestamp.AsObject
   ) { }
 }
 export class ActiveAlgo {
@@ -21,13 +23,9 @@ export class ActiveAlgo {
     //algo name
     public an: string,
     //algo instance id
-    public aIns: number
+    public aIns: number,
+    
+    //algo orders (if any)
+    public orders: Order[]
   ) { }
 }
-
-//export class OrdersByInstance {
-//  constructor(
-//    public algoInstance: number,
-//    public orders: Order[]
-//  ) { }
-//}

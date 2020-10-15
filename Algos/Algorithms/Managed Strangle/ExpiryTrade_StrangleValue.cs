@@ -66,7 +66,7 @@ namespace Algos.TLogics
 
             //_algoInstance = StrangleNode.ID; Utility.GenerateAlgoInstance(algoIndex, DateTime.Now);
 
-            ZConnect.ZerodhaLogin();
+            //ZConnect.ZerodhaLogin();
         }
 
         private void ManageStrangle(StrangleDataStructure strangleNode, Tick[] ticks)
@@ -230,7 +230,7 @@ namespace Algos.TLogics
                             //Instrument option = strangleNode.TradedStrangle.Options.First(x => x.InstrumentToken == optionToken);
                             Order order = MarketOrders.PlaceOrder(strangleNode.ID, tradingSymbol, instrumentType,
                                 matrix[i, CURRENT_PRICE], Convert.ToUInt32(optionToken),
-                                false, Convert.ToInt32(Math.Min(qtyToBeBooked, qtyAvailable)), timeOfOrder, Tag: strangleNode.ID.ToString());
+                                false, Convert.ToInt32(Math.Min(qtyToBeBooked, qtyAvailable)), algoIndex, timeOfOrder, Tag: strangleNode.ID.ToString());
 
                             decimal[,] data = new decimal[1, 10];
                             data[0, INSTRUMENT_TOKEN] = optionToken;
@@ -367,7 +367,7 @@ namespace Algos.TLogics
                     //ShortTrade trade = MarketOrders.PlaceOrder(strangleNode.ID, option, true, Convert.ToInt32(quantity), timeOfOrder, triggerID: i);
 
                     Order order = MarketOrders.PlaceOrder(strangleNode.ID, option.TradingSymbol, option.InstrumentType, 
-                        optionMatrix[i, CURRENT_PRICE], instrumentToken, true, Convert.ToInt32(quantity), timeOfOrder, Tag: strangleNode.ID.ToString());
+                        optionMatrix[i, CURRENT_PRICE], instrumentToken, true, Convert.ToInt32(quantity), algoIndex, timeOfOrder, Tag: strangleNode.ID.ToString());
 
                     optionMatrix[i, CURRENT_PRICE] = order.AveragePrice;
 
@@ -469,7 +469,7 @@ namespace Algos.TLogics
                         Instrument option = strangleNode.CallUniverse[strike];
                         //ShortTrade trade = PlaceOrder(strangleNode.ID, option.TradingSymbol, optionMatrix[i, CURRENT_PRICE], option.InstrumentToken, true, quantity, timeOfOrder, triggerID: i);
                             Order order = MarketOrders.PlaceOrder(strangleNode.ID, option.TradingSymbol,option.InstrumentType, optionMatrix[i, CURRENT_PRICE], 
-                                option.InstrumentToken, true, quantity, timeOfOrder, Tag: strangleNode.ID.ToString());
+                                option.InstrumentToken, true, quantity, algoIndex, timeOfOrder, Tag: strangleNode.ID.ToString());
 
 
                             optionMatrix[i, CURRENT_PRICE] = order.AveragePrice;
@@ -492,7 +492,7 @@ namespace Algos.TLogics
                         Instrument option = strangleNode.PutUniverse[strike];
                         //ShortTrade trade = PlaceOrder(strangleNode.ID, option.TradingSymbol, optionMatrix[i, CURRENT_PRICE], option.InstrumentToken, true, quantity, timeOfOrder, triggerID: i);
                             Order order = MarketOrders.PlaceOrder(strangleNode.ID, option.TradingSymbol, option.InstrumentType, optionMatrix[i, CURRENT_PRICE],
-                                option.InstrumentToken, true, quantity, timeOfOrder, Tag: strangleNode.ID.ToString());
+                                option.InstrumentToken, true, quantity, algoIndex, timeOfOrder, Tag: strangleNode.ID.ToString());
 
 
                             optionMatrix[i, CURRENT_PRICE] = order.AveragePrice;
@@ -699,7 +699,7 @@ namespace Algos.TLogics
                         : strangleNode.PutUniverse.Values.First(x => x.InstrumentToken == lowerMatrix[j, INSTRUMENT_TOKEN]);
 
                     Order order = MarketOrders.PlaceOrder(strangleNode.ID, option.TradingSymbol, option.InstrumentType, lowerMatrix[j, CURRENT_PRICE],
-                        option.InstrumentToken, true, Convert.ToInt32(lowerMatrix[j, QUANTITY]), 
+                        option.InstrumentToken, true, Convert.ToInt32(lowerMatrix[j, QUANTITY]), algoIndex,
                         timeOfTrade, Tag: strangleNode.ID.ToString());
                     lowerMatrix[j, TRADING_STATUS] = (decimal)TradeStatus.Closed;
                     lowerMatrix[j, CURRENT_PRICE] = order.AveragePrice;
@@ -731,7 +731,7 @@ namespace Algos.TLogics
 
                             //ShortTrade order = PlaceOrder(strangleNode.ID, option, true, Convert.ToInt32(lowerMatrix[endNode, QUANTITY]), timeOfTrade, triggerID: lowerMatrix[endNode, TRADE_ID]);
                             Order order = MarketOrders.PlaceOrder(strangleNode.ID, option.TradingSymbol, option.InstrumentType, lowerMatrix[p, CURRENT_PRICE],
-                        option.InstrumentToken, true, Convert.ToInt32(lowerMatrix[endNode, QUANTITY]),
+                        option.InstrumentToken, true, Convert.ToInt32(lowerMatrix[endNode, QUANTITY]), algoIndex,
                         timeOfTrade, Tag: strangleNode.ID.ToString());
 
 
@@ -814,7 +814,7 @@ namespace Algos.TLogics
                                 //ShortTrade order1 = PlaceOrder(strangleNode.ID, instrument1, true, Convert.ToInt32(lowerMatrix[j, QUANTITY]), timeOfTrade, triggerID: lowerMatrix[j, TRADE_ID]);
 
                                 Order order = MarketOrders.PlaceOrder(strangleNode.ID, instrument1.TradingSymbol, instrument1.InstrumentType, lowerMatrix[j, CURRENT_PRICE],
-                      instrument1.InstrumentToken, true, Convert.ToInt32(lowerMatrix[j, QUANTITY]),
+                      instrument1.InstrumentToken, true, Convert.ToInt32(lowerMatrix[j, QUANTITY]), algoIndex,
                       timeOfTrade, Tag: strangleNode.ID.ToString());
 
 
@@ -831,7 +831,7 @@ namespace Algos.TLogics
                                     //ShortTrade order1 = PlaceOrder(strangleNode.ID, instrument1, true, quantity, timeOfTrade, triggerID: lowerMatrix[j, TRADE_ID]);
 
                                     Order order1 = MarketOrders.PlaceOrder(strangleNode.ID, instrument1.TradingSymbol, instrument1.InstrumentType, lowerMatrix[j, CURRENT_PRICE],
-                                                  instrument1.InstrumentToken, true, quantity,
+                                                  instrument1.InstrumentToken, true, quantity, algoIndex,
                                                   timeOfTrade, Tag: strangleNode.ID.ToString());
 
                                     lowerMatrix[j, TRADING_STATUS] = (decimal)TradeStatus.Open;
@@ -1013,7 +1013,7 @@ namespace Algos.TLogics
             //ShortTrade callSellTrade = PlaceOrder(strangleNode.ID, call, buyOrder: false, callQty, tickTime: ticks[0].LastTradeTime, triggerID: tradeId);
 
             Order callSellOrder = MarketOrders.PlaceOrder(strangleNode.ID, call.TradingSymbol, call.InstrumentType, callPrice,
-                      call.InstrumentToken, false, callQty,
+                      call.InstrumentToken, false, callQty, algoIndex,
                       ticks[0].LastTradeTime, Tag: strangleNode.ID.ToString());
 
 
@@ -1021,7 +1021,7 @@ namespace Algos.TLogics
             //ShortTrade putSellTrade = PlaceOrder(strangleNode.ID, put, buyOrder: false, putQty, tickTime: ticks[0].LastTradeTime, triggerID: tradeId);
 
             Order putSellOrder = MarketOrders.PlaceOrder(strangleNode.ID, put.TradingSymbol, put.InstrumentType, putPrice,
-                      put.InstrumentToken, false, putQty,
+                      put.InstrumentToken, false, putQty, algoIndex,
                       ticks[0].LastTradeTime, Tag: strangleNode.ID.ToString());
 
             //tradedStrangle.SellTrades.Add(putSellTrade);
@@ -1061,7 +1061,7 @@ namespace Algos.TLogics
             //ShortTrade trade = PlaceOrder(strangleID, instrument, buyOrder, Convert.ToInt32(quantity), tickTime, token, triggerID);
 
             Order order = MarketOrders.PlaceOrder(strangleID, instrument.TradingSymbol, instrument.InstrumentType, optionMatrix[optionMatrix.GetLength(0) - 1, CURRENT_PRICE],
-                      token, buyOrder, Convert.ToInt32(quantity),
+                      token, buyOrder, Convert.ToInt32(quantity), algoIndex,
                       tickTime, Tag: strangleID.ToString());
 
             Decimal[,] newMatrix = new decimal[optionMatrix.GetLength(0) + 1, optionMatrix.GetLength(1)];

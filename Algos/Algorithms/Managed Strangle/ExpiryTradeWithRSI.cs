@@ -34,7 +34,7 @@ namespace Algos.TLogics
         public decimal _baseInstrumentPrice;
         public uint _baseInstrumentToken;
         DateTime? _expiryDate;
-        TimeSpan _candleTimeSpan;
+        float _candleTimeSpanInMins;
         DateTime _endDateTime;
         Dictionary<uint, RelativeStrengthIndex> tokenRSI;
         CandleManger candleManger;
@@ -66,17 +66,20 @@ namespace Algos.TLogics
         //public List<string> SubscriptionTokens;
         public List<uint> SubscriptionTokens;
 
+        private System.Timers.Timer _healthCheckTimer;
+        private int _healthCounter = 0;
+
         [field: NonSerialized]
         public delegate void OnOptionUniverseChangeHandler(ExpiryTradeWithRSI source);
 
         [field: NonSerialized]
         public event OnOptionUniverseChangeHandler OnOptionUniverseChange;
 
-        public ExpiryTradeWithRSI(TimeSpan candleTimeSpan, uint baseInstrumentToken, DateTime endTime, DateTime? expiry)
+        public ExpiryTradeWithRSI(float candleTimeSpanInMins, uint baseInstrumentToken, DateTime endTime, DateTime? expiry)
         {
             //LoadActiveData();
             _endDateTime = endTime;
-            _candleTimeSpan = candleTimeSpan;
+            _candleTimeSpanInMins = candleTimeSpanInMins;
             _expiryDate = expiry;
             _baseInstrumentToken = baseInstrumentToken;
             _activeOptions = new List<Instrument>();
@@ -99,7 +102,13 @@ namespace Algos.TLogics
             candleManger = new CandleManger(TimeCandles, CandleType.Time);
             candleManger.TimeCandleFinished += CandleManger_TimeCandleFinished;
 
-            _algoInstance = Utility.GenerateAlgoInstance(algoIndex, endTime);
+            _algoInstance = Utility.GenerateAlgoInstance(algoIndex, _baseInstrumentToken,
+                endTime, expiry.Value, QUANTITY,candleTimeFrameInMins: candleTimeSpanInMins, candleType:CandleType.Time);
+
+            //health check after 1 mins
+            _healthCheckTimer = new System.Timers.Timer(interval: 1 * 60 * 100);
+            _healthCheckTimer.Elapsed += CheckHealth;
+            _healthCheckTimer.Start();
         }
 
        
@@ -135,9 +144,9 @@ namespace Algos.TLogics
                    OptionUniverse[(int)InstrumentType.PE].Keys.Last() < _baseInstrumentPrice - minDistanceFromBaseInstrument)
                    )
                 {
-                    await LoggerCore.PublishLog(_algoInstance, LogLevel.Info, currentTime, " Loading Tokens from database...", "LoadOptionsToTrade");
+                    LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Info, currentTime, " Loading Tokens from database...", "LoadOptionsToTrade");
                     OptionUniverse = dl.LoadCloseByOptions(_expiryDate, _baseInstrumentToken, _baseInstrumentPrice);
-                    await LoggerCore.PublishLog(_algoInstance, LogLevel.Info, currentTime, " Tokens Loaded", "LoadOptionsToTrade");
+                    LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Info, currentTime, " Tokens Loaded", "LoadOptionsToTrade");
                 }
 
                 ////TODO: Check for exception if less than 2 items are available.
@@ -255,10 +264,16 @@ namespace Algos.TLogics
                         }
                     }
                 }
+                Interlocked.Increment(ref _healthCounter);
             }
             catch (Exception ex)
             {
-
+                //_stopTrade = true;
+                Logger.LogWrite(ex.StackTrace);
+                Logger.LogWrite("Closing Application");
+                //throw new Exception("Trading Stopped as algo encountered an error. Check log file for details");
+                LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Error, currentTime, String.Format(@"Error occurred! Trading has stopped. \r\n {0}", ex.Message), "ActiveTradeIntraday");
+                //Environment.Exit(0);
             }
             //long endTime = st.ElapsedMilliseconds;
             //st.Stop();
@@ -266,7 +281,7 @@ namespace Algos.TLogics
 
             //if (endTime - startTime > 20)
             //{
-                
+
             //}
         }
         private void UpdateTradedOptionPrice(Tick tick)
@@ -390,7 +405,7 @@ namespace Algos.TLogics
             if (TimeCandles.ContainsKey(token))
             {
                 //TimeCandles[token] = candleManger.StreamingTimeFrameCandle(ticks, token, _candleTimeSpan, true); // TODO: USING LOCAL VERSION RIGHT NOW
-                candleManger.StreamingTimeFrameCandle(tick, token, _candleTimeSpan, true); // TODO: USING LOCAL VERSION RIGHT NOW
+                candleManger.StreamingTimeFrameCandle(tick, token, TimeSpan.FromMinutes(_candleTimeSpanInMins), true); // TODO: USING LOCAL VERSION RIGHT NOW
 
                 //tokenRSI[token].Process(TimeCandles[token].Last().ClosePrice, isFinal: false);
             }
@@ -403,12 +418,12 @@ namespace Algos.TLogics
                 {
                     //TimeCandles.Add(token, candleManger.StreamingTimeFrameCandle(ticks, token, _candleTimeSpan, true)); // TODO: USING LOCAL VERSION RIGHT NOW
 
-                    await LoggerCore.PublishLog(_algoInstance, LogLevel.Info, tick.Timestamp.Value, String.Format("Loading historical candles for {0}", token), "MonitorCandles");
+                    LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Info, tick.Timestamp.Value, String.Format("Loading historical candles for {0}", token), "MonitorCandles");
                     //First Add historical candles
                     LoadHistoricalCandles(candleStartTime, token);
 
-                    await LoggerCore.PublishLog(_algoInstance, LogLevel.Info, tick.Timestamp.GetValueOrDefault(DateTime.UtcNow), "Starting first Candle now", "MonitorCandles");
-                    candleManger.StreamingTimeFrameCandle(tick, token, _candleTimeSpan, true, candleStartTime); // TODO: USING LOCAL VERSION RIGHT NOW
+                    LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Info, tick.Timestamp.GetValueOrDefault(DateTime.UtcNow), "Starting first Candle now", "MonitorCandles");
+                    candleManger.StreamingTimeFrameCandle(tick, token, TimeSpan.FromMinutes(_candleTimeSpanInMins), true, candleStartTime); // TODO: USING LOCAL VERSION RIGHT NOW
                     //tokenRSI.Add(token, new RelativeStrengthIndex());
 
                     //tokenRSI[token].Process(TimeCandles[token].Last().ClosePrice, isFinal: false);
@@ -444,7 +459,7 @@ namespace Algos.TLogics
 
             //foreach (uint token in _activeOptions.Select(x => x.InstrumentToken))
             //{
-            List<Candle> historicalCandles = candleSeries.LoadCandles(RSI_LENGTH, CandleType.Time, ydayEndTime, token, _candleTimeSpan);
+            List<Candle> historicalCandles = candleSeries.LoadCandles(RSI_LENGTH, CandleType.Time, ydayEndTime, token, TimeSpan.FromMinutes(_candleTimeSpanInMins));
 
             TimeCandles.Add(token, historicalCandles);
 
@@ -474,7 +489,7 @@ namespace Algos.TLogics
 
             foreach (uint token in _activeOptions.Select(x => x.InstrumentToken))
             {
-                List<Candle> historicalCandles = candleSeries.LoadCandles(RSI_LENGTH, CandleType.Time, ydayEndTime, token, _candleTimeSpan);
+                List<Candle> historicalCandles = candleSeries.LoadCandles(RSI_LENGTH, CandleType.Time, ydayEndTime, token, TimeSpan.FromMinutes(_candleTimeSpanInMins));
 
                 TimeCandles.Add(token, historicalCandles);
 
@@ -503,7 +518,7 @@ namespace Algos.TLogics
         }
         private DateTime? StartCandleStreaming(DateTime currentTime)
         {
-            double mselapsed = (currentTime.TimeOfDay - MARKET_START_TIME).TotalMilliseconds % _candleTimeSpan.TotalMilliseconds;
+            double mselapsed = (currentTime.TimeOfDay - MARKET_START_TIME).TotalMilliseconds % _candleTimeSpanInMins * 60 * 1000;
             DateTime? candleStartTime = null;
             if (mselapsed < 1000) //less than a second
             {
@@ -531,7 +546,7 @@ namespace Algos.TLogics
             }
             if (dataUpdated)
             {
-                await LoggerCore.PublishLog(_algoInstance, LogLevel.Info, currentTime, "Subscribing to new tokens", "UpdateInstrumentSubscription");
+                LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Info, currentTime, "Subscribing to new tokens", "UpdateInstrumentSubscription");
                 Task task = Task.Run(() => OnOptionUniverseChange(this));
             }
         }
@@ -598,10 +613,12 @@ namespace Algos.TLogics
         {
             //ZMQClient.ZMQSubcribebyToken(this, SubscriptionTokens.ToArray());
         }
-        public SortedList<Decimal, Instrument>[] GetNewStrikes(uint baseInstrumentToken, decimal baseInstrumentPrice, DateTime? expiry)
+        public SortedList<Decimal, Instrument>[] GetNewStrikes(uint baseInstrumentToken, 
+            decimal baseInstrumentPrice, DateTime? expiry)
         {
             DataLogic dl = new DataLogic();
-            SortedList<Decimal, Instrument>[] nodeData = dl.RetrieveNextStrangleNodes(baseInstrumentToken, expiry.GetValueOrDefault(DateTime.Now), baseInstrumentPrice, baseInstrumentPrice, 0);
+            SortedList<Decimal, Instrument>[] nodeData = dl.RetrieveNextStrangleNodes(baseInstrumentToken, 
+                expiry.GetValueOrDefault(DateTime.Now), baseInstrumentPrice, baseInstrumentPrice, 0);
             return nodeData;
         }
 
@@ -613,7 +630,19 @@ namespace Algos.TLogics
             }
             return true;
         }
-       
+        private void CheckHealth(object sender, System.Timers.ElapsedEventArgs e)
+        {
+            //expecting atleast 30 ticks in 1 min
+            if (_healthCounter >= 30)
+            {
+                _healthCounter = 0;
+                LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Health, e.SignalTime, "1", "CheckHealth");
+            }
+            else
+            {
+                LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Health, e.SignalTime, "0", "CheckHealth");
+            }
+        }
 
         public virtual void OnError(Exception ex)
         {

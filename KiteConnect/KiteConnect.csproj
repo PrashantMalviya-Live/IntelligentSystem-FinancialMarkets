@@ -49,6 +49,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\DBAccess\DBAccess.csproj" />
+    <ProjectReference Include="..\GlobalCore\GlobalCore.csproj" />
     <ProjectReference Include="..\GlobalLayer\GlobalLayer.csproj" />
     <ProjectReference Include="..\ZMQFacade\ZMQFacade.csproj" />
   </ItemGroup>

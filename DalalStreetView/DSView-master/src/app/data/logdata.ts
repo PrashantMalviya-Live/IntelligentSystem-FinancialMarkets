@@ -3,7 +3,7 @@ import { Timestamp } from "google-protobuf/google/protobuf/timestamp_pb"
 export class LogData {
   constructor(
     //algoId
-    public algoid: number,
+    public algoid: string,
     //algo name
     public algoInstance: number,
     //algo instance id

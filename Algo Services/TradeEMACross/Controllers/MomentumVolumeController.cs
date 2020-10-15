@@ -10,6 +10,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using ZMQFacade;
 using System.Data;
+
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
 namespace TradeEMACross.Controllers
@@ -23,18 +24,7 @@ namespace TradeEMACross.Controllers
         public MomentumVolumeController()
         {
             activeAlgoObjects = new List<OptionVolumeRateEMAThreshold>();
-            GetActiveAlgos();
-            
-            //volumeThreshold = new OptionVolumeRateEMAThreshold(endDateTime, candleTimeSpan, instrumentToken, expiry, optionQuantity);
-            //volumeThreshold.OnOptionUniverseChange += VolumeThreshold_OnOptionUniverseChange;
-            //volumeThreshold.OnTradeEntry += VolumeThreshold_OnTradeEntry;
-            //volumeThreshold.OnTradeExit += VolumeThreshold_OnTradeExit; ;
-
-
-            //zmqClient = new ZMQClient();
-            //zmqClient.AddSubscriber(new List<uint>() { instrumentToken });
-
-            //zmqClient.Subscribe(volumeThreshold);
+           // GetActiveAlgos();
         }
 
         
@@ -49,41 +39,48 @@ namespace TradeEMACross.Controllers
 
 
         [HttpGet("activealgos")]
-        public IEnumerable<IEnumerable<OrderView>> GetActiveAlgos()
+        public async Task <IEnumerable<ActiveAlgosView>> GetActiveAlgos()
         {
             DataLogic dl = new DataLogic();
-            DataSet ds = dl.GetActiveAlgos(AlgoIndex.VolumeThreshold);
-            List<Order> orders = DataTableToOrderList(ds.Tables[2]);
-
-            List<List<OrderView>> orderViewbyInstance = new List<List<OrderView>>();
-            var algoInstances = orders.Select(x => x.AlgoInstance).Distinct();
-
-            Dictionary<uint, OrderLevels> activeOrders = new Dictionary<uint, OrderLevels>();
-
-            foreach (int ai in algoInstances)
-            {
-                List<OrderView> orderview = (from n in orders.FindAll(x => x.AlgoInstance == ai) select GetOrderView(n)).ToList();
-                orderViewbyInstance.Add(orderview);
-            }
+            DataSet ds = dl.GetActiveAlgos(AlgoIndex.MomentumTrade_Option);
+            
+            List<ActiveAlgosView> activeAlgos = new List<ActiveAlgosView>();
 
             DataTable dtActiveAlgos = ds.Tables[0];
-            
-            foreach(DataRow dr in dtActiveAlgos.Rows)
+            DataRelation algo_orders_relation = ds.Relations.Add("Algo_Orders", new DataColumn[] { ds.Tables[0].Columns["Id"] },
+                new DataColumn[] { ds.Tables[2].Columns["AlgoInstance"] });
+
+            foreach (DataRow drAlgo in dtActiveAlgos.Rows)
             {
+                ActiveAlgosView algosView = new ActiveAlgosView();
+
                 OptionMomentumInput algoInput = new OptionMomentumInput
                 {
-                    Expiry = Convert.ToDateTime(dr["Expiry"]),
-                    CTF = Convert.ToInt32(dr["CandleTimeFrame_Mins"]),
-                    Quantity = Convert.ToInt32(dr["InitialQtyInLotSize"]),
-                    Token = Convert.ToUInt32(dr["BToken"])
+                    Expiry = Convert.ToDateTime(drAlgo["Expiry"]),
+                    CTF = Convert.ToInt32(drAlgo["CandleTimeFrame_Mins"]),
+                    Quantity = Convert.ToInt32(drAlgo["InitialQtyInLotSize"]),
+                    Token = Convert.ToUInt32(drAlgo["BToken"])
                 };
+                algosView.Aid = Convert.ToInt32(drAlgo["AlgoId"]);
+                algosView.AN = Convert.ToString((AlgoIndex)algosView.Aid);
+                algosView.AIns = Convert.ToInt32(drAlgo["Id"]);
 
-                Order order = orders.FirstOrDefault(x => x.Status == Constants.ORDER_STATUS_OPEN && x.OrderType == Constants.ORDER_TYPE_SLM);
-
-                Trade(algoInput, order);
+                foreach (DataRow drOrder in drAlgo.GetChildRows(algo_orders_relation))
+                {
+                    Order o = GetOrder(drOrder);
+                    if(o.Status == Constants.ORDER_STATUS_OPEN && o.OrderType == Constants.ORDER_TYPE_SLM)
+                    {
+                        algoInput.ActiveOrder = o;
+                    }
+                    algosView.Orders.Add(GetOrderView(o));
+                }
+                if (algoInput.ActiveOrder != null)
+                {
+                    Trade(algoInput);
+                }
+                activeAlgos.Add(algosView);
             }
-
-            return orderViewbyInstance;
+            return activeAlgos.ToArray();
         }
         
         // GET api/<HomeController>/5
@@ -109,7 +106,7 @@ namespace TradeEMACross.Controllers
         }
 
         [HttpPost]
-        public void Trade([FromBody] OptionMomentumInput optionMomentumInput, Order activeOrder = null)
+        public async Task<ActiveAlgosView> Trade([FromBody] OptionMomentumInput optionMomentumInput)
         {
             uint instrumentToken = optionMomentumInput.Token;
             DateTime endDateTime = DateTime.Now;
@@ -120,12 +117,13 @@ namespace TradeEMACross.Controllers
             int optionQuantity = optionMomentumInput.Quantity;
 
 #if local
-            endDateTime = Convert.ToDateTime("2020-10-09 09:15:00");
+            endDateTime = Convert.ToDateTime("2020-10-12 09:15:00");
 #endif
 
             ///FOR ALL STOCKS FUTURE , PASS INSTRUMENTTOKEN AS ZERO. FOR CE/PE ON BNF/NF SEND THE INDEX TOKEN AS INSTRUMENTTOKEN
             OptionVolumeRateEMAThreshold volumeThreshold = new OptionVolumeRateEMAThreshold(endDateTime, candleTimeSpan, instrumentToken, expiry, optionQuantity);
 
+            Order activeOrder = optionMomentumInput.ActiveOrder;
             if (activeOrder != null)
             {
                 volumeThreshold.LoadActiveOrders(activeOrder);
@@ -133,27 +131,44 @@ namespace TradeEMACross.Controllers
             
             volumeThreshold.OnOptionUniverseChange += VolumeThreshold_OnOptionUniverseChange;
             volumeThreshold.OnTradeEntry += VolumeThreshold_OnTradeEntry;
-            volumeThreshold.OnTradeExit += VolumeThreshold_OnTradeExit; ;
-
-
-            zmqClient = new ZMQClient();
-            zmqClient.AddSubscriber(new List<uint>() { instrumentToken });
-
-            zmqClient.Subscribe(volumeThreshold);
-
+            volumeThreshold.OnTradeExit += VolumeThreshold_OnTradeExit; 
+            
             activeAlgoObjects.Add(volumeThreshold);
+
+
+            Task task = Task.Run(() => NMQClientSubscription(volumeThreshold, instrumentToken));
+
+            //await task;
+            return new ActiveAlgosView { Aid = Convert.ToInt32(AlgoIndex.MomentumTrade_Option), 
+                AN = Convert.ToString((AlgoIndex)AlgoIndex.MomentumTrade_Option), AIns = volumeThreshold.AlgoInstance };
+            
+        }
+
+        [HttpGet("dummyorder")]
+        public void GetDummyOrder()
+        {
+            LoggerCore.PublishLog(56, AlgoIndex.MomentumTrade_Option, LogLevel.Health, DateTime.UtcNow, "1", "GetDummyOrder");
+        }
+        private async Task NMQClientSubscription(OptionVolumeRateEMAThreshold volumeThreshold, uint token)
+        {
+            zmqClient = new ZMQClient();
+            zmqClient.AddSubscriber(new List<uint>() { token });
+
+            await zmqClient.Subscribe(volumeThreshold);
         }
 
         private void VolumeThreshold_OnTradeExit(Order st)
         {
             //publish trade details and count
             //Bind with trade token details, use that as an argument
+            OrderCore.PublishOrder(st);
         }
 
         private void VolumeThreshold_OnTradeEntry(Order st)
         {
             //publish trade details and count
-            //Bind with trade token details, use that as an argument
+
+            OrderCore.PublishOrder(st);
 
         }
 
@@ -176,34 +191,30 @@ namespace TradeEMACross.Controllers
 
             }
         }
-        private List<Order> DataTableToOrderList(DataTable dtOrders)
+        private Order GetOrder(DataRow drOrders)
         {
-            List<Order> orders = new List<Order>();
-            foreach (DataRow dr in dtOrders.Rows)
+            return new Order
             {
-                Order order = new Order
-                {
-                    InstrumentToken = Convert.ToUInt32(dr["InstrumentToken"]),
-                    Tradingsymbol = (string)dr["TradingSymbol"],
-                    TransactionType = (string)dr["TransactionType"],
-                    AveragePrice = Convert.ToDecimal(dr["AveragePrice"]),
-                    Quantity = (int)dr["Quantity"],
-                    TriggerPrice = Convert.ToDecimal(dr["TriggerPrice"]),
-                    Status = (string)dr["Status"],
-                    StatusMessage = Convert.ToString(dr["StatusMessage"]),
-                    OrderType = Convert.ToString(dr["OrderType"]),
-                    OrderTimestamp = Convert.ToDateTime(dr["OrderTimeStamp"]),
-                    AlgoIndex = Convert.ToInt32(dr["AlgoIndex"]),
-                    AlgoInstance = Convert.ToInt32(dr["AlgoInstance"])
-                };
-                orders.Add(order);
-            }
-            return orders;
+                OrderId = Convert.ToString(drOrders["OrderId"]),
+                InstrumentToken = Convert.ToUInt32(drOrders["InstrumentToken"]),
+                Tradingsymbol = (string)drOrders["TradingSymbol"],
+                TransactionType = (string)drOrders["TransactionType"],
+                AveragePrice = Convert.ToDecimal(drOrders["AveragePrice"]),
+                Quantity = (int)drOrders["Quantity"],
+                TriggerPrice = Convert.ToDecimal(drOrders["TriggerPrice"]),
+                Status = (string)drOrders["Status"],
+                StatusMessage = Convert.ToString(drOrders["StatusMessage"]),
+                OrderType = Convert.ToString(drOrders["OrderType"]),
+                OrderTimestamp = Convert.ToDateTime(drOrders["OrderTimeStamp"]),
+                AlgoIndex = Convert.ToInt32(drOrders["AlgoIndex"]),
+                AlgoInstance = Convert.ToInt32(drOrders["AlgoInstance"])
+            };
         }
         private OrderView GetOrderView(Order order)
         {
             return new OrderView
             {
+                OrderId = order.OrderId,
                 InstrumentToken = order.InstrumentToken,
                 TradingSymbol = order.Tradingsymbol.Trim(' '),
                 TransactionType = order.TransactionType,
@@ -224,18 +235,18 @@ namespace TradeEMACross.Controllers
         {
             //for (int i = 0; i < 10000; i++)
             //{
-            int i = 126;
-            //    await LoggerCore.PublishLog(new LogData { AlgoInstance = 1, Level = Global.LogLevel.Debug, 
+            //int i = 126;
+            //    LoggerCore.PublishLog(new LogData { AlgoInstance = 1, Level = Global.LogLevel.Debug, 
             //        LogTime = DateTime.UtcNow, Message = String.Format("Momentum Trade...{0}",i), SourceMethod = "Momentum" });
 
-            await LoggerCore.PublishLog(new LogData
-            {
-                AlgoInstance = 0,
-                Level = GlobalLayer.LogLevel.Error,
-                LogTime = DateTime.UtcNow,
-                Message = String.Format("Strangle Trade...{0}", i),
-                SourceMethod = "Strangle"
-            });
+            //LoggerCore.PublishLog(new LogData
+            //{
+            //    AlgoInstance = 0,
+            //    Level = GlobalLayer.LogLevel.Error,
+            //    LogTime = DateTime.UtcNow,
+            //    Message = String.Format("Strangle Trade...{0}", i),
+            //    SourceMethod = "Strangle"
+            //});
             //}
 
             // LoggerService ls = new LoggerService(LoggerRepository);

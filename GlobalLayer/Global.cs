@@ -18,12 +18,14 @@ namespace GlobalLayer
             OHLCTimer.Start();
         }
 
+       
+
         //private static IIgnite _ignite;
         //private static IIgniteClient _igniteClient;
         //private static IDataStreamer<TickKey, Tick> _idataStreamer;
         //private static IMessaging _imessaging;
         //private static ICache<TickKey, Tick> _icache;
-        
+
         //private static ICache<uint, Tick> _imarketDataCache;
         //private static IDataStreamer<uint, Tick> _imarketDataStreamer;
 
@@ -35,7 +37,7 @@ namespace GlobalLayer
         //    get
         //    {
         //            return _ignite;
-             
+
         //    }
         //    set
         //    {

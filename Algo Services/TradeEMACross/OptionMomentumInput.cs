@@ -1,7 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+using GlobalLayer;
 
 namespace TradeEMACross
 {
@@ -26,5 +24,7 @@ namespace TradeEMACross
         /// Candle Time Frame (in minutes)
         /// </summary>
         public int CTF { get; set; }
+
+        public Order ActiveOrder { get; set; } = null;
     }
 }

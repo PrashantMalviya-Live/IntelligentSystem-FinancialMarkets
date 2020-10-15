@@ -27,7 +27,7 @@ namespace Algorithms.Utilities
         /// <param name="orderType"></param>
         /// <returns></returns>
         public static Order PlaceOrder(int algoInstance, string tradingSymbol, string instrumenttype, decimal instrument_currentPrice, uint instrument_Token,
-            bool buyOrder, int quantity, DateTime? tickTime = null, string orderType = Constants.ORDER_TYPE_MARKET, string Tag = null)
+            bool buyOrder, int quantity, AlgoIndex algoIndex, DateTime? tickTime = null, string orderType = Constants.ORDER_TYPE_MARKET, string Tag = null)
         {
             decimal currentPrice = instrument_currentPrice;
 
@@ -43,7 +43,7 @@ namespace Algorithms.Utilities
             {
                 //order = new Order(orderStatus["data"]);
                 string orderId = orderStatus["data"]["order_id"];
-                order = GetOrder(orderId, algoInstance, orderType == Constants.ORDER_TYPE_SLM).Result;
+                order = GetOrder(orderId, algoInstance, algoIndex, orderType == Constants.ORDER_TYPE_SLM).Result;
 
 
                 //orderTimestamp = Utils.StringToDate(orderStatus["data"]["order_timestamp"]);
@@ -62,7 +62,8 @@ namespace Algorithms.Utilities
                 //order.AveragePrice = currentPrice;
             }
 
-            Order order = new Order (){
+            Order order = new Order()
+            {
                 OrderId = Guid.NewGuid().ToString(),
                 AveragePrice = currentPrice,
                 ExchangeTimestamp = tickTime,
@@ -77,10 +78,11 @@ namespace Algorithms.Utilities
                 Validity = Constants.VALIDITY_DAY,
                 TriggerPrice = currentPrice,
                 Tradingsymbol = tradingSymbol,
-                TransactionType = buyOrder ? "buy": "sell",
-                Status = orderType == Constants.ORDER_TYPE_MARKET? "Complete": "Trigger Pending",
+                TransactionType = buyOrder ? "buy" : "sell",
+                Status = orderType == Constants.ORDER_TYPE_MARKET ? "Complete" : "Trigger Pending",
                 Variety = "regular",
-                Tag = "Test"
+                Tag = "Test",
+                AlgoIndex = (int) algoIndex
             };
 
             
@@ -105,7 +107,7 @@ namespace Algorithms.Utilities
             {
                 order.Tag = Tag;
             }
-            UpdateOrderDetails(algoInstance, order);
+            UpdateOrderDetails(algoInstance, algoIndex, order);
 
             return order;
         }
@@ -121,8 +123,9 @@ namespace Algorithms.Utilities
         /// <param name="quantity"></param>
         /// <param name="tickTime"></param>
         /// <returns></returns>
-        public async static Task<Order> ModifyOrder(int algoInstance, decimal stoploss, string orderId, DateTime currentTime)
+        public async static Task<Order> ModifyOrder(int algoInstance, AlgoIndex algoIndex, decimal stoploss, Order slOrder, DateTime currentTime)
         {
+            string orderId = slOrder.OrderId;
             Order order = null;
             try
             {
@@ -133,7 +136,7 @@ namespace Algorithms.Utilities
                 {
                     //order = new Order(orderStatus["data"]);
                     //string orderId = orderStatus["data"]["order_id"];
-                    order = GetOrder(orderId, algoInstance, true).Result;
+                    order = GetOrder(orderId, algoInstance, algoIndex, true).Result;
 
                     //orderId = orderStatus["data"]["order_id"];
                     //orderTimestamp = Utils.StringToDate(orderStatus["data"]["order_timestamp"]);
@@ -141,7 +144,7 @@ namespace Algorithms.Utilities
                 else
                 {
                     //throw new Exception(string.Format("Modify Order status null for order id:{0}", orderId));
-                    await LoggerCore.PublishLog(algoInstance, LogLevel.Error, currentTime, string.Format("Modify Order status null for order id:{0}", orderId), "ModifyOrder");
+                    LoggerCore.PublishLog(algoInstance, algoIndex, LogLevel.Error, currentTime, string.Format("Modify Order status null for order id:{0}", orderId), "ModifyOrder");
                 }
            
 
@@ -154,13 +157,13 @@ namespace Algorithms.Utilities
                 //    DataLogic dl = new DataLogic();
                 //    currentPrice = dl.RetrieveLastPrice(instrumentToken, slOrder.OrderTimestamp, false);
                 //}
-                order.AveragePrice = currentPrice;
-                order.Price = currentPrice;
-                order.TriggerPrice = currentPrice;
-                order.ExchangeTimestamp = currentTime;
-                order.OrderTimestamp = currentTime;
+                slOrder.AveragePrice = currentPrice;
+                slOrder.Price = currentPrice;
+                slOrder.TriggerPrice = currentPrice;
+                slOrder.ExchangeTimestamp = currentTime;
+                slOrder.OrderTimestamp = currentTime;
 
-            //Order order = slOrder;
+            order = slOrder;
 
 #endif
 
@@ -180,16 +183,16 @@ namespace Algorithms.Utilities
 
             //UpdateTradeDetails(strategyID: 0, instrument_Token, quantity, trade, Convert.ToInt32(trade.TriggerID));
 
-            UpdateOrderDetails(algoInstance, order);
+            UpdateOrderDetails(algoInstance, algoIndex, order);
             }
             catch (Exception ex)
             {
-                await LoggerCore.PublishLog(algoInstance, LogLevel.Error, currentTime, "Order modification failed. Trade will continue.", "ModifyOrder");
+                LoggerCore.PublishLog(algoInstance, algoIndex, LogLevel.Error, currentTime, "Order modification failed. Trade will continue.", "ModifyOrder");
             }
             return order;
         }
 
-        public async static Task<Order> GetOrder(string orderId, int algoInstance, bool slOrder = false)
+        public async static Task<Order> GetOrder(string orderId, int algoInstance, AlgoIndex algoIndex, bool slOrder = false)
         {
             Order oh = null;
             int counter = 0;
@@ -215,14 +218,14 @@ namespace Algorithms.Utilities
                 {
                     //_stopTrade = true;
                     Logger.LogWrite("order did not execute properly");
-                    await LoggerCore.PublishLog(algoInstance, LogLevel.Error, oh.OrderTimestamp.GetValueOrDefault(DateTime.UtcNow), "Order Rejected", "GetOrder");
+                    LoggerCore.PublishLog(algoInstance, algoIndex, LogLevel.Error, oh.OrderTimestamp.GetValueOrDefault(DateTime.UtcNow), "Order Rejected", "GetOrder");
                     //throw new Exception("order did not execute properly");
                 }
                 if (counter > 3000)
                 {
                     //_stopTrade = true;
                     Logger.LogWrite("order did not execute properly. Waited for 10 minutes");
-                    await LoggerCore.PublishLog(algoInstance, LogLevel.Error, oh.OrderTimestamp.GetValueOrDefault(DateTime.UtcNow), "Order did not go through. Waited for 10 minutes", "GetOrder");
+                    LoggerCore.PublishLog(algoInstance, algoIndex, LogLevel.Error, oh.OrderTimestamp.GetValueOrDefault(DateTime.UtcNow), "Order did not go through. Waited for 10 minutes", "GetOrder");
                     throw new Exception("order did not execute properly. Waited for 10 minutes");
                 }
                 counter++;
@@ -236,12 +239,12 @@ namespace Algorithms.Utilities
         //    dl.UpdateTrade(strategyID, instrumentToken, trade, AlgoIndex.VolumeThreshold, tradedLot, triggerID);
         //}
 
-        public async static void UpdateOrderDetails(int algoInstance, Order order, int strategyId = 0)
+        public async static void UpdateOrderDetails(int algoInstance, AlgoIndex algoIndex, Order order, int strategyId = 0)
         {
             DataLogic dl = new DataLogic();
             dl.UpdateOrder(algoInstance, order, strategyId);
 
-            await LoggerCore.PublishLog(algoInstance, LogLevel.Info, order.OrderTimestamp.GetValueOrDefault(DateTime.UtcNow), "Order detailed updated in the database", "UpdateOrderDetails");
+            LoggerCore.PublishLog(algoInstance, algoIndex, LogLevel.Info, order.OrderTimestamp.GetValueOrDefault(DateTime.UtcNow), "Order detailed updated in the database", "UpdateOrderDetails");
         }
     }
 }

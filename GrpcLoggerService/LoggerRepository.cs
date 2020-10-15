@@ -17,11 +17,12 @@ namespace GrpcLoggerService
             Logs.Add(log);
         }
 
-        public static void AddLog(int algoInstance, LogLevel logLevel, DateTime logTime,
+        public static void AddLog(int algoInstance, AlgoIndex algoIndex, LogLevel logLevel, DateTime logTime,
             string message, string source)
         {
             LogMessage logData = new LogMessage
             {
+                AlgoId = System.Enum.GetName(typeof(AlgoIndex), algoIndex),
                 AlgoInstance = algoInstance,
                 LogLevel = Convert.ToString(logLevel),
                 LogTime = Timestamp.FromDateTime(logTime),

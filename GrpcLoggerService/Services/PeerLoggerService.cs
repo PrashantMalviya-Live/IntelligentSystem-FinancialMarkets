@@ -9,14 +9,13 @@ using System.Diagnostics.Eventing.Reader;
 using GlobalLayer;
 using Google.Protobuf.WellKnownTypes;
 using System.Timers;
-using GrpcPeerLoggerService;
-//using GlobalCore;
+using GrpcLoggerService;
 
-namespace GrpcLoggerService
+namespace GrpcPeerLoggerService
 {
-    public class PeerLoggerService : ServiceLogger.ServiceLoggerBase, ILoggerService
+    public class PeerLoggerService : ServiceLogger.ServiceLoggerBase
     {
-        private GrpcLoggerService.LogMessage MessageConverter(GrpcPeerLoggerService.LogMessage logMessage)
+        private GrpcLoggerService.LogMessage MessageConverter(LogMessage logMessage)
         {
             return new GrpcLoggerService.LogMessage
             {
@@ -29,18 +28,18 @@ namespace GrpcLoggerService
             };
         }
 
-        public override Task<GrpcPeerLoggerService.Status> Log(GrpcPeerLoggerService.LogMessage request, ServerCallContext context)
+        public override Task<Status> Log(LogMessage request, ServerCallContext context)
         {
             try
             {
                 LoggerService.CurrentLogMessage = MessageConverter(request);
                 ClientLoggerRepository.AddLog(request);
                 LoggerService.manualReset.Set();
-                return Task.FromResult(new GrpcPeerLoggerService.Status { Status_ = true });
+                return Task.FromResult(new Status { Status_ = true });
             }
             catch (Exception ex)
             {
-                return Task.FromResult(new GrpcPeerLoggerService.Status { Status_ = false });
+                return Task.FromResult(new Status { Status_ = false });
             }
         }
     }

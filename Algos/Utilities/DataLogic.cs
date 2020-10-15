@@ -13,7 +13,18 @@ namespace Algorithms.Utilities
 {
     public class DataLogic
     {
+        public bool UpdateUser(User activeUser)
+        {
+            MarketDAO marketDAO = new MarketDAO();
+            return marketDAO.UpdateUser(activeUser);
+        }
+        public User GetActiveUser()
+        {
+            MarketDAO marketDAO = new MarketDAO();
+            DataSet dsUser = marketDAO.GetActiveUser();
 
+            return new User(dsUser.Tables[0]);
+        }
         public void SaveCandle(Candle candle)
         {
             MarketDAO marketDAO = new MarketDAO();

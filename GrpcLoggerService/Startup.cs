@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using GrpcPeerLoggerService;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -46,6 +47,10 @@ namespace GrpcLoggerService
             {
                 endpoints.MapGrpcService<LoggerService>().EnableGrpcWeb().RequireCors("AllowAll"); //;
                 endpoints.MapGrpcService<PeerLoggerService>().EnableGrpcWeb().RequireCors("AllowAll"); //;
+
+                endpoints.MapGrpcService<OrderService>().EnableGrpcWeb().RequireCors("AllowAll"); //;
+                endpoints.MapGrpcService<PeerOrderService>().EnableGrpcWeb().RequireCors("AllowAll"); //;
+
 
                 endpoints.MapGet("/", async context =>
                 {

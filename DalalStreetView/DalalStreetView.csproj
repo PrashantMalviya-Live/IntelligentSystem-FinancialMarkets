@@ -35,7 +35,12 @@
     <None Remove="DSView-master\src\app\generated\greet_pb.js" />
     <None Remove="DSView-master\src\app\generated\greet_pb_service.d.ts" />
     <None Remove="DSView-master\src\app\generated\greet_pb_service.js" />
+    <None Remove="DSView-master\src\app\generated\order_pb.d.ts" />
+    <None Remove="DSView-master\src\app\generated\order_pb.js" />
+    <None Remove="DSView-master\src\app\generated\order_pb_service.d.ts" />
+    <None Remove="DSView-master\src\app\generated\order_pb_service.js" />
     <None Remove="DSView-master\src\app\protos\greet.proto" />
+    <None Remove="DSView-master\src\app\protos\order.proto" />
   </ItemGroup>
 
   <ItemGroup>

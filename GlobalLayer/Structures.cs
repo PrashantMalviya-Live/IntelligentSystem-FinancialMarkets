@@ -43,6 +43,7 @@ namespace GlobalLayer
         SellOnRSICross = 18,
         [Display(Name = "Strangle With RSI")]
         StrangleWithRSI = 19,
+        KiteConnect = 1001
     }
     public enum MarketOpenRange
     {
@@ -115,6 +116,7 @@ namespace GlobalLayer
     }
     public class LogData
     {
+        public string AlgoIndex { get; set; }
         public int AlgoInstance { get; set; }
         public DateTime LogTime { get; set; }
 
@@ -134,7 +136,9 @@ namespace GlobalLayer
         Debug = 1,
         Info = 2,
         Warn = 3,
-        Error = 4
+        Error = 4,
+        Stop = 5,
+        Health = 6
     }
 
     [Serializable]
@@ -2785,7 +2789,7 @@ namespace GlobalLayer
             try
             {
                 APIKey = data["data"]["api_key"];
-                Products = (string[])data["data"]["products"].ToArray(typeof(string));
+                Products = new string[] { "" };// (string[])data["data"]["products"].ToArray(typeof(string));
                 UserName = data["data"]["user_name"];
                 UserShortName = data["data"]["user_shortname"];
                 AvatarURL = data["data"]["avatar_url"];
@@ -2796,15 +2800,42 @@ namespace GlobalLayer
                 UserType = data["data"]["user_type"];
                 UserId = data["data"]["user_id"];
                 LoginTime = Utils.StringToDate(data["data"]["login_time"]);
-                Exchanges = (string[])data["data"]["exchanges"].ToArray(typeof(string));
-                OrderTypes = (string[])data["data"]["order_types"].ToArray(typeof(string));
+                Exchanges = new string[] { "" };//(string[])data["data"]["exchanges"].ToArray(typeof(string));
+                OrderTypes = new string[] { "" }; //(string[])data["data"]["order_types"].ToArray(typeof(string));
                 Email = data["data"]["email"];
+                AppSecret = String.Empty;
             }
             catch (Exception)
             {
                 throw new Exception("Unable to parse data. " + Utils.JsonSerialize(data));
             }
 
+        }
+        public User (DataTable data)
+        {
+            try
+            {
+                APIKey = data.Rows[0]["ApiKey"] != DBNull.Value? (string) data.Rows[0]["ApiKey"]: "";
+                UserName = data.Rows[0]["UserName"] != DBNull.Value ? (string)data.Rows[0]["UserName"] : "";
+                Broker = data.Rows[0]["Broker"] != DBNull.Value ? (string)data.Rows[0]["Broker"] : "";
+                AccessToken = data.Rows[0]["AccessToken"] != DBNull.Value ? (string)data.Rows[0]["AccessToken"] : "";
+                PublicToken = data.Rows[0]["RequestToken"] != DBNull.Value ? (string)data.Rows[0]["RequestToken"] : "";
+                AppSecret = data.Rows[0]["AppSecret"] != DBNull.Value ? (string)data.Rows[0]["AppSecret"] : "";
+                UserId = data.Rows[0]["UserId"] != DBNull.Value ? (string)data.Rows[0]["UserId"] : "";
+                Email = data.Rows[0]["Email"] != DBNull.Value ? (string)data.Rows[0]["Email"] : "";
+                UserShortName = data.Rows[0]["UserName"] != DBNull.Value ? (string)data.Rows[0]["UserName"] : "";
+                Products = null;
+                AvatarURL = String.Empty;
+                UserType = String.Empty;
+                RefreshToken = String.Empty;
+                LoginTime = null;
+                Exchanges = null;
+                OrderTypes = null;
+            }
+            catch (Exception)
+            {
+                throw new Exception("Unable to parse data. " + Utils.JsonSerialize(data));
+            }
         }
 
         public string APIKey { get; }
@@ -2822,6 +2853,8 @@ namespace GlobalLayer
         public string[] Exchanges { get; }
         public string[] OrderTypes { get; }
         public string Email { get; }
+
+        public string AppSecret { get; }
     }
 
     /// <summary>

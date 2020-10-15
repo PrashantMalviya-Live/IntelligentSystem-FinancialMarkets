@@ -24,3 +24,13 @@ mat-table{ max-height:600px; overflow-y:auto}
   color: black;*/
   font-weight: normal;
 }
+.warn-button-container {
+  display: flex;
+  justify-content: center;
+  width: 120px;
+}
+.button-fab {
+  width: 20px;
+  height: 20px;
+  line-height: 16px;
+  }

@@ -6,5 +6,9 @@
   "/api/momentumvolume/*": {
     "target": "http://localhost:8081",
     "secure": false
+  },
+  "/api/login/*": {
+    "target": "http://localhost:8087",
+    "secure": false
   }
 }

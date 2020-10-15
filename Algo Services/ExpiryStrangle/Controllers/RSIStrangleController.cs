@@ -39,8 +39,8 @@ namespace ExpiryStrangle.Controllers
             uint instrumentToken = 260105;
             DateTime startDateTime = DateTime.Today.AddDays(-1).Add(new TimeSpan(15, 0, 0));
             DateTime endDateTime = DateTime.Now;
-            TimeSpan candleTimeSpan = new TimeSpan(0, 30, 0);
-
+            //TimeSpan candleTimeSpan = new TimeSpan(0, 30, 0);
+            int candleTimeSpanInMins = 30;
             DateTime? expiry = Convert.ToDateTime("2020-09-17");
             //decimal strikePriceRange = 1;
 
@@ -49,7 +49,7 @@ namespace ExpiryStrangle.Controllers
             startDateTime = Convert.ToDateTime("2020-09-10 15:00:00");
 
             //ZMQClient();
-            ExpiryTradeWithRSI expiryTrade = new ExpiryTradeWithRSI(candleTimeSpan,instrumentToken, endDateTime, expiry);
+            ExpiryTradeWithRSI expiryTrade = new ExpiryTradeWithRSI(candleTimeSpanInMins, instrumentToken, endDateTime, expiry);
             expiryTrade.OnOptionUniverseChange += ExpiryTrade_OnOptionUniverseChange;
 
             List<uint> tokens = new List<uint>();

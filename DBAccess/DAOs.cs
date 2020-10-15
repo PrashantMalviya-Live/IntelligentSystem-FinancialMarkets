@@ -5,13 +5,75 @@ using System.Collections.Generic;
 using GlobalLayer;
 using System.Text;
 using System.Threading.Tasks;
+using System.Reflection.Metadata.Ecma335;
 //using Alachisoft.NCache.Common.Util;
 
 namespace DataAccess
 {
     public class MarketDAO
     {
-        public int GenerateAlgoInstance(AlgoIndex algoIndex, DateTime executionDate)
+        public bool UpdateUser(User activeUser)
+        {
+            MarketDAO marketDAO = new MarketDAO();
+            SqlConnection sqlConnection = new SqlConnection(Utility.GetConnectionString());
+            SqlCommand sqlCMD = new SqlCommand("UpdateUser", sqlConnection)
+            {
+                CommandTimeout = 30,
+                CommandType = CommandType.StoredProcedure
+            };
+
+            sqlCMD.Parameters.AddWithValue("@UserId", activeUser.UserId);
+            sqlCMD.Parameters.AddWithValue("@UserName", activeUser.UserName);
+            sqlCMD.Parameters.AddWithValue("@Broker", activeUser.Broker);
+            sqlCMD.Parameters.AddWithValue("@Email", activeUser.Email);
+            sqlCMD.Parameters.AddWithValue("@ApiKey", activeUser.APIKey);
+            sqlCMD.Parameters.AddWithValue("@AccessToken", activeUser.AccessToken);
+
+            try
+            {
+                sqlConnection.Open();
+                sqlCMD.ExecuteNonQuery();
+                sqlConnection.Close();
+                return true;
+            }
+            catch (Exception e)
+            {
+                Logger.LogWrite(e.Message);
+            }
+            finally
+            {
+                if (sqlConnection.State == ConnectionState.Open)
+                    sqlConnection.Close();
+            }
+            return false;
+        }
+        public DataSet GetActiveUser()
+        {
+            MarketDAO marketDAO = new MarketDAO();
+            SqlConnection sqlConnection = new SqlConnection(Utility.GetConnectionString());
+            SqlCommand selectCMD = new SqlCommand("GetActiveUser", sqlConnection)
+            {
+                CommandTimeout = 30,
+                CommandType = CommandType.StoredProcedure
+            };
+            SqlDataAdapter daInstruments = new SqlDataAdapter()
+            {
+                SelectCommand = selectCMD
+            };
+
+
+            sqlConnection.Open();
+            DataSet dsUser = new DataSet();
+            daInstruments.Fill(dsUser);
+            sqlConnection.Close();
+
+            return dsUser;
+        }
+        public int GenerateAlgoInstance(AlgoIndex algoIndex, uint bToken, DateTime timeStamp, DateTime expiry,
+            int initialQtyInLotsSize, int maxQtyInLotSize = 0, int stepQtyInLotSize = 0, decimal upperLimit = 0, 
+            decimal upperLimitPercent = 0, decimal lowerLimit = 0, decimal lowerLimitPercent = 0, 
+            float stopLossPoints = 0, int optionType = 0, int optionIndex = 0, float candleTimeFrameInMins = 5, 
+            CandleType candleType = CandleType.Time )
         {
             SqlConnection sqlConnection = new SqlConnection(Utility.GetConnectionString());
             SqlCommand insertCMD = new SqlCommand("CreateAlgoInstance", sqlConnection)
@@ -21,8 +83,21 @@ namespace DataAccess
             };
 
             insertCMD.Parameters.AddWithValue("@AlgoID", Convert.ToInt32(algoIndex));
-            insertCMD.Parameters.AddWithValue("@ExecutionDate", executionDate);
-
+            insertCMD.Parameters.AddWithValue("@BToken", (Int64)bToken);
+            insertCMD.Parameters.AddWithValue("@TimeStamp", timeStamp);
+            insertCMD.Parameters.AddWithValue("@Expiry", expiry);
+            insertCMD.Parameters.AddWithValue("@InitialQtyInLotSize", initialQtyInLotsSize);
+            insertCMD.Parameters.AddWithValue("@MaxQtyInLotSize", maxQtyInLotSize);
+            insertCMD.Parameters.AddWithValue("@StepQtyInLotSize", stepQtyInLotSize);
+            insertCMD.Parameters.AddWithValue("@UpperLimit", upperLimit);
+            insertCMD.Parameters.AddWithValue("@UpperLimitPercent", upperLimitPercent);
+            insertCMD.Parameters.AddWithValue("@LowerLimit", lowerLimit);
+            insertCMD.Parameters.AddWithValue("@LowerLimitPercent", lowerLimitPercent);
+            insertCMD.Parameters.AddWithValue("@StopLossPoints", stopLossPoints);
+            insertCMD.Parameters.AddWithValue("@OptionType", optionType);
+            insertCMD.Parameters.AddWithValue("@OptionIndex", optionIndex);
+            insertCMD.Parameters.AddWithValue("@CandleTimeFrame_Mins", candleTimeFrameInMins);
+            insertCMD.Parameters.AddWithValue("@CandleType", (int) candleType);
             insertCMD.Parameters.Add("@AlgoInstance", SqlDbType.Int).Direction = ParameterDirection.Output;
 
             try
@@ -593,7 +668,7 @@ namespace DataAccess
             updateCMD.Parameters.AddWithValue("@Validity", order.Validity);
             updateCMD.Parameters.AddWithValue("@Variety", order.Variety);
             updateCMD.Parameters.AddWithValue("@TriggerPrice", order.TriggerPrice);
-            //updateCMD.Parameters.AddWithValue("@algoIndex", algoIndex);
+            updateCMD.Parameters.AddWithValue("@AlgoIndex", (int) order.AlgoIndex);
             updateCMD.Parameters.AddWithValue("@AlgoInstance", algoInstance);
 
             try

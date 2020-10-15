@@ -15,17 +15,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="NetMQ" Version="4.0.1.6" />
     <PackageReference Include="System.Text.Json" Version="4.7.2" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\GlobalLayer\GlobalLayer.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Reference Include="ZeroMQ">
-      <HintPath>ZMQBinaries\ZeroMQ.dll</HintPath>
-    </Reference>
   </ItemGroup>
 
 </Project>

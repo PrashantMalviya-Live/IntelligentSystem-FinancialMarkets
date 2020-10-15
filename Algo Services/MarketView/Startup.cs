@@ -32,10 +32,10 @@ namespace MarketView
             //services.AddCors(options =>
             //{
             //    options.AddPolicy("CorsPolicy", builder => builder
-            //    .WithOrigins("http://localhost:4200")
-            //    .AllowAnyMethod()
-            //    .AllowAnyHeader()
-            //    .AllowCredentials());
+            //    //.AllowAnyOrigin()
+            //    //.WithOrigins("http://localhost:4200", "https://kite.trade/*", "http://localhost:8087")
+            //   // .SetIsOriginAllowedToAllowWildcardSubdomains()
+            //    );
             //});
 
             services.AddControllers();
@@ -67,8 +67,8 @@ namespace MarketView
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapControllers();
-                endpoints.MapGrpcService<LoggerService>().EnableGrpcWeb()
-                                                  .RequireCors("AllowAll");
+                //endpoints.MapGrpcService<LoggerService>().EnableGrpcWeb()
+                //                                  .RequireCors("AllowAll");
                 //endpoints.MapHub<LogHub>("/log");
                 //endpoints.MapHub<ChartHub>("/chart");
             });
