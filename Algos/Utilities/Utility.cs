@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using GlobalLayer;
+using ZConnectWrapper;
 namespace Algorithms.Utilities
 {
     public class Utility
@@ -22,6 +23,17 @@ namespace Algorithms.Utilities
             stopLossPoints: stopLossPoints, optionType: optionType, 
             candleTimeFrameInMins: candleTimeFrameInMins, candleType: candleType, 
             optionIndex: optionIndex);
+        }
+
+        public static void LoadTokens()
+        {
+            List<Instrument> instruments = ZObjects.kite.GetInstruments(Exchange: "NFO");
+            MarketDAO dao = new MarketDAO();
+            dao.StoreInstrumentList(instruments);
+
+            instruments = ZObjects.kite.GetInstruments(Exchange: "NSE");
+            dao = new MarketDAO();
+            dao.StoreInstrumentList(instruments);
         }
     }
 }

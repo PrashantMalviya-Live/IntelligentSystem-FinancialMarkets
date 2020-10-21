@@ -8,6 +8,7 @@ using DataAccess;
 using System.Data;
 //using Algorithms.Utils;
 using Algorithms.Utils;
+using ZConnectWrapper;
 
 namespace Algorithms.Utilities
 {
@@ -50,6 +51,15 @@ namespace Algorithms.Utilities
             }
 
 
+        }
+
+        public void LoadTokens()
+        {
+            ZConnect.Login();
+            List<Instrument> instruments = ZObjects.kite.GetInstruments();
+
+            MarketDAO marketDAO = new MarketDAO();
+            marketDAO.StoreInstrumentList(instruments);
         }
 
         public List<Order> GetOrders(AlgoIndex algoIndex = 0, int orderid = 0)

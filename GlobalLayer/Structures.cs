@@ -2782,7 +2782,7 @@ namespace GlobalLayer
     /// <summary>
     /// User structure
     /// </summary>
-    public struct User
+    public class User
     {
         public User(Dictionary<string, dynamic> data)
         {

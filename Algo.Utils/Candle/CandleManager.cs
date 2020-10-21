@@ -479,7 +479,8 @@ namespace Algorithms.Utils
                         //Arg2 = tick.Timestamp.Value, //Start Time
                         InstrumentToken = token,
                         OpenPrice = tick.LastPrice,
-                        OpenTime = (previousCandle == null || previousCandle.CloseTime.Date != tickTime.Date) ? CandleStartTime.HasValue ? CandleStartTime.Value : tickTime : previousCandle.CloseTime, // For testing purpose tick timestamp is better
+                        OpenTime = (previousCandle == null || previousCandle.CloseTime.Date != tickTime.Date) ? 
+                        CandleStartTime.HasValue ? CandleStartTime.Value : tickTime : previousCandle.CloseTime, // For testing purpose tick timestamp is better
                         OpenVolume = timePrevTicks.ContainsKey(token) ? Convert.ToDecimal(tick.Volume) - Convert.ToDecimal(timePrevTicks[token].Volume) : 0,
                         ClosePrice = tick.LastPrice,
                         CloseTime = tickTime,

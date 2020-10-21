@@ -23,8 +23,17 @@ export class ActiveAlgo {
     //algo name
     public an: string,
     //algo instance id
-    public aIns: number,
-    
+    public ains: number,
+    //expiry
+    public expiry: string,
+    //candle time frame (in mins)
+    public mins: number,
+    //base instrument
+    public binstrument: string,
+    //Lot size
+    public lotsize: number,
+    //algo start date
+    public algodate: string,
     //algo orders (if any)
     public orders: Order[]
   ) { }

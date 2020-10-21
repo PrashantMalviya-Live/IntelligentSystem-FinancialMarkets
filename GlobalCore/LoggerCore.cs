@@ -96,7 +96,7 @@ namespace GlobalCore
                 // Blocks if numbers.Count == dataItems.BoundedCapacity
                 _pendingLogs.Add(log);
                 // Let consumer know we are done.
-                //_pendingLogs.CompleteAdding();
+               // _pendingLogs.CompleteAdding();
             }
             catch (Exception ex)
             {

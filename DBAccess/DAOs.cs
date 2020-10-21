@@ -12,9 +12,25 @@ namespace DataAccess
 {
     public class MarketDAO
     {
+        public string GetAccessToken()
+        {
+            SqlConnection sqlConnection = new SqlConnection(Utility.GetConnectionString());
+            SqlCommand sqlCMD = new SqlCommand("GetAccessToken", sqlConnection)
+            {
+                CommandTimeout = 30,
+                CommandType = CommandType.StoredProcedure
+            };
+
+            sqlCMD.Parameters.Add("@AccessToken", SqlDbType.VarChar, 100).Direction = ParameterDirection.Output;
+
+            sqlConnection.Open();
+            sqlCMD.ExecuteNonQuery();
+            sqlConnection.Close();
+
+            return (string)sqlCMD.Parameters["@AccessToken"].Value;
+        }
         public bool UpdateUser(User activeUser)
         {
-            MarketDAO marketDAO = new MarketDAO();
             SqlConnection sqlConnection = new SqlConnection(Utility.GetConnectionString());
             SqlCommand sqlCMD = new SqlCommand("UpdateUser", sqlConnection)
             {
@@ -49,7 +65,6 @@ namespace DataAccess
         }
         public DataSet GetActiveUser()
         {
-            MarketDAO marketDAO = new MarketDAO();
             SqlConnection sqlConnection = new SqlConnection(Utility.GetConnectionString());
             SqlCommand selectCMD = new SqlCommand("GetActiveUser", sqlConnection)
             {
@@ -1810,7 +1825,7 @@ namespace DataAccess
 
       
 
-        private DataTable ConvertObjectToDataTable(Queue<Tick> liveTicks)
+        private DataTable ConvertObjectToDataTable(Queue<Tick> liveTicks, bool shortenedTick = false)
         {
             DataTable dtTicks = new DataTable("Ticks");
             dtTicks.Columns.Add("InstrumentToken", typeof(Int64));
@@ -1840,19 +1855,11 @@ namespace DataAccess
                 }
                 DataRow drTick = dtTicks.NewRow();
 
-
                 drTick["InstrumentToken"] = tick.InstrumentToken;
                 drTick["LastPrice"] = tick.LastPrice;
-                drTick["LastQuantity"] = tick.LastQuantity;
-                drTick["AveragePrice"] = tick.AveragePrice;
                 drTick["Volume"] = tick.Volume;
-                drTick["BuyQuantity"] = tick.BuyQuantity;
-                drTick["SellQuantity"] = tick.SellQuantity;
-                drTick["Open"] = tick.Open;
-                drTick["High"] = tick.High;
-                drTick["Low"] = tick.Low;
-                drTick["Close"] = tick.Close;
-                drTick["Change"] = tick.Change;
+                drTick["OI"] = tick.OI;
+
                 if (tick.LastTradeTime != null)
                 {
                     drTick["LastTradeTime"] = tick.LastTradeTime;
@@ -1861,12 +1868,6 @@ namespace DataAccess
                 {
                     drTick["LastTradeTime"] = DBNull.Value;
                 }
-            
-                drTick["BackLogs"] = GetBacklog(tick);
-                drTick["OI"] = tick.OI;
-                drTick["OIDayHigh"] = tick.OIDayHigh;
-                drTick["OIDayLow"] = tick.OIDayLow;
-
                 if (tick.Timestamp != null)
                 {
                     drTick["TimeStamp"] = tick.Timestamp;
@@ -1876,6 +1877,22 @@ namespace DataAccess
                     drTick["TimeStamp"] = DBNull.Value;
                 }
 
+                if(!shortenedTick)
+                {
+                    //DATA STOPPED TO REDUCE DB SPACE. THIS CAN BE RE ENABLED LATER.
+                    drTick["LastQuantity"] = tick.LastQuantity;
+                    drTick["AveragePrice"] = tick.AveragePrice;
+                    drTick["BuyQuantity"] = tick.BuyQuantity;
+                    drTick["SellQuantity"] = tick.SellQuantity;
+                    drTick["Change"] = tick.Change;
+                    drTick["BackLogs"] = GetBacklog(tick);
+                    drTick["Open"] = tick.Open;
+                    drTick["High"] = tick.High;
+                    drTick["Low"] = tick.Low;
+                    drTick["Close"] = tick.Close;
+                    drTick["OIDayHigh"] = tick.OIDayHigh;
+                    drTick["OIDayLow"] = tick.OIDayLow;
+                }
 
                 dtTicks.Rows.Add(drTick);
             }

@@ -64,6 +64,7 @@ namespace Algorithms.Utilities
 
             Order order = new Order()
             {
+                AlgoInstance = algoInstance,
                 OrderId = Guid.NewGuid().ToString(),
                 AveragePrice = currentPrice,
                 ExchangeTimestamp = tickTime,
@@ -82,7 +83,8 @@ namespace Algorithms.Utilities
                 Status = orderType == Constants.ORDER_TYPE_MARKET ? "Complete" : "Trigger Pending",
                 Variety = "regular",
                 Tag = "Test",
-                AlgoIndex = (int) algoIndex
+                AlgoIndex = (int)algoIndex,
+                StatusMessage = "Ordered",
             };
 
             
@@ -230,6 +232,8 @@ namespace Algorithms.Utilities
                 }
                 counter++;
             }
+            oh.AlgoInstance = algoInstance;
+            oh.AlgoIndex = Convert.ToInt32(algoIndex);
             return oh;
         }
 

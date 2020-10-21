@@ -7,7 +7,7 @@ namespace ZMQFacade
 {
     public class TickDataSchema
     {
-        public static List<Tick> ParseTicks(byte[] Data)
+        public static List<Tick> ParseTicks(byte[] Data, bool shortenedTick = false)
         {
             int offset = 0;
             //uint count = ReadInt(Data, ref offset); //number of packets
@@ -61,6 +61,9 @@ namespace ZMQFacade
                 // data is invalid. This will skip that wrong tick
                 if (IsValid(tick))// && IsConnected && offset <= Count)
                 {
+                    if (shortenedTick)
+                        ShortenTheTick(tick);
+
                     //ticks[i] = tick;
                     ticks.Add(tick);
                     // OnTick(tick,_context);
@@ -75,18 +78,18 @@ namespace ZMQFacade
 
             return ticks;// ticks.Where(x => x != null && x.InstrumentToken > 0);
         }
-        private static bool IsValid(Tick tick)
+        public static bool IsValid(Tick tick)
         {
             if (tick.InstrumentToken == 0
-                || tick.Timestamp == null
+                || !tick.Timestamp.HasValue
                 || tick.LastPrice == 0
-                || (tick.LastTradeTime != null && tick.LastTradeTime.Value.Date != tick.Timestamp.Value.Date))
+                || (tick.LastTradeTime.HasValue && tick.LastTradeTime.Value.Date != tick.Timestamp.Value.Date))
             {
                 return false;
             }
             return true;
         }
-        public static Tick ParseTick(byte[] Data)
+        public static Tick ParseTick(byte[] Data, bool shortenedTick = false)
         {
             int offset = 0;
             ushort length = ReadShort(Data, ref offset); // length of the packet
@@ -108,7 +111,7 @@ namespace ZMQFacade
                     tick = ReadQuote(Data, ref offset);
                     break;
                 case 184: // full with marketdepth and timestamp
-                    tick = ReadFull(Data, ref offset);
+                    tick = ReadFull(Data, ref offset, shortenedTick);
                     break;
 
             }
@@ -234,7 +237,7 @@ namespace ZMQFacade
         /// <summary>
         /// Reads a full mode tick from raw binary data
         /// </summary>
-        public static Tick ReadFull(byte[] b, ref int offset)
+        public static Tick ReadFull(byte[] b, ref int offset, bool shortenedTick = false)
         {
             Tick tick = new Tick();
             tick.Mode = Constants.MODE_FULL;
@@ -261,28 +264,46 @@ namespace ZMQFacade
             tick.OIDayLow = ReadInt(b, ref offset);
             tick.Timestamp = Utils.UnixToDateTime(ReadInt(b, ref offset));
 
-
-            tick.Bids = new DepthItem[5];
-            for (int i = 0; i < 5; i++)
+            if (!shortenedTick)
             {
-                tick.Bids[i].Quantity = ReadInt(b, ref offset);
-                tick.Bids[i].Price = ReadInt(b, ref offset) / divisor;
-                tick.Bids[i].Orders = ReadShort(b, ref offset);
-                offset += 2;
-            }
+                tick.Bids = new DepthItem[5];
+                for (int i = 0; i < 5; i++)
+                {
+                    tick.Bids[i].Quantity = ReadInt(b, ref offset);
+                    tick.Bids[i].Price = ReadInt(b, ref offset) / divisor;
+                    tick.Bids[i].Orders = ReadShort(b, ref offset);
+                    offset += 2;
+                }
 
-            tick.Offers = new DepthItem[5];
-            for (int i = 0; i < 5; i++)
-            {
-                tick.Offers[i].Quantity = ReadInt(b, ref offset);
-                tick.Offers[i].Price = ReadInt(b, ref offset) / divisor;
-                tick.Offers[i].Orders = ReadShort(b, ref offset);
-                offset += 2;
+                tick.Offers = new DepthItem[5];
+                for (int i = 0; i < 5; i++)
+                {
+                    tick.Offers[i].Quantity = ReadInt(b, ref offset);
+                    tick.Offers[i].Price = ReadInt(b, ref offset) / divisor;
+                    tick.Offers[i].Orders = ReadShort(b, ref offset);
+                    offset += 2;
+                }
             }
             return tick;
         }
-
-        public static byte[] ParseTickBytes(Tick tick)
+        public static void ShortenTheTick(Tick tick)
+        {
+            tick.AveragePrice = 0;
+            tick.Bids = null;
+            tick.BuyQuantity = 0;
+            tick.Change = 0;
+            tick.Close = 0;
+            tick.Open = 0;
+            tick.High = 0;
+            tick.Low = 0;
+            tick.Offers = null;
+            tick.OIDayHigh = 0;
+            tick.OIDayLow = 0;
+            tick.SellQuantity = 0;
+            tick.LastQuantity = 0;
+            
+        }
+        public static byte[] ParseTickBytes(Tick tick, bool shortenedTick = false)
         {
             List<byte> b = new List<byte>();
 

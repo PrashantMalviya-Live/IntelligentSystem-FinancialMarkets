@@ -43,8 +43,12 @@ namespace MarketView.Controllers
                     ZConnect.Login(activeUser);
                     l.UpdateUser(activeUser);
                 }
+
+                result = new OkObjectResult(new { message = "200 OK", userName = activeUser.UserShortName });
 #endif
-                result = new OkObjectResult(new { message = "200 OK" });
+#if local
+                result = new OkObjectResult(new { message = "200 OK", userName = "Test" });
+#endif
                 return result;
             }
             catch (Exception ex)
@@ -60,6 +64,7 @@ namespace MarketView.Controllers
             public string action { get; set; }
             public string status { get; set; }
         }
+       
 
         //public IActionResult Login([FromBody] object quaryParams)
         //{

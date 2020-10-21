@@ -7,12 +7,13 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using LocalDBData;
+using GlobalLayer;
 namespace MarketDataService
 {
     public class DSService : BackgroundService
     {
         private readonly ILogger<DSService> _logger;
-
+        public static ManualResetEventSlim manualReset = new ManualResetEventSlim();
         public DSService(ILogger<DSService> logger)
         {
             _logger = logger;
@@ -20,47 +21,21 @@ namespace MarketDataService
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            //while (!stoppingToken.IsCancellationRequested)
-            //{
-            //    _logger.LogInformation("Worker running at: {time}", DateTimeOffset.Now);
-            //    await Task.Delay(1000, stoppingToken);
-            //}
-
-            if (Debugger.IsAttached)
-            {
-                Task<long> status = new DSService(null).StartDBUpdate();
-                if (status != null)
-                {
-                    status.Wait();
-                }
-                else
-                {
-                    System.Threading.Thread.Sleep(new TimeSpan(7, 30, 0));
-                }
-            }
+            Logger.LogWrite("Starting Market Data Service");
+            StartDBUpdate();
+            Logger.LogWrite("Market Data Service Started");
+            manualReset.Wait();
         }
 
-        internal Task<long> StartDBUpdate()
+        internal void StartDBUpdate()
         {
-            //string appSetting = ConfigurationManager.AppSettings["executionmode"];
-            //if (appSetting == "market")
-            //{
 #if market
             MarketData.PublishData();
-            System.Threading.Thread.Sleep(new TimeSpan(7, 30, 1));
-            return null;
+            //System.Threading.Thread.Sleep(new TimeSpan(7, 30, 1));
 #elif local
-            //}
-            //else if (appSetting == "local")
-            //{
             TickDataStreamer dataStreamer = new TickDataStreamer();
             Task<long> done = dataStreamer.BeginStreaming();
-            return done;
-
 #endif
-
-            //}
-            //return null;
         }
     }
 }

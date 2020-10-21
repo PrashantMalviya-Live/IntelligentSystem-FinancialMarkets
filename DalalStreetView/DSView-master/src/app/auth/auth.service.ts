@@ -15,7 +15,7 @@ export class AuthService {
     this._baseUrl = baseUrl;
   }
 
-  login(request_token, action, status, baseUrl) {
+  login(request_token, action, status, baseUrl): any {
     const data = {
       request_token: request_token,
       action: action,
@@ -25,6 +25,7 @@ export class AuthService {
     this.http.post<any>(this._baseUrl + 'api/login', data).subscribe(result => {
       if (result.message == "200 OK") {
         this.isLoggedIn = true;
+        return result.userName;
         //this.router.navigate([baseUrl]);
         //window.location.href = baseUrl;
       }

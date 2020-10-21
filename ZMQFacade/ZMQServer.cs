@@ -28,11 +28,11 @@ namespace ZMQFacade
 
             pub.Options.SendHighWatermark = 5000;
         }
-        public void PublishAllTicks(List<Tick> tickData)
+        public void PublishAllTicks(List<Tick> tickData, bool shortenedTick = false)
         {
             foreach (Tick tick in tickData)
             {
-                PublishData(tick.InstrumentToken, TickDataSchema.ParseTickBytes(tick));
+                PublishData(tick.InstrumentToken, TickDataSchema.ParseTickBytes(tick, shortenedTick));
             }
         }
 

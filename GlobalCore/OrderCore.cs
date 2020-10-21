@@ -43,7 +43,7 @@ namespace GlobalCore
                 Quantity = order.Quantity,
                 TriggerPrice = Convert.ToDouble(order.TriggerPrice),
                 Status = order.Status,
-                StatusMessage = order.StatusMessage,
+                StatusMessage = order.StatusMessage ?? "", //order.StatusMessage,
                 Algorithm = System.Enum.GetName(typeof(GlobalLayer.AlgoIndex), order.AlgoIndex),
                 AlgoInstance = order.AlgoInstance,
                 OrderType = order.OrderType,

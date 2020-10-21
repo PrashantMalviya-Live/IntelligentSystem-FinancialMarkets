@@ -10,5 +10,9 @@
   "/api/login/*": {
     "target": "http://localhost:8087",
     "secure": false
+  },
+  "/api/ws/*": {
+    "target": "http://localhost:8087",
+    "secure": false
   }
 }

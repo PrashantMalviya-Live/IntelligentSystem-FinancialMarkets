@@ -46,6 +46,7 @@ namespace Algorithms.Algorithms
         private bool _stopTrade;
         public decimal _baseInstrumentPrice;
         Dictionary<uint, ExponentialMovingAverage> lTokenEMA;
+        Dictionary<uint, RelativeStrengthIndex> tokenRSI;
         public Queue<uint> TimeCandleWaitingQueue;
         public List<uint> tokenExits;
         //All active tokens that are passing all checks. This is kept seperate from tokenvolume as tokens may get in and out of the activeToken list.
@@ -59,6 +60,7 @@ namespace Algorithms.Algorithms
         Dictionary<uint, bool> _firstCandleOpenPriceNeeded;
         uint _baseInstrumentToken; // = 256265;
         public const int CANDLE_COUNT = 30;
+        
         public const decimal PRICE_PERCENT_INCREASE = 0.005m;
         public const decimal CANDLE_BULLISH_BODY_FRACTION = 0.55m;
         public const decimal CANDLE_BULLISH_LOWERWICK_FRACTION = 0.5m;
@@ -79,6 +81,9 @@ namespace Algorithms.Algorithms
         
         public const int SHORT_EMA = 5;
         public const int LONG_EMA = 13;
+        public const int RSI_LENGTH = 15;
+        public const int RSI_THRESHOLD = 60;
+
         public const AlgoIndex algoIndex = AlgoIndex.MomentumTrade_Option;
         //TimeSpan candletimeframe;
         CandleManger candleManger;
@@ -89,7 +94,7 @@ namespace Algorithms.Algorithms
         private System.Timers.Timer _healthCheckTimer;
         private int _healthCounter = 0;
         public OptionVolumeRateEMAThreshold(DateTime endTime, TimeSpan candleTimeSpan, 
-            uint baseInstrumentToken, DateTime? expiry, int quantity)
+            uint baseInstrumentToken, DateTime? expiry, int quantity, int algoInstance = 0)
         {
             TRADE_QTY = quantity;
             _endDateTime = endTime;
@@ -112,6 +117,8 @@ namespace Algorithms.Algorithms
 
             //EMAs
             lTokenEMA = new Dictionary<uint, ExponentialMovingAverage>();
+            tokenRSI = new Dictionary<uint, RelativeStrengthIndex>();
+
             _EMALoaded = new List<uint>();
             _SQLLoading = new List<uint>();
             _firstCandleOpenPriceNeeded = new Dictionary<uint, bool>();
@@ -120,15 +127,20 @@ namespace Algorithms.Algorithms
             DateTime ydayEndTime = _endDateTime.AddDays(-1).Date + new TimeSpan(15, 30, 00);
 
             ExponentialMovingAverage sema = null, lema = null;
+            RelativeStrengthIndex rsi = null;
 
             candleManger = new CandleManger(TimeCandles, CandleType.Time);
             candleManger.TimeCandleFinished += CandleManger_TimeCandleFinished;
 
-            _algoInstance = Utility.GenerateAlgoInstance(algoIndex, baseInstrumentToken, endTime, expiry.GetValueOrDefault(DateTime.Now), quantity, candleTimeFrameInMins: (float)candleTimeSpan.TotalMinutes);
-           // ZConnect.ZerodhaLogin();
+            _algoInstance = algoInstance != 0 ? algoInstance : 
+                Utility.GenerateAlgoInstance(algoIndex, baseInstrumentToken, endTime, 
+                expiry.GetValueOrDefault(DateTime.Now), quantity, candleTimeFrameInMins: 
+                (float)candleTimeSpan.TotalMinutes);
+
+            ZConnect.Login();
 
             //health check after 1 mins
-            _healthCheckTimer = new System.Timers.Timer(interval: 1 * 60 * 100);
+            _healthCheckTimer = new System.Timers.Timer(interval: 1 * 60 * 1000);
             _healthCheckTimer.Elapsed += CheckHealth;
             _healthCheckTimer.Start();
         }
@@ -204,10 +216,11 @@ namespace Algorithms.Algorithms
             {
                 _stopTrade = true;
                 Logger.LogWrite(ex.StackTrace);
-                Logger.LogWrite("Closing Application");
+                Logger.LogWrite("Trading Stopped as algo encountered an error");
                 //throw new Exception("Trading Stopped as algo encountered an error. Check log file for details");
                 LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Error, currentTime, String.Format(@"Error occurred! Trading has stopped. \r\n {0}", ex.Message), "ActiveTradeIntraday");
-                //Environment.Exit(0);
+                Thread.Sleep(100);
+                Environment.Exit(0);
             }
         }
         private void TriggerEODPositionClose(DateTime? currentTime)
@@ -232,27 +245,40 @@ namespace Algorithms.Algorithms
         }
         private async void MonitorCandles(Tick tick)
         {
-            uint token = tick.InstrumentToken;
-
-            //Check the below statement, this should not keep on adding to 
-            //TimeCandles with everycall, as the list doesnt return new candles unless built
-
-            if (TimeCandles.ContainsKey(token))
+            try
             {
-                candleManger.StreamingShortTimeFrameCandle(tick, token, _candleTimeSpan, true); // TODO: USING LOCAL VERSION RIGHT NOW
-            }
-            else
-            {
+                uint token = tick.InstrumentToken;
+
+                //Check the below statement, this should not keep on adding to 
+                //TimeCandles with everycall, as the list doesnt return new candles unless built
+
+                if (TimeCandles.ContainsKey(token))
+                {
+                    candleManger.StreamingShortTimeFrameCandle(tick, token, _candleTimeSpan, true); // TODO: USING LOCAL VERSION RIGHT NOW
+                }
+                else
+                {
                     DateTime lastCandleEndTime;
                     DateTime? candleStartTime = CheckCandleStartTime(tick.LastTradeTime.Value, out lastCandleEndTime);
 
-                if (candleStartTime.HasValue)
-                {
-                    LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Info, tick.Timestamp.Value, String.Format("Starting first Candle now for token: {0}", tick.InstrumentToken), "MonitorCandles");
-                    //candle starts from there
-                    candleManger.StreamingShortTimeFrameCandle(tick, token, _candleTimeSpan, true, candleStartTime); // TODO: USING LOCAL VERSION
+                    if (candleStartTime.HasValue)
+                    {
+                        LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Info, tick.Timestamp.Value, String.Format("Starting first Candle now for token: {0}", tick.InstrumentToken), "MonitorCandles");
+                        //candle starts from there
+                        candleManger.StreamingShortTimeFrameCandle(tick, token, _candleTimeSpan, true, candleStartTime); // TODO: USING LOCAL VERSION
 
+                    }
                 }
+            }
+            catch (Exception ex)
+            {
+                _stopTrade = true;
+                Logger.LogWrite(ex.StackTrace);
+                Logger.LogWrite("Trading Stopped as algo encountered an error");
+                //throw new Exception("Trading Stopped as algo encountered an error. Check log file for details");
+                LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Error, tick.Timestamp.Value, String.Format(@"Error occurred! Trading has stopped. \r\n {0}", ex.Message), "MonitorCandles");
+                Thread.Sleep(100);
+                Environment.Exit(0);
             }
         }
 
@@ -261,72 +287,92 @@ namespace Algorithms.Algorithms
             DateTime lastCandleEndTime;
             DateTime? candleStartTime = CheckCandleStartTime(currentTime, out lastCandleEndTime);
 
-            var tokens = SubscriptionTokens.Where(x => x != _baseInstrumentToken && !_EMALoaded.Contains(x));
-
-            StringBuilder sb = new StringBuilder();
-            foreach (uint t in tokens)
+            try
             {
-                if (!_firstCandleOpenPriceNeeded.ContainsKey(t))
+                var tokens = SubscriptionTokens.Where(x => x != _baseInstrumentToken && !_EMALoaded.Contains(x));
+
+                StringBuilder sb = new StringBuilder();
+
+                lock (lTokenEMA)
                 {
-                    _firstCandleOpenPriceNeeded.Add(t, candleStartTime != lastCandleEndTime);
-                }
-                if (!lTokenEMA.ContainsKey(t) && !_SQLLoading.Contains(t))
-                {
-                    sb.AppendFormat("{0},", t);
-                    _SQLLoading.Add(t);
-                }
-            }
-            string tokenList = sb.ToString().TrimEnd(',');
-
-            //if (!_firstCandleOpenPriceNeeded.ContainsKey(token))
-            //{
-            //    _firstCandleOpenPriceNeeded.Add(token, candleStartTime != lastCandleEndTime);
-            //}
-
-            int firstCandleFormed = 0; //historicalPricesLoaded = 0;
-                                       //if (!lTokenEMA.ContainsKey(token) && !_SQLLoading.Contains(token))
-                                       //{
-                                       //    _SQLLoading.Add(token);
-
-            if (tokenList != string.Empty)
-            {
-                Task task = Task.Run(() => LoadHistoricalCandles(tokenList, LONG_EMA, lastCandleEndTime));
-            }
-
-            //LoadHistoricalCandles(token, LONG_EMA, lastCandleEndTime);
-            //historicalPricesLoaded = 1;
-            //}
-            foreach (uint tkn in tokens)
-            {
-                //if (tk != string.Empty)
-                //{
-                //    uint tkn = Convert.ToUInt32(tk);
-
-                if (TimeCandles.ContainsKey(tkn) && lTokenEMA.ContainsKey(tkn))
-                {
-                    if (_firstCandleOpenPriceNeeded[tkn])
+                    foreach (uint t in tokens)
                     {
-                        //The below EMA token input is from the candle that just started, All historical prices are already fed in.
-                        lTokenEMA[tkn].Process(TimeCandles[tkn].First().OpenPrice, isFinal: true);
-                        firstCandleFormed = 1;
-
-                    }
-                    //In case SQL loading took longer then candle time frame, this will be used to catch up
-                    if (TimeCandles[tkn].Count > 1)
-                    {
-                        foreach (var price in TimeCandles[tkn])
+                        if (!_firstCandleOpenPriceNeeded.ContainsKey(t))
                         {
-                            lTokenEMA[tkn].Process(TimeCandles[tkn].First().ClosePrice, isFinal: true);
+                            _firstCandleOpenPriceNeeded.Add(t, candleStartTime != lastCandleEndTime);
+                        }
+
+                        if (!lTokenEMA.ContainsKey(t) && !_SQLLoading.Contains(t))
+                        {
+                            sb.AppendFormat("{0},", t);
+                            _SQLLoading.Add(t);
                         }
                     }
                 }
+                string tokenList = sb.ToString().TrimEnd(',');
 
-                if ((firstCandleFormed == 1 || !_firstCandleOpenPriceNeeded[tkn]) && lTokenEMA.ContainsKey(tkn))
-                {
-                    _EMALoaded.Add(tkn);
-                    LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Info, currentTime, String.Format("EMA loaded from DB for {0}", tkn), "MonitorCandles");
-                }
+                //if (!_firstCandleOpenPriceNeeded.ContainsKey(token))
+                //{
+                //    _firstCandleOpenPriceNeeded.Add(token, candleStartTime != lastCandleEndTime);
                 //}
+
+                int firstCandleFormed = 0; //historicalPricesLoaded = 0;
+                                           //if (!lTokenEMA.ContainsKey(token) && !_SQLLoading.Contains(token))
+                                           //{
+                                           //    _SQLLoading.Add(token);
+
+                if (tokenList != string.Empty)
+                {
+                    Task task = Task.Run(() => LoadHistoricalCandles(tokenList, Math.Max(LONG_EMA, RSI_LENGTH), lastCandleEndTime));
+                }
+
+                //LoadHistoricalCandles(token, LONG_EMA, lastCandleEndTime);
+                //historicalPricesLoaded = 1;
+                //}
+                foreach (uint tkn in tokens)
+                {
+                    //if (tk != string.Empty)
+                    //{
+                    //    uint tkn = Convert.ToUInt32(tk);
+
+                    if (TimeCandles.ContainsKey(tkn) && lTokenEMA.ContainsKey(tkn))
+                    {
+                        if (_firstCandleOpenPriceNeeded[tkn])
+                        {
+                            //The below EMA token input is from the candle that just started, All historical prices are already fed in.
+                            lTokenEMA[tkn].Process(TimeCandles[tkn].First().OpenPrice, isFinal: true);
+                            tokenRSI[tkn].Process(TimeCandles[tkn].First().OpenPrice, isFinal: true);
+                            firstCandleFormed = 1;
+
+                        }
+                        //In case SQL loading took longer then candle time frame, this will be used to catch up
+                        if (TimeCandles[tkn].Count > 1)
+                        {
+                            foreach (var price in TimeCandles[tkn])
+                            {
+                                lTokenEMA[tkn].Process(TimeCandles[tkn].First().ClosePrice, isFinal: true);
+                                tokenRSI[tkn].Process(TimeCandles[tkn].First().ClosePrice, isFinal: true);
+                            }
+                        }
+                    }
+
+                    if ((firstCandleFormed == 1 || !_firstCandleOpenPriceNeeded[tkn]) && lTokenEMA.ContainsKey(tkn))
+                    {
+                        _EMALoaded.Add(tkn);
+                        LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Info, currentTime, String.Format("EMA & RSI loaded from DB for {0}", tkn), "MonitorCandles");
+                    }
+                    //}
+                }
+            }
+            catch(Exception ex)
+            {
+                _stopTrade = true;
+                Logger.LogWrite(ex.StackTrace);
+                Logger.LogWrite("Trading Stopped as algo encountered an error");
+                //throw new Exception("Trading Stopped as algo encountered an error. Check log file for details");
+                LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Error, currentTime, String.Format(@"Error occurred! Trading has stopped. \r\n {0}", ex.Message), "LoadHistoricalEMAs");
+                Thread.Sleep(100);
+                Environment.Exit(0);
             }
         }
 
@@ -342,13 +388,37 @@ namespace Algorithms.Algorithms
                         return;
                     }
                     lTokenEMA[e.InstrumentToken].Process(e.ClosePrice, isFinal: true);
+                    tokenRSI[e.InstrumentToken].Process(e.ClosePrice, isFinal: true);
 
                     if (ActiveOptions.Any(x => x.InstrumentToken == e.InstrumentToken))
                     {
+                        decimal ema = lTokenEMA[e.InstrumentToken].GetCurrentValue<decimal>();
+                        decimal rsi = tokenRSI[e.InstrumentToken].GetCurrentValue<decimal>();
+
+                        LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Info, e.CloseTime, 
+                            String.Format("Candle ({4}) OHLC: {0} | {1} | {2} | {3}. EMA:{5}. RSI:{6}", e.OpenPrice, e.HighPrice, e.LowPrice, e.ClosePrice
+                            , e.InstrumentToken, Decimal.Round(ema, 2), Decimal.Round(rsi, 2)), "CandleManger_TimeCandleFinished");
+
+                        
+                        //StringBuilder sb = new StringBuilder();
+                        //int c = TimeCandles[e.InstrumentToken].Count;
+                        //for (int j = c - 1; j < c - 14; j--)
+                        //{
+                        //    sb.Append(TimeCandles[e.InstrumentToken][j].ClosePrice);
+                        //    sb.Append(",");
+                        //}
+                        //sb.Remove(sb.Length - 1, 1);
+                        //LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Info, e.CloseTime,
+                        //   String.Format("Closing prices of last 13 Candles: {0}", sb.ToString()), "CandleManger_TimeCandleFinished");
+
+                        //LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Info, e.CloseTime,
+                        //    String.Format("Candle ({4}) OHLC: {0} | {1} | {2} | {3}. EMA:{5}", e.OpenPrice, e.HighPrice, e.HighPrice, 
+                        //e.ClosePrice, e.InstrumentToken, Decimal.Round(ema, 2)), "CandleManger_TimeCandleFinished");
+
                         if (GetCandleFormation(e) == CandleFormation.Bullish)
                         {
                             //Console.WriteLine("Bullish Candle" + lTokenEMA[e.InstrumentToken].IsFormed);
-                            LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Info, e.CloseTime, String.Format("Bullish Candle: {0}", e.InstrumentToken), "MonitorCandles");
+                            LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Info, e.CloseTime, String.Format("Bullish Candle: {0}", e.InstrumentToken), "CandleManger_TimeCandleFinished");
 
                             foreach (var st in tokenTradeLevels)
                             {
@@ -368,46 +438,60 @@ namespace Algorithms.Algorithms
                 _stopTrade = true;
                 Logger.LogWrite(ex.StackTrace);
                 Logger.LogWrite("Closing Application");
-                //Environment.Exit(0);
                 //throw new Exception("Trading Stopped as algo encountered an error. Check log file for details");
                 LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Error, e.CloseTime, String.Format(@"Error occurred! Trading has stopped. \r\n {0}", ex.Message), "CandleManger_TimeCandleFinished");
+                Thread.Sleep(100);
+                Environment.Exit(0);
             }
         }
         private async void TradeEntry(uint token, DateTime currentTime, decimal lastPrice)
         {
-            Instrument option = ActiveOptions.FirstOrDefault(x => x.InstrumentToken == token);
-
-            Candle previousCandle = TimeCandles[token].LastOrDefault(x => x.State == CandleStates.Finished);
-            Candle currentCandle = TimeCandles[token].Last();
-            ///TODO: Both previouscandle and currentcandle would be same now, as trade is getting generated at candle close only. _pastorders check below is not needed anymore.
-            if (previousCandle != null
-                && option != null
-                //&& !tokenTradeLevels.ContainsKey(token)
-                //&& !tokenTradeLevels.Any(x=>x.Value.Trade.InstrumentType == option.InstrumentType)
-                && !(tokenTradeLevels.Count() > 0)
-                && lastPrice > previousCandle.OpenPrice
-                //&& (previousCandle.ClosePrice - previousCandle.OpenPrice) > 0.04m * previousCandle.OpenPrice
-                && previousCandle.OpenTime.Date == currentTime.Date
-                //&& !_pastTrades.Any(x=>x.InstrumentToken == token && x.TradeTime >= currentCandle.OpenTime)
-                && !_pastOrders.Any(x => x.OrderTimestamp >= currentCandle.OpenTime)
-                && (CheckEMA(token, previousCandle).Result)
-                && !_stopTrade
-                )
+            try
             {
-                //ENTRY ORDER - BUY ALERT
-                Order order = MarketOrders.PlaceOrder(_algoInstance, option.TradingSymbol, option.InstrumentType, lastPrice,
-                    token, true, TRADE_QTY * Convert.ToInt32(option.LotSize), algoIndex, currentTime, Constants.ORDER_TYPE_MARKET);
+                Instrument option = ActiveOptions.FirstOrDefault(x => x.InstrumentToken == token);
 
-                CriticalLevels cl = GetCriticalLevels(previousCandle);
+                Candle previousCandle = TimeCandles[token].LastOrDefault(x => x.State == CandleStates.Finished);
+                Candle currentCandle = TimeCandles[token].Last();
+                ///TODO: Both previouscandle and currentcandle would be same now, as trade is getting generated at candle close only. _pastorders check below is not needed anymore.
+                if (previousCandle != null
+                    && option != null
+                    //&& !tokenTradeLevels.ContainsKey(token)
+                    //&& !tokenTradeLevels.Any(x=>x.Value.Trade.InstrumentType == option.InstrumentType)
+                    && !(tokenTradeLevels.Count() > 0)
+                    && lastPrice > previousCandle.OpenPrice
+                    //&& (previousCandle.ClosePrice - previousCandle.OpenPrice) > 0.04m * previousCandle.OpenPrice
+                    && previousCandle.OpenTime.Date == currentTime.Date
+                    //&& !_pastTrades.Any(x=>x.InstrumentToken == token && x.TradeTime >= currentCandle.OpenTime)
+                    && !_pastOrders.Any(x => x.OrderTimestamp >= currentCandle.OpenTime)
+                    && (CheckEMA(token, previousCandle).Result)
+                    && !_stopTrade
+                    )
+                {
+                    //ENTRY ORDER - BUY ALERT
+                    Order order = MarketOrders.PlaceOrder(_algoInstance, option.TradingSymbol, option.InstrumentType, lastPrice,
+                        token, true, TRADE_QTY * Convert.ToInt32(option.LotSize), algoIndex, currentTime, Constants.ORDER_TYPE_MARKET);
 
-                Order slOrder = MarketOrders.PlaceOrder(_algoInstance, option.TradingSymbol, option.InstrumentType, cl.StopLossPrice,
-                    token, false, TRADE_QTY * Convert.ToInt32(option.LotSize), algoIndex, currentTime, Constants.ORDER_TYPE_SLM);
+                    CriticalLevels cl = GetCriticalLevels(previousCandle);
 
-                tokenTradeLevels.Add(token, new OrderLevels { FirstLegOrder = order, SLOrder = slOrder, Levels = cl });
+                    Order slOrder = MarketOrders.PlaceOrder(_algoInstance, option.TradingSymbol, option.InstrumentType, cl.StopLossPrice,
+                        token, false, TRADE_QTY * Convert.ToInt32(option.LotSize), algoIndex, currentTime, Constants.ORDER_TYPE_SLM);
 
-                _pastOrders.Add(order);
-                OnTradeEntry(order);
-                OnTradeEntry(slOrder);
+                    tokenTradeLevels.Add(token, new OrderLevels { FirstLegOrder = order, SLOrder = slOrder, Levels = cl });
+
+                    _pastOrders.Add(order);
+                    OnTradeEntry(order);
+                    OnTradeEntry(slOrder);
+                }
+            }
+            catch (Exception ex)
+            {
+                _stopTrade = true;
+                Logger.LogWrite(ex.StackTrace);
+                Logger.LogWrite("Closing Application");
+                //throw new Exception("Trading Stopped as algo encountered an error. Check log file for details");
+                LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Error, currentTime, String.Format(@"Error occurred! Trading has stopped. \r\n {0}", ex.Message), "TradeEntry");
+                Thread.Sleep(100);
+                Environment.Exit(0);
             }
         }
         public void StopTrade()
@@ -416,15 +500,30 @@ namespace Algorithms.Algorithms
         }
         private async Task<bool> CheckEMA(uint token, Candle previousCandle)
         {
-            decimal ema = lTokenEMA[token].GetCurrentValue<decimal>();
-            if (lTokenEMA[token].IsFormed && ema < (previousCandle.ClosePrice - (previousCandle.ClosePrice - previousCandle.OpenPrice) * TRIGGER_EMA_ENTRY))
+            try
             {
-                return true;
+                decimal ema = lTokenEMA[token].GetCurrentValue<decimal>();
+                decimal rsi = tokenRSI[token].GetCurrentValue<decimal>();
+                if ((lTokenEMA[token].IsFormed && ema < (previousCandle.ClosePrice - (previousCandle.ClosePrice - previousCandle.OpenPrice) * TRIGGER_EMA_ENTRY))
+                    && (rsi > RSI_THRESHOLD && tokenRSI[token].IsFormed))
+                {
+                    return true;
+                }
+                else
+                {
+                    LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Info, previousCandle.CloseTime, String.Format("13 EMA Formed: {0}.\r\n Candle Body {1}% above 13 EMA at {2}, RSI @ {3}", lTokenEMA[token].IsFormed,
+                     string.Format("{0:N2}", (previousCandle.ClosePrice - ema) * 100 / (previousCandle.ClosePrice - previousCandle.OpenPrice)), Decimal.Round(ema, 2), Decimal.Round(rsi, 2)), "TradeEntry");
+                    return false;
+                }
             }
-            else
+            catch (Exception ex)
             {
-                LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Info, previousCandle.CloseTime, String.Format("13 EMA Formed: {0}.\r\n Candle Body {1}% above 13 EMA at {2}", lTokenEMA[token].IsFormed,
-                 string.Format("{0:N2}", (previousCandle.ClosePrice - ema) *100 / (previousCandle.ClosePrice - previousCandle.OpenPrice)) , Decimal.Round(ema,2)), "TradeEntry");
+                _stopTrade = true;
+                Logger.LogWrite(ex.StackTrace);
+                Logger.LogWrite("Closing Application");
+                LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Error, previousCandle.CloseTime, String.Format(@"Error occurred! Trading has stopped. \r\n {0}", ex.Message), "CheckEMA");
+                Thread.Sleep(100);
+                Environment.Exit(0);
                 return false;
             }
         }
@@ -457,44 +556,46 @@ namespace Algorithms.Algorithms
         //}
         private async void LoadOptionsToTrade(DateTime currentTime)
         {
-            int _strikePriceIncrement = 100;
-            var ceStrike = Math.Floor(_baseInstrumentPrice / 100m) * 100m;
-            var peStrike = Math.Ceiling(_baseInstrumentPrice / 100m) * 100m;
-
-            if (ActiveOptions.Count > 0)
+            try
             {
-                Instrument ce = ActiveOptions.First(x => x.InstrumentType.Trim(' ').ToLower() == "ce");
-                Instrument pe = ActiveOptions.First(x => x.InstrumentType.Trim(' ').ToLower() == "pe");
+                int _strikePriceIncrement = 100;
+                var ceStrike = Math.Floor(_baseInstrumentPrice / 100m) * 100m;
+                var peStrike = Math.Ceiling(_baseInstrumentPrice / 100m) * 100m;
 
-                //if (
-                //    ((ce.Strike < _baseInstrumentPrice + _strikePriceIncrement * 1.7m && ce.Strike > _baseInstrumentPrice - _strikePriceIncrement) 
-                //        ||(tokenTradeLevels.ContainsKey(ce.InstrumentToken)))
-                //    && ((pe.Strike > _baseInstrumentPrice - _strikePriceIncrement * 1.7m && pe.Strike < _baseInstrumentPrice + _strikePriceIncrement) 
-                //        ||(tokenTradeLevels.ContainsKey(pe.InstrumentToken)))
-                //    )
-                if (
-                   ((ce.Strike <= _baseInstrumentPrice && ce.Strike >= _baseInstrumentPrice - _strikePriceIncrement * 2)
-                       || (tokenTradeLevels.ContainsKey(ce.InstrumentToken)))
-                   && ((pe.Strike >= _baseInstrumentPrice && pe.Strike <= _baseInstrumentPrice + _strikePriceIncrement * 2 )
-                       || (tokenTradeLevels.ContainsKey(pe.InstrumentToken)))
-                   )
+                if (ActiveOptions.Count > 0)
                 {
-                    return;
-                }
+                    Instrument ce = ActiveOptions.First(x => x.InstrumentType.Trim(' ').ToLower() == "ce");
+                    Instrument pe = ActiveOptions.First(x => x.InstrumentType.Trim(' ').ToLower() == "pe");
 
-            }
+                    //if (
+                    //    ((ce.Strike < _baseInstrumentPrice + _strikePriceIncrement * 1.7m && ce.Strike > _baseInstrumentPrice - _strikePriceIncrement) 
+                    //        ||(tokenTradeLevels.ContainsKey(ce.InstrumentToken)))
+                    //    && ((pe.Strike > _baseInstrumentPrice - _strikePriceIncrement * 1.7m && pe.Strike < _baseInstrumentPrice + _strikePriceIncrement) 
+                    //        ||(tokenTradeLevels.ContainsKey(pe.InstrumentToken)))
+                    //    )
+                    if (
+                       ((ce.Strike <= _baseInstrumentPrice && ce.Strike >= _baseInstrumentPrice - _strikePriceIncrement * 2)
+                           || (tokenTradeLevels.ContainsKey(ce.InstrumentToken)))
+                       && ((pe.Strike >= _baseInstrumentPrice && pe.Strike <= _baseInstrumentPrice + _strikePriceIncrement * 2)
+                           || (tokenTradeLevels.ContainsKey(pe.InstrumentToken)))
+                       )
+                    {
+                        return;
+                    }
+
+                }
                 DataLogic dl = new DataLogic();
 
-            if (OptionUniverse == null ||
-            (OptionUniverse[(int)InstrumentType.CE].Keys.Last() <= _baseInstrumentPrice - _strikePriceIncrement * 2 || OptionUniverse[(int)InstrumentType.CE].Keys.First() >= _baseInstrumentPrice - _strikePriceIncrement * 0
-               || OptionUniverse[(int)InstrumentType.PE].Keys.Last() <= _baseInstrumentPrice + _strikePriceIncrement * 0 || OptionUniverse[(int)InstrumentType.PE].Keys.First() >= _baseInstrumentPrice + _strikePriceIncrement * 2))
-            {
-                LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Info, currentTime, " Loading Tokens from database...", "LoadOptionsToTrade");
-                //Load options asynchronously
-                OptionUniverse = dl.LoadCloseByOptions(_expiryDate, _baseInstrumentToken, _baseInstrumentPrice);
+                if (OptionUniverse == null ||
+                (OptionUniverse[(int)InstrumentType.CE].Keys.Last() <= _baseInstrumentPrice - _strikePriceIncrement * 2 || OptionUniverse[(int)InstrumentType.CE].Keys.First() >= _baseInstrumentPrice - _strikePriceIncrement * 0
+                   || OptionUniverse[(int)InstrumentType.PE].Keys.Last() <= _baseInstrumentPrice + _strikePriceIncrement * 0 || OptionUniverse[(int)InstrumentType.PE].Keys.First() >= _baseInstrumentPrice + _strikePriceIncrement * 2))
+                {
+                    LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Info, currentTime, " Loading Tokens from database...", "LoadOptionsToTrade");
+                    //Load options asynchronously
+                    OptionUniverse = dl.LoadCloseByOptions(_expiryDate, _baseInstrumentToken, _baseInstrumentPrice);
 
-                LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Info, currentTime, " Tokens Loaded", "LoadOptionsToTrade");
-            }
+                    LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Info, currentTime, " Tokens Loaded", "LoadOptionsToTrade");
+                }
 
                 //TODO: Check for exception if less than 2 items are available.
                 //var activeCEs = OptionUniverse[(int)InstrumentType.CE].Where(x => x.Key > _baseInstrumentPrice).Take(1);
@@ -576,7 +677,17 @@ namespace Algorithms.Algorithms
                 //ActiveOptions.AddRange(activeCEs.Select(x => x.Value));
                 //if (!ActiveOptions.Any(x => x.InstrumentType.Trim(' ').ToLower() == "pe"))
                 //    ActiveOptions.AddRange(activePEs.Select(x => x.Value));
-            //}
+                //}
+            }
+            catch (Exception ex)
+            {
+                _stopTrade = true;
+                Logger.LogWrite(ex.StackTrace);
+                Logger.LogWrite("Closing Application");
+                LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Error, currentTime, String.Format(@"Error occurred! Trading has stopped. \r\n {0}", ex.Message), "LoadOptionsToTrade");
+                Thread.Sleep(100);
+                Environment.Exit(0);
+            }
         }
         private async void TradeExit(Tick tick)
         {
@@ -637,7 +748,10 @@ namespace Algorithms.Algorithms
             {
                 _stopTrade = true;
                 Logger.LogWrite(exp.StackTrace);
-                throw new Exception("Trading Stopped as algo encountered an error. Check log file for details");
+                Logger.LogWrite("Closing Application");
+                LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Error, tick.Timestamp.Value, String.Format(@"Error occurred! Trading has stopped. \r\n {0}", exp.Message), "TradeExit");
+                Thread.Sleep(100);
+                Environment.Exit(0);
             }
         }
 
@@ -679,75 +793,124 @@ namespace Algorithms.Algorithms
         }
         private DateTime? CheckCandleStartTime(DateTime currentTime, out DateTime lastEndTime)
         {
-            double mselapsed = (currentTime.TimeOfDay - MARKET_START_TIME).TotalMilliseconds % _candleTimeSpan.TotalMilliseconds;
-            DateTime? candleStartTime = null;
-            //if(mselapsed < 1000) //less than a second
-            //{
-            //    candleStartTime =  currentTime;
-            //}
-            if (mselapsed < 60 * 1000)
+            try
             {
-                candleStartTime = currentTime.Date.Add(TimeSpan.FromMilliseconds(currentTime.TimeOfDay.TotalMilliseconds - mselapsed));
-            }
-            //else
-            //{
+                double mselapsed = (currentTime.TimeOfDay - MARKET_START_TIME).TotalMilliseconds % _candleTimeSpan.TotalMilliseconds;
+                DateTime? candleStartTime = null;
+                //if(mselapsed < 1000) //less than a second
+                //{
+                //    candleStartTime =  currentTime;
+                //}
+                if (mselapsed < 60 * 1000)
+                {
+                    candleStartTime = currentTime.Date.Add(TimeSpan.FromMilliseconds(currentTime.TimeOfDay.TotalMilliseconds - mselapsed));
+                }
+                //else
+                //{
                 lastEndTime = currentTime.Date.Add(TimeSpan.FromMilliseconds(currentTime.TimeOfDay.TotalMilliseconds - mselapsed));
-            //}
+                //}
 
-            return candleStartTime;
+                return candleStartTime;
+            }
+            catch (Exception ex)
+            {
+                _stopTrade = true;
+                Logger.LogWrite(ex.StackTrace);
+                Logger.LogWrite("Closing Application");
+                LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Error, currentTime, String.Format(@"Error occurred! Trading has stopped. \r\n {0}", ex.Message), "CheckCandleStartTime");
+                Thread.Sleep(100);
+                Environment.Exit(0);
+                lastEndTime = DateTime.Now;
+                return null;
+            }
         }
 
         private async void UpdateInstrumentSubscription(DateTime currentTime)
         {
-            bool dataUpdated = false;
-            if (OptionUniverse != null)
+            try
             {
-                foreach (var options in OptionUniverse)
+                bool dataUpdated = false;
+                if (OptionUniverse != null)
                 {
-                    foreach (var option in options)
+                    foreach (var options in OptionUniverse)
                     {
-                        if (!SubscriptionTokens.Contains(option.Value.InstrumentToken))
+                        foreach (var option in options)
                         {
-                            SubscriptionTokens.Add(option.Value.InstrumentToken);
-                            dataUpdated = true;
+                            if (!SubscriptionTokens.Contains(option.Value.InstrumentToken))
+                            {
+                                SubscriptionTokens.Add(option.Value.InstrumentToken);
+                                dataUpdated = true;
+                            }
                         }
                     }
+                    if (dataUpdated)
+                    {
+                        LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Info, currentTime, "Subscribing to new tokens", "UpdateInstrumentSubscription");
+                        Task task = Task.Run(() => OnOptionUniverseChange(this));
+                    }
                 }
-                if (dataUpdated)
-                {
-                    LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Info, currentTime, "Subscribing to new tokens", "UpdateInstrumentSubscription");
-                    Task task = Task.Run(() => OnOptionUniverseChange(this));
-                }
+            }
+            catch (Exception ex)
+            {
+                _stopTrade = true;
+                Logger.LogWrite(ex.StackTrace);
+                Logger.LogWrite("Closing Application");
+                LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Error, currentTime, String.Format(@"Error occurred! Trading has stopped. \r\n {0}", ex.Message), "UpdateInstrumentSubscription");
+                Thread.Sleep(100);
+                Environment.Exit(0);
             }
         }
 
-#region Historical Candle 
+        #region Historical Candle 
         private void LoadHistoricalCandles(string tokenList, int candlesCount, DateTime lastCandleEndTime)
         {
-            lock (lTokenEMA)
+            try
             {
-                DataLogic dl = new DataLogic();
-
-                //The below is from ticks
-                //List<decimal> historicalCandlePrices = dl.GetHistoricalCandlePrices(candlesCount, lastCandleEndTime, token.ToString(), _candleTimeSpan);
-                Dictionary<uint, List<decimal>> historicalCandlePrices = dl.GetHistoricalCandlePrices(candlesCount, lastCandleEndTime, tokenList, _candleTimeSpan);
-
-                //The below is from candles
-                //List<decimal> historicalCandlePrices = dl.GetHistoricalClosePricesFromCandles(candlesCount, lastCandleEndTime, token, _candleTimeSpan);
-                //Dictionary<uint, List<decimal>> historicalCandlePrices = dl.GetHistoricalClosePricesFromCandles(candlesCount, lastCandleEndTime, tokenList, _candleTimeSpan);
-
-                ExponentialMovingAverage lema; //.Process(candle.ClosePrice, isFinal: true)
-
-                foreach (uint t in historicalCandlePrices.Keys)
+                lock (lTokenEMA)
                 {
-                    lema = new ExponentialMovingAverage(LONG_EMA);
-                    foreach (var price in historicalCandlePrices[t])
+                    DataLogic dl = new DataLogic();
+
+                    //The below is from ticks
+                    //List<decimal> historicalCandlePrices = dl.GetHistoricalCandlePrices(candlesCount, lastCandleEndTime, token.ToString(), _candleTimeSpan);
+                    Dictionary<uint, List<decimal>> historicalCandlePrices = dl.GetHistoricalCandlePrices(candlesCount, lastCandleEndTime, tokenList, _candleTimeSpan);
+
+                    //The below is from candles
+                    //List<decimal> historicalCandlePrices = dl.GetHistoricalClosePricesFromCandles(candlesCount, lastCandleEndTime, token, _candleTimeSpan);
+                    //Dictionary<uint, List<decimal>> historicalCandlePrices = dl.GetHistoricalClosePricesFromCandles(candlesCount, lastCandleEndTime, tokenList, _candleTimeSpan);
+
+                    ExponentialMovingAverage lema; //.Process(candle.ClosePrice, isFinal: true)
+                    RelativeStrengthIndex rsi;
+
+                    foreach (uint t in historicalCandlePrices.Keys)
                     {
-                        lema.Process(price, isFinal: true);
+                        lema = new ExponentialMovingAverage(LONG_EMA);
+                        foreach (var price in historicalCandlePrices[t])
+                        {
+                            lema.Process(price, isFinal: true);
+                        }
+                        lTokenEMA.Add(t, lema);
+
+                        rsi = new RelativeStrengthIndex();
+                        foreach (var price in historicalCandlePrices[t])
+                        {
+                            rsi.Process(price, isFinal: true);
+                        }
+                        tokenRSI.Add(t, rsi);
+
                     }
-                    lTokenEMA.Add(t, lema);
                 }
             }
+            catch (Exception ex)
+            {
+                _stopTrade = true;
+                Logger.LogWrite(ex.StackTrace);
+                Logger.LogWrite("Closing Application");
+                LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Error, 
+                    lastCandleEndTime, String.Format(@"Error occurred! Trading has stopped. {0}", ex.Message), "LoadHistoricalCandles");
+                Thread.Sleep(100);
+                Environment.Exit(0);
+            }
+
         }
         #endregion
 
@@ -846,12 +1009,26 @@ namespace Algorithms.Algorithms
 
         public Task<bool> OnNext(Tick[] ticks)
         {
-            if (_stopTrade || !ticks[0].Timestamp.HasValue)
+            try
             {
+                if (_stopTrade || !ticks[0].Timestamp.HasValue)
+                {
+                    return Task.FromResult(false);
+                }
+                ActiveTradeIntraday(ticks[0]);
+                return Task.FromResult(true);
+            }
+            catch (Exception ex)
+            {
+                _stopTrade = true;
+                Logger.LogWrite(ex.StackTrace);
+                Logger.LogWrite("Trading Stopped as algo encountered an error");
+                //throw new Exception("Trading Stopped as algo encountered an error. Check log file for details");
+                LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Error, ticks[0].Timestamp.GetValueOrDefault(DateTime.UtcNow) , String.Format(@"Error occurred! Trading has stopped. \r\n {0}", ex.Message), "OnNext");
+                Thread.Sleep(100);
+                Environment.Exit(0);
                 return Task.FromResult(false);
             }
-            ActiveTradeIntraday(ticks[0]);
-            return Task.FromResult(true);
         }
 
         private void CheckHealth(object sender, ElapsedEventArgs e)
@@ -881,21 +1058,34 @@ namespace Algorithms.Algorithms
         /// <returns></returns>
         private async Task<Order> ModifyOrder(KeyValuePair<uint, OrderLevels> tokenOrderLevel, DateTime currentTime)
         {
-            uint instrumentToken = tokenOrderLevel.Key;
-            Order slOrder = tokenOrderLevel.Value.SLOrder;
-            CriticalLevels updatedCLsForSecondLeg = tokenOrderLevel.Value.Levels;
+            try
+            {
+                uint instrumentToken = tokenOrderLevel.Key;
+                Order slOrder = tokenOrderLevel.Value.SLOrder;
+                CriticalLevels updatedCLsForSecondLeg = tokenOrderLevel.Value.Levels;
 
-            string tradingSymbol = slOrder.Tradingsymbol;
+                string tradingSymbol = slOrder.Tradingsymbol;
 
-            decimal sl = updatedCLsForSecondLeg.StopLossPrice;
-            
-            
-            
-            Order order = MarketOrders.ModifyOrder(_algoInstance, algoIndex, sl, slOrder, currentTime).Result;
-            
-            OnTradeEntry(order);
-            return order;
+                decimal sl = updatedCLsForSecondLeg.StopLossPrice;
 
+
+
+                Order order = MarketOrders.ModifyOrder(_algoInstance, algoIndex, sl, slOrder, currentTime).Result;
+
+                OnTradeEntry(order);
+                return order;
+
+            }
+            catch (Exception ex)
+            {
+                _stopTrade = true;
+                Logger.LogWrite(ex.StackTrace);
+                Logger.LogWrite("Closing Application");
+                LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Error, currentTime, String.Format(@"Error occurred! Trading has stopped. \r\n {0}", ex.Message), "ModifyOrder");
+                Thread.Sleep(100);
+                Environment.Exit(0);
+                return null;
+            }
             //#if market
             //            Dictionary<string, dynamic> orderStatus = ZObjects.kite.ModifyOrder(slOrder.OrderId, TriggerPrice: sl );
             //            Order order = null;

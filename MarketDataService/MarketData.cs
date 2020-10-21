@@ -19,7 +19,8 @@ namespace MarketDataService
         public static readonly string BANK_NIFTY_TOKEN = "260105";
         public static void PublishData()
         {
-            ZObjects.ticker = new Ticker(ZConnect.MyAPIKey, ZConnect.UserAccessToken, null);//State:zSessionState.Current);
+            ZConnect.Login();
+            ZObjects.ticker = new Ticker(ZConnect.UserAPIkey, ZConnect.UserAccessToken, null);//State:zSessionState.Current);
 
             ZObjects.ticker.OnTick += OnTick;
             ZObjects.ticker.OnReconnect += OnReconnect;
@@ -32,7 +33,7 @@ namespace MarketDataService
             ZObjects.ticker.EnableReconnect(Interval: 5, Retries: 50);
             ZObjects.ticker.Connect();
 
-            ZConnect.ZerodhaLogin();
+            
             InitTimer();
             SubscribeTokens(null, null);
         }

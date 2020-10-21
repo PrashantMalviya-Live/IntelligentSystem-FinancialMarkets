@@ -61,24 +61,39 @@ namespace TradeEMACross.Controllers
                     Quantity = Convert.ToInt32(drAlgo["InitialQtyInLotSize"]),
                     Token = Convert.ToUInt32(drAlgo["BToken"])
                 };
-                algosView.Aid = Convert.ToInt32(drAlgo["AlgoId"]);
-                algosView.AN = Convert.ToString((AlgoIndex)algosView.Aid);
-                algosView.AIns = Convert.ToInt32(drAlgo["Id"]);
+                algosView.aid = Convert.ToInt32(drAlgo["AlgoId"]);
+                algosView.an = Convert.ToString((AlgoIndex)algosView.aid);
+                algosView.ains = Convert.ToInt32(drAlgo["Id"]);
 
-                foreach (DataRow drOrder in drAlgo.GetChildRows(algo_orders_relation))
+                algosView.expiry = Convert.ToDateTime(drAlgo["Expiry"]).ToString("yyyy-MM-dd");
+                algosView.mins = Convert.ToInt32(drAlgo["CandleTimeFrame_Mins"]);
+                algosView.lotsize = Convert.ToInt32(drAlgo["InitialQtyInLotSize"]);
+                algosView.binstrument = Convert.ToString(drAlgo["BToken"]);
+                algosView.algodate = Convert.ToDateTime(drAlgo["Timestamp"]).ToString("yyyy-MM-dd");
+
+                DataRow[] drOrders = drAlgo.GetChildRows(algo_orders_relation);
+                List<Order> orders = new List<Order>();
+                foreach (DataRow drOrder in drOrders)
                 {
                     Order o = GetOrder(drOrder);
-                    if(o.Status == Constants.ORDER_STATUS_OPEN && o.OrderType == Constants.ORDER_TYPE_SLM)
-                    {
-                        algoInput.ActiveOrder = o;
-                    }
-                    algosView.Orders.Add(GetOrderView(o));
+                    orders.Add(o);
                 }
-                if (algoInput.ActiveOrder != null)
+
+                var slmOrders = orders.Where(o => o.Status == Constants.ORDER_STATUS_TRIGGER_PENDING && o.OrderType == Constants.ORDER_TYPE_SLM);
+                var completedOrders = orders.Where(o => o.Status == Constants.ORDER_STATUS_COMPLETE);
+
+                var pendingOrders = slmOrders.Where(x => !completedOrders.Any(c => c.OrderId == x.OrderId));
+
+                if (pendingOrders != null && pendingOrders.Count() > 0)
                 {
-                    Trade(algoInput);
+                    algoInput.ActiveOrder = pendingOrders.FirstOrDefault(null);
+                    algosView.Orders.Add(GetOrderView(pendingOrders.FirstOrDefault(null)));
+                    if (algoInput.ActiveOrder != null)
+                    {
+                        Trade(algoInput, algosView.ains);
+                    }
+                    activeAlgos.Add(algosView);
                 }
-                activeAlgos.Add(algosView);
             }
             return activeAlgos.ToArray();
         }
@@ -106,7 +121,7 @@ namespace TradeEMACross.Controllers
         }
 
         [HttpPost]
-        public async Task<ActiveAlgosView> Trade([FromBody] OptionMomentumInput optionMomentumInput)
+        public async Task<ActiveAlgosView> Trade([FromBody] OptionMomentumInput optionMomentumInput, int algoInstance = 0)
         {
             uint instrumentToken = optionMomentumInput.Token;
             DateTime endDateTime = DateTime.Now;
@@ -117,11 +132,11 @@ namespace TradeEMACross.Controllers
             int optionQuantity = optionMomentumInput.Quantity;
 
 #if local
-            endDateTime = Convert.ToDateTime("2020-10-12 09:15:00");
+            endDateTime = Convert.ToDateTime("2020-10-16 12:21:00");
 #endif
 
             ///FOR ALL STOCKS FUTURE , PASS INSTRUMENTTOKEN AS ZERO. FOR CE/PE ON BNF/NF SEND THE INDEX TOKEN AS INSTRUMENTTOKEN
-            OptionVolumeRateEMAThreshold volumeThreshold = new OptionVolumeRateEMAThreshold(endDateTime, candleTimeSpan, instrumentToken, expiry, optionQuantity);
+            OptionVolumeRateEMAThreshold volumeThreshold = new OptionVolumeRateEMAThreshold(endDateTime, candleTimeSpan, instrumentToken, expiry, optionQuantity, algoInstance);
 
             Order activeOrder = optionMomentumInput.ActiveOrder;
             if (activeOrder != null)
@@ -139,15 +154,49 @@ namespace TradeEMACross.Controllers
             Task task = Task.Run(() => NMQClientSubscription(volumeThreshold, instrumentToken));
 
             //await task;
-            return new ActiveAlgosView { Aid = Convert.ToInt32(AlgoIndex.MomentumTrade_Option), 
-                AN = Convert.ToString((AlgoIndex)AlgoIndex.MomentumTrade_Option), AIns = volumeThreshold.AlgoInstance };
-            
+            return new ActiveAlgosView {
+                aid = Convert.ToInt32(AlgoIndex.MomentumTrade_Option),
+                an = Convert.ToString((AlgoIndex)AlgoIndex.MomentumTrade_Option),
+                ains = volumeThreshold.AlgoInstance,
+                algodate = endDateTime.ToString("yyyy-MM-dd"),
+                binstrument = instrumentToken.ToString(),
+                expiry = expiry.HasValue ? expiry.Value.ToString("yyyy-MM-dd"):"",
+                lotsize = optionQuantity,
+                mins = optionMomentumInput.CTF
+            };
         }
 
         [HttpGet("dummyorder")]
         public void GetDummyOrder()
         {
-            LoggerCore.PublishLog(56, AlgoIndex.MomentumTrade_Option, LogLevel.Health, DateTime.UtcNow, "1", "GetDummyOrder");
+            //Order order = new Order()
+            //{
+                 
+            //    OrderId = "306a17e2-3bde-44ba-9668-c51081aa9d0b",
+            //    AveragePrice = 128,
+            //    ExchangeTimestamp = Convert.ToDateTime("2020-10-15 11:35:00"),
+            //    OrderType = Constants.ORDER_TYPE_MARKET,
+            //    Price = 128,
+            //    Product = Constants.PRODUCT_NRML,
+            //    CancelledQuantity = 0,
+            //    FilledQuantity = 2500,
+            //    InstrumentToken = 10444546,
+            //    OrderTimestamp = Convert.ToDateTime("2020-10-15 11:35:00"),
+            //    Quantity = 2500,
+            //    Validity = Constants.VALIDITY_DAY,
+            //    TriggerPrice = 128,
+            //    Tradingsymbol = "BANKNIFTY20O1523900PE",
+            //    TransactionType = "buy",
+            //    Status = "Complete",
+            //    Variety = "regular",
+            //    Tag = "Test",
+            //    AlgoIndex = 17
+            //};
+
+            //OrderCore.PublishOrder(order);
+            //DataLogic dl = new DataLogic();
+            //dl.LoadTokens();
+
         }
         private async Task NMQClientSubscription(OptionVolumeRateEMAThreshold volumeThreshold, uint token)
         {
@@ -214,19 +263,19 @@ namespace TradeEMACross.Controllers
         {
             return new OrderView
             {
-                OrderId = order.OrderId,
-                InstrumentToken = order.InstrumentToken,
-                TradingSymbol = order.Tradingsymbol.Trim(' '),
-                TransactionType = order.TransactionType,
-                Status = order.Status,
-                StatusMessage = order.StatusMessage,
-                Price = order.AveragePrice,
-                Quantity = order.Quantity,
-                TriggerPrice = order.TriggerPrice,
-                Algorithm = Convert.ToString((AlgoIndex)order.AlgoIndex),
-                AlgoInstance = order.AlgoInstance,
-                OrderTime = order.OrderTimestamp.GetValueOrDefault(DateTime.Now).ToString("yyyy-MM-dd HH:mm:ss"),
-                OrderType = Convert.ToString(order.OrderType)
+                orderid = order.OrderId,
+                instrumenttoken = order.InstrumentToken,
+                tradingsymbol = order.Tradingsymbol.Trim(' '),
+                transactiontype = order.TransactionType,
+                status = order.Status,
+                statusmessage = order.StatusMessage,
+                price = order.AveragePrice,
+                quantity = order.Quantity,
+                triggerprice = order.TriggerPrice,
+                algorithm = Convert.ToString((AlgoIndex)order.AlgoIndex),
+                algoinstance = order.AlgoInstance,
+                ordertime = order.OrderTimestamp.GetValueOrDefault(DateTime.Now).ToString("yyyy-MM-dd HH:mm:ss"),
+                ordertype = Convert.ToString(order.OrderType)
             };
         }
 

@@ -1,586 +1,186 @@
 
-10/12/2020 9:13:35 AM : Connected ticker
+10/19/2020 7:58:36 AM : Starting Market Data Service
 
-10/12/2020 9:16:39 AM : Connected ticker
+10/19/2020 7:58:36 AM : Market Data Service Started
 
-10/12/2020 11:26:00 AM : Reconnecting Ticker
+10/19/2020 8:12:40 AM : Starting Market Data Service
 
-10/12/2020 11:26:00 AM : Error: Lost ticker connection.
+10/19/2020 8:12:40 AM : Market Data Service Started
 
-10/12/2020 11:26:02 AM : Connected ticker
+10/19/2020 9:12:15 AM : User logged In
 
-10/12/2020 3:33:57 PM : Reconnecting Ticker
+10/19/2020 9:12:56 AM : Starting Market Data Service
 
-10/12/2020 3:33:57 PM : Error: Lost ticker connection.
+10/19/2020 9:12:57 AM : User logged In
 
-10/12/2020 3:33:58 PM : Connected ticker
+10/19/2020 9:12:57 AM : Connected ticker
 
-10/12/2020 4:45:22 PM : Value cannot be null. (Parameter 'value')
+10/19/2020 9:12:58 AM : Market Data Service Started
 
-10/12/2020 4:45:22 PM : Logger Service Failed
+10/19/2020 6:44:19 PM : User logged In
 
-10/12/2020 4:45:29 PM : Value cannot be null. (Parameter 'value')
+10/19/2020 7:12:12 PM : User logged In
 
-10/12/2020 4:45:29 PM : Logger Service Failed
+10/19/2020 7:15:59 PM : User logged In
 
-10/12/2020 10:01:29 PM : Value cannot be null. (Parameter 'value')
+10/19/2020 7:20:26 PM : User logged In
 
-10/12/2020 10:01:29 PM : Logger Service Failed
+10/19/2020 7:24:00 PM : User logged In
 
-10/13/2020 9:00:02 AM : Connected ticker
+10/19/2020 9:12:23 PM : User logged In
 
-10/13/2020 9:29:20 AM : Error: Lost ticker connection.
+10/19/2020 9:23:00 PM : User logged In
 
-10/13/2020 9:29:25 AM : Reconnecting Ticker
+10/19/2020 9:25:28 PM : Starting Market Data Service
 
-10/13/2020 9:29:27 AM : Connected ticker
+10/19/2020 9:25:28 PM : User logged In
 
-10/13/2020 9:34:54 AM : Error: Lost ticker connection.
+10/19/2020 9:25:29 PM : Connected ticker
 
-10/13/2020 9:34:59 AM : Reconnecting Ticker
+10/19/2020 9:25:29 PM : Market Data Service Started
 
-10/13/2020 9:35:00 AM : Connected ticker
+10/19/2020 9:29:47 PM : Starting Market Data Service
 
-10/13/2020 9:37:58 AM : Error: Lost ticker connection.
+10/19/2020 9:29:48 PM : User logged In
 
-10/13/2020 9:38:02 AM : Reconnecting Ticker
+10/19/2020 9:29:48 PM : Connected ticker
 
-10/13/2020 9:38:02 AM : Connected ticker
+10/19/2020 9:29:49 PM : Market Data Service Started
 
-10/13/2020 9:42:22 AM : Error: Lost ticker connection.
+10/19/2020 9:32:07 PM : Starting Market Data Service
 
-10/13/2020 9:42:27 AM : Reconnecting Ticker
+10/19/2020 9:32:07 PM : User logged In
 
-10/13/2020 9:42:28 AM : Connected ticker
+10/19/2020 9:32:08 PM : Connected ticker
 
-10/13/2020 9:45:01 AM : Error: Lost ticker connection.
+10/19/2020 9:32:08 PM : Market Data Service Started
 
-10/13/2020 9:45:06 AM : Reconnecting Ticker
+10/19/2020 9:33:03 PM : Starting Market Data Service
 
-10/13/2020 9:45:08 AM : Connected ticker
+10/19/2020 9:33:04 PM : User logged In
 
-10/13/2020 9:49:44 AM : Error: Lost ticker connection.
+10/19/2020 9:33:04 PM : Connected ticker
 
-10/13/2020 9:49:49 AM : Reconnecting Ticker
+10/19/2020 9:33:05 PM : Market Data Service Started
 
-10/13/2020 9:49:51 AM : Connected ticker
+10/19/2020 9:33:29 PM : User logged In
 
-10/13/2020 10:01:26 AM : Error: Lost ticker connection.
+10/19/2020 9:36:21 PM : Starting Market Data Service
 
-10/13/2020 10:01:31 AM : Reconnecting Ticker
+10/19/2020 9:36:22 PM : Market Data Service Started
 
-10/13/2020 10:01:32 AM : Connected ticker
+10/19/2020 9:39:42 PM : User logged In
 
-10/13/2020 10:03:35 AM : Error: Lost ticker connection.
+10/19/2020 10:04:54 PM :    at Algorithms.Algorithms.OptionVolumeRateEMAThreshold.LoadHistoricalEMAs(DateTime currentTime) in D:\Prashant\IntelligentSoftware\2020\Algos\Algorithms\Momentum\Volume Trend\VolumeThreshold - Rate EMA - Option Intraday.cs:line 327
 
-10/13/2020 10:03:40 AM : Reconnecting Ticker
+10/19/2020 10:04:54 PM : Trading Stopped as algo encountered an error
 
-10/13/2020 10:03:41 AM : Connected ticker
+10/19/2020 10:09:48 PM : Starting Market Data Service
 
-10/13/2020 3:26:42 PM : Reconnecting Ticker
+10/19/2020 10:09:48 PM : Market Data Service Started
 
-10/13/2020 3:26:42 PM : Error: Lost ticker connection.
+10/19/2020 10:10:00 PM : User logged In
 
-10/13/2020 3:26:43 PM : Connected ticker
+10/19/2020 10:17:49 PM : Starting Market Data Service
 
-10/13/2020 3:31:48 PM : Reconnecting Ticker
+10/19/2020 10:17:49 PM : Market Data Service Started
 
-10/13/2020 3:31:48 PM : Error: Lost ticker connection.
+10/19/2020 10:20:11 PM : Starting Market Data Service
 
-10/13/2020 3:31:49 PM : Connected ticker
+10/19/2020 10:20:12 PM : Market Data Service Started
 
-10/14/2020 12:27:12 AM :    at GlobalLayer.User..ctor(DataTable data) in D:\Prashant\IntelligentSoftware\2020\GlobalLayer\Structures.cs:line 2834
-   at Algorithms.Utilities.DataLogic.GetActiveUser() in D:\Prashant\IntelligentSoftware\2020\Algos\Utilities\DataLogic.cs:line 26
-   at Algorithms.Utilities.Login.GetActiveUser() in D:\Prashant\IntelligentSoftware\2020\Algos\Utilities\Login.cs:line 22
-   at MarketView.Controllers.LoginController.Login(String request_token) in D:\Prashant\IntelligentSoftware\2020\Algo Services\MarketView\Controllers\LoginController.cs:line 25
+10/19/2020 10:21:06 PM : User logged In
 
-10/14/2020 12:40:01 AM :    at GlobalLayer.User..ctor(DataTable data) in D:\Prashant\IntelligentSoftware\2020\GlobalLayer\Structures.cs:line 2834
-   at Algorithms.Utilities.DataLogic.GetActiveUser() in D:\Prashant\IntelligentSoftware\2020\Algos\Utilities\DataLogic.cs:line 26
-   at Algorithms.Utilities.Login.GetActiveUser() in D:\Prashant\IntelligentSoftware\2020\Algos\Utilities\Login.cs:line 22
-   at MarketView.Controllers.LoginController.Login(String request_token) in D:\Prashant\IntelligentSoftware\2020\Algo Services\MarketView\Controllers\LoginController.cs:line 25
+10/19/2020 10:36:18 PM : Starting Market Data Service
 
-10/14/2020 2:28:19 AM :    at KiteConnect.Kite.Request(String Route, String Method, Dictionary`2 Params) in D:\Prashant\IntelligentSoftware\2020\KiteConnect\Kite.cs:line 1218
-   at KiteConnect.Kite.Post(String Route, Dictionary`2 Params) in D:\Prashant\IntelligentSoftware\2020\KiteConnect\Kite.cs:line 1057
-   at KiteConnect.Kite.GenerateSession(String RequestToken, String AppSecret) in D:\Prashant\IntelligentSoftware\2020\KiteConnect\Kite.cs:line 174
-   at MarketView.Controllers.LoginController.Login(String request_token, String action, String status) in D:\Prashant\IntelligentSoftware\2020\Algo Services\MarketView\Controllers\LoginController.cs:line 39
+10/19/2020 10:36:18 PM : Market Data Service Started
 
-10/14/2020 2:28:45 AM :    at KiteConnect.Kite.Request(String Route, String Method, Dictionary`2 Params) in D:\Prashant\IntelligentSoftware\2020\KiteConnect\Kite.cs:line 1218
-   at KiteConnect.Kite.Post(String Route, Dictionary`2 Params) in D:\Prashant\IntelligentSoftware\2020\KiteConnect\Kite.cs:line 1057
-   at KiteConnect.Kite.GenerateSession(String RequestToken, String AppSecret) in D:\Prashant\IntelligentSoftware\2020\KiteConnect\Kite.cs:line 174
-   at MarketView.Controllers.LoginController.Login(String request_token, String action, String status) in D:\Prashant\IntelligentSoftware\2020\Algo Services\MarketView\Controllers\LoginController.cs:line 39
+10/19/2020 10:37:12 PM : User logged In
 
-10/14/2020 2:29:32 AM :    at KiteConnect.Kite.Request(String Route, String Method, Dictionary`2 Params) in D:\Prashant\IntelligentSoftware\2020\KiteConnect\Kite.cs:line 1218
-   at KiteConnect.Kite.Post(String Route, Dictionary`2 Params) in D:\Prashant\IntelligentSoftware\2020\KiteConnect\Kite.cs:line 1057
-   at KiteConnect.Kite.GenerateSession(String RequestToken, String AppSecret) in D:\Prashant\IntelligentSoftware\2020\KiteConnect\Kite.cs:line 174
-   at MarketView.Controllers.LoginController.Login(String request_token, String action, String status) in D:\Prashant\IntelligentSoftware\2020\Algo Services\MarketView\Controllers\LoginController.cs:line 39
+10/19/2020 11:22:19 PM : Starting Market Data Service
 
-10/14/2020 2:31:01 AM :    at GlobalLayer.User..ctor(Dictionary`2 data) in D:\Prashant\IntelligentSoftware\2020\GlobalLayer\Structures.cs:line 2807
-   at CallSite.Target(Closure , CallSite , Type , Object )
-   at System.Dynamic.UpdateDelegates.UpdateAndExecute2[T0,T1,TRet](CallSite site, T0 arg0, T1 arg1)
-   at KiteConnect.Kite.GenerateSession(String RequestToken, String AppSecret) in D:\Prashant\IntelligentSoftware\2020\KiteConnect\Kite.cs:line 176
-   at MarketView.Controllers.LoginController.Login(String request_token, String action, String status) in D:\Prashant\IntelligentSoftware\2020\Algo Services\MarketView\Controllers\LoginController.cs:line 39
+10/19/2020 11:22:20 PM : Market Data Service Started
 
-10/14/2020 2:31:25 AM :    at KiteConnect.Kite.Request(String Route, String Method, Dictionary`2 Params) in D:\Prashant\IntelligentSoftware\2020\KiteConnect\Kite.cs:line 1215
-   at KiteConnect.Kite.Post(String Route, Dictionary`2 Params) in D:\Prashant\IntelligentSoftware\2020\KiteConnect\Kite.cs:line 1057
-   at KiteConnect.Kite.GenerateSession(String RequestToken, String AppSecret) in D:\Prashant\IntelligentSoftware\2020\KiteConnect\Kite.cs:line 174
-   at MarketView.Controllers.LoginController.Login(String request_token, String action, String status) in D:\Prashant\IntelligentSoftware\2020\Algo Services\MarketView\Controllers\LoginController.cs:line 39
+10/19/2020 11:24:07 PM : Starting Market Data Service
 
-10/14/2020 2:46:19 AM : User logged In
+10/19/2020 11:24:08 PM : Market Data Service Started
 
-10/14/2020 9:01:08 AM : User logged In
+10/19/2020 11:27:01 PM : User logged In
 
-10/14/2020 9:05:47 AM : Connected ticker
+10/19/2020 11:38:29 PM : Starting Market Data Service
 
-10/14/2020 9:09:23 AM : Connected ticker
+10/19/2020 11:38:29 PM : Market Data Service Started
 
-10/14/2020 9:10:59 AM : User logged In
+10/19/2020 11:39:07 PM : User logged In
 
-10/14/2020 9:11:38 AM : Connected ticker
+10/20/2020 8:49:42 AM : User logged In
 
-10/14/2020 9:13:28 AM : Error: Lost ticker connection.
+10/20/2020 8:50:10 AM : User logged In
 
-10/14/2020 9:13:33 AM : Reconnecting Ticker
+10/20/2020 8:50:24 AM : Starting Market Data Service
 
-10/14/2020 9:13:33 AM : Connected ticker
+10/20/2020 8:50:24 AM : User logged In
 
-10/14/2020 9:19:26 AM : Error: Lost ticker connection.
+10/20/2020 8:50:24 AM : Connected ticker
 
-10/14/2020 9:19:31 AM : Reconnecting Ticker
+10/20/2020 8:50:25 AM : Market Data Service Started
 
-10/14/2020 9:19:31 AM : Connected ticker
+10/20/2020 8:58:44 AM : Reconnecting Ticker
 
-10/14/2020 9:20:26 AM : Error: Lost ticker connection.
+10/20/2020 8:58:44 AM : Error: Lost ticker connection.
 
-10/14/2020 9:20:31 AM : Reconnecting Ticker
+10/20/2020 8:58:46 AM : Connected ticker
 
-10/14/2020 9:20:32 AM : Connected ticker
+10/20/2020 9:03:44 AM : Reconnecting Ticker
 
-10/14/2020 9:27:13 AM : Error: Lost ticker connection.
+10/20/2020 9:03:44 AM : Error: Lost ticker connection.
 
-10/14/2020 9:27:18 AM : Reconnecting Ticker
+10/20/2020 9:03:46 AM : Connected ticker
 
-10/14/2020 9:27:18 AM : Connected ticker
+10/20/2020 9:04:20 AM : Reconnecting Ticker
 
-10/14/2020 10:13:53 AM : Error: Lost ticker connection.
+10/20/2020 9:04:20 AM : Error: Lost ticker connection.
 
-10/14/2020 10:13:58 AM : Reconnecting Ticker
+10/20/2020 9:04:22 AM : Connected ticker
 
-10/14/2020 10:13:58 AM : Connected ticker
+10/20/2020 9:12:56 AM : Reconnecting Ticker
 
-10/14/2020 10:27:15 AM : Error: Lost ticker connection.
+10/20/2020 9:12:56 AM : Error: Lost ticker connection.
 
-10/14/2020 10:27:20 AM : Reconnecting Ticker
+10/20/2020 9:12:57 AM : Connected ticker
 
-10/14/2020 10:27:20 AM : Connected ticker
+10/21/2020 8:49:22 AM : User logged In
 
-10/14/2020 10:28:55 AM : Error: Lost ticker connection.
+10/21/2020 8:49:35 AM : User logged In
 
-10/14/2020 10:29:00 AM : Reconnecting Ticker
+10/21/2020 8:51:46 AM : Starting Market Data Service
 
-10/14/2020 10:29:01 AM : Connected ticker
+10/21/2020 8:51:47 AM : User logged In
 
-10/14/2020 10:30:50 AM : Error: Lost ticker connection.
+10/21/2020 8:51:47 AM : Connected ticker
 
-10/14/2020 10:30:55 AM : Reconnecting Ticker
+10/21/2020 8:51:48 AM : Market Data Service Started
 
-10/14/2020 10:30:56 AM : Connected ticker
+10/21/2020 9:00:18 AM : Reconnecting Ticker
 
-10/14/2020 10:33:14 AM : Error: Lost ticker connection.
+10/21/2020 9:00:18 AM : Error: Lost ticker connection.
 
-10/14/2020 10:33:19 AM : Reconnecting Ticker
+10/21/2020 9:00:20 AM : Connected ticker
 
-10/14/2020 10:33:21 AM : Connected ticker
+10/21/2020 9:05:19 AM : Reconnecting Ticker
 
-10/14/2020 10:35:25 AM : Error: Lost ticker connection.
+10/21/2020 9:05:19 AM : Error: Lost ticker connection.
 
-10/14/2020 10:35:30 AM : Reconnecting Ticker
+10/21/2020 9:05:20 AM : Connected ticker
 
-10/14/2020 10:35:31 AM : Connected ticker
+10/21/2020 9:08:09 AM : Reconnecting Ticker
 
-10/14/2020 10:37:18 AM : Error: Lost ticker connection.
+10/21/2020 9:08:09 AM : Error: Lost ticker connection.
 
-10/14/2020 10:37:23 AM : Reconnecting Ticker
+10/21/2020 9:08:10 AM : Connected ticker
 
-10/14/2020 10:37:24 AM : Connected ticker
+10/21/2020 3:34:03 PM : Reconnecting Ticker
 
-10/14/2020 10:40:17 AM : Reconnecting Ticker
+10/21/2020 3:34:03 PM : Error: Lost ticker connection.
 
-10/14/2020 10:40:17 AM : Error: Lost ticker connection.
-
-10/14/2020 10:40:23 AM : Reconnecting Ticker
-
-10/14/2020 10:40:28 AM : Error: Error while connecting. Message: Unable to connect to the remote server
-
-10/14/2020 10:40:28 AM : Error: Error while connecting. Message: No such host is known.
-
-10/14/2020 10:40:28 AM : Error: Error while connecting. Message: No such host is known.
-
-10/14/2020 10:40:28 AM : Error: Error while connecting. Message: No such host is known.
-
-10/14/2020 10:40:49 AM : Reconnecting Ticker
-
-10/14/2020 10:40:49 AM : Error: Error while connecting. Message: Unable to connect to the remote server
-
-10/14/2020 10:40:49 AM : Error: Error while connecting. Message: No such host is known.
-
-10/14/2020 10:40:49 AM : Error: Error while connecting. Message: No such host is known.
-
-10/14/2020 10:41:30 AM : Reconnecting Ticker
-
-10/14/2020 10:41:30 AM : Error: Error while connecting. Message: Unable to connect to the remote server
-
-10/14/2020 10:41:30 AM : Error: Error while connecting. Message: No such host is known.
-
-10/14/2020 10:41:30 AM : Error: Error while connecting. Message: No such host is known.
-
-10/14/2020 10:42:31 AM : Reconnecting Ticker
-
-10/14/2020 10:42:31 AM : Error: Error while connecting. Message: Unable to connect to the remote server
-
-10/14/2020 10:42:31 AM : Error: Error while connecting. Message: No such host is known.
-
-10/14/2020 10:42:31 AM : Error: Error while connecting. Message: No such host is known.
-
-10/14/2020 10:43:32 AM : Reconnecting Ticker
-
-10/14/2020 10:43:32 AM : Connected ticker
-
-10/14/2020 11:08:47 AM : Error: Lost ticker connection.
-
-10/14/2020 11:08:52 AM : Reconnecting Ticker
-
-10/14/2020 11:08:52 AM : Connected ticker
-
-10/14/2020 3:43:11 PM : Reconnecting Ticker
-
-10/14/2020 3:43:11 PM : Error: Lost ticker connection.
-
-10/14/2020 3:43:12 PM : Connected ticker
-
-10/14/2020 3:48:17 PM : Reconnecting Ticker
-
-10/14/2020 3:48:17 PM : Error: Lost ticker connection.
-
-10/14/2020 3:48:18 PM : Connected ticker
-
-10/14/2020 3:51:03 PM : Connected ticker
-
-10/14/2020 3:59:16 PM : User logged In
-
-10/14/2020 4:11:57 PM : User logged In
-
-10/14/2020 4:14:57 PM : User logged In
-
-10/14/2020 4:15:54 PM : User logged In
-
-10/14/2020 4:46:33 PM :    at MarketView.Controllers.LoginController.Login(Object quaryParams) in D:\Prashant\IntelligentSoftware\2020\Algo Services\MarketView\Controllers\LoginController.cs:line 41
-
-10/14/2020 4:52:13 PM :    at MarketView.Controllers.LoginController.Login(Object quaryParams) in D:\Prashant\IntelligentSoftware\2020\Algo Services\MarketView\Controllers\LoginController.cs:line 41
-
-10/14/2020 5:19:12 PM :    at MarketView.Controllers.LoginController.Login(Object quaryParams) in D:\Prashant\IntelligentSoftware\2020\Algo Services\MarketView\Controllers\LoginController.cs:line 40
-
-10/14/2020 5:28:33 PM :    at MarketView.Controllers.LoginController.Login(Object quaryParams) in D:\Prashant\IntelligentSoftware\2020\Algo Services\MarketView\Controllers\LoginController.cs:line 40
-
-10/14/2020 6:32:15 PM : User logged In
-
-10/14/2020 6:33:52 PM : User logged In
-
-10/14/2020 6:36:13 PM : User logged In
-
-10/15/2020 9:22:20 AM : User logged In
-
-10/15/2020 9:22:43 AM : Error: Error while connecting. Message: The server returned status code '403' when status code '101' was expected.
-
-10/15/2020 9:23:52 AM : Connected ticker
-
-10/15/2020 9:44:38 AM : Connected ticker
-
-10/15/2020 9:46:50 AM : Connected ticker
-
-10/15/2020 9:47:55 AM : Connected ticker
-
-10/15/2020 9:56:58 AM : Connected ticker
-
-10/15/2020 10:10:36 AM : User logged In
-
-10/15/2020 10:12:00 AM : Connected ticker
-
-10/15/2020 12:07:14 PM :    at KiteConnect.Kite.Request(String Route, String Method, Dictionary`2 Params) in D:\Prashant\IntelligentSoftware\2020\KiteConnect\Kite.cs:line 1215
-   at KiteConnect.Kite.Post(String Route, Dictionary`2 Params) in D:\Prashant\IntelligentSoftware\2020\KiteConnect\Kite.cs:line 1057
-   at KiteConnect.Kite.GenerateSession(String RequestToken, String AppSecret) in D:\Prashant\IntelligentSoftware\2020\KiteConnect\Kite.cs:line 174
-   at MarketView.Controllers.LoginController.Login(LoginParams data) in D:\Prashant\IntelligentSoftware\2020\Algo Services\MarketView\Controllers\LoginController.cs:line 42
-
-10/15/2020 12:47:23 PM : Connected ticker
-
-10/15/2020 2:25:24 PM : Reconnecting Ticker
-
-10/15/2020 2:25:24 PM : Error: Lost ticker connection.
-
-10/15/2020 2:25:30 PM : Reconnecting Ticker
-
-10/15/2020 2:25:35 PM : Error: Error while connecting. Message: Unable to connect to the remote server
-
-10/15/2020 2:25:35 PM : Error: Error while connecting. Message: No such host is known.
-
-10/15/2020 2:25:35 PM : Error: Error while connecting. Message: No such host is known.
-
-10/15/2020 2:25:35 PM : Error: Error while connecting. Message: No such host is known.
-
-10/15/2020 2:25:56 PM : Reconnecting Ticker
-
-10/15/2020 2:25:56 PM : Error: Error while connecting. Message: Unable to connect to the remote server
-
-10/15/2020 2:25:56 PM : Error: Error while connecting. Message: No such host is known.
-
-10/15/2020 2:25:56 PM : Error: Error while connecting. Message: No such host is known.
-
-10/15/2020 2:26:37 PM : Reconnecting Ticker
-
-10/15/2020 2:26:37 PM : Error: Error while connecting. Message: Unable to connect to the remote server
-
-10/15/2020 2:26:37 PM : Error: Error while connecting. Message: No such host is known.
-
-10/15/2020 2:26:37 PM : Error: Error while connecting. Message: No such host is known.
-
-10/15/2020 2:27:38 PM : Reconnecting Ticker
-
-10/15/2020 2:27:38 PM : Connected ticker
-
-10/15/2020 2:27:48 PM : Reconnecting Ticker
-
-10/15/2020 2:27:48 PM : Error: Lost ticker connection.
-
-10/15/2020 2:27:48 PM : Connected ticker
-
-10/15/2020 2:27:56 PM : Error: Lost ticker connection.
-
-10/15/2020 2:28:01 PM : Reconnecting Ticker
-
-10/15/2020 2:28:01 PM : Error: Error while connecting. Message: Unable to connect to the remote server
-
-10/15/2020 2:28:01 PM : Error: Error while connecting. Message: No such host is known.
-
-10/15/2020 2:28:01 PM : Error: Error while connecting. Message: No such host is known.
-
-10/15/2020 2:28:12 PM : Reconnecting Ticker
-
-10/15/2020 2:28:12 PM : Connected ticker
-
-10/15/2020 2:28:15 PM : Error: Lost ticker connection.
-
-10/15/2020 2:28:20 PM : Reconnecting Ticker
-
-10/15/2020 2:28:20 PM : Error: Error while connecting. Message: Unable to connect to the remote server
-
-10/15/2020 2:28:20 PM : Error: Error while connecting. Message: No such host is known.
-
-10/15/2020 2:28:20 PM : Error: Error while connecting. Message: No such host is known.
-
-10/15/2020 2:28:31 PM : Reconnecting Ticker
-
-10/15/2020 2:28:32 PM : Connected ticker
-
-10/15/2020 2:28:42 PM : Error: Lost ticker connection.
-
-10/15/2020 2:28:48 PM : Reconnecting Ticker
-
-10/15/2020 2:28:48 PM : Error: Error while connecting. Message: Unable to connect to the remote server
-
-10/15/2020 2:28:48 PM : Error: Error while connecting. Message: No such host is known.
-
-10/15/2020 2:28:48 PM : Error: Error while connecting. Message: No such host is known.
-
-10/15/2020 2:28:59 PM : Reconnecting Ticker
-
-10/15/2020 2:29:02 PM : Error: Error while connecting. Message: Unable to connect to the remote server
-
-10/15/2020 2:29:02 PM : Error: Error while connecting. Message: An error occurred while sending the request.
-
-10/15/2020 2:29:02 PM : Error: Error while connecting. Message: Unable to read data from the transport connection: An established connection was aborted by the software in your host machine..
-
-10/15/2020 2:29:02 PM : Error: Error while connecting. Message: An established connection was aborted by the software in your host machine.
-
-10/15/2020 2:29:22 PM : Reconnecting Ticker
-
-10/15/2020 2:29:22 PM : Connected ticker
-
-10/15/2020 3:31:11 PM : Reconnecting Ticker
-
-10/15/2020 3:31:11 PM : Error: Lost ticker connection.
-
-10/15/2020 3:31:11 PM : Connected ticker
-
-10/15/2020 3:50:07 PM : Connected ticker
-
-10/15/2020 4:24:19 PM : Error: Error while connecting. Message: Unable to connect to the remote server
-
-10/15/2020 4:24:19 PM : Error: Error while connecting. Message: No such host is known.
-
-10/15/2020 4:24:19 PM : Error: Error while connecting. Message: No such host is known.
-
-10/15/2020 4:24:38 PM : Error: Error while connecting. Message: Unable to connect to the remote server
-
-10/15/2020 4:24:38 PM : Error: Error while connecting. Message: No such host is known.
-
-10/15/2020 4:24:38 PM : Error: Error while connecting. Message: No such host is known.
-
-10/15/2020 4:25:58 PM : Connected ticker
-
-10/15/2020 4:26:12 PM : Error: Lost ticker connection.
-
-10/15/2020 4:26:18 PM : Reconnecting Ticker
-
-10/15/2020 4:26:18 PM : Error: Error while connecting. Message: Unable to connect to the remote server
-
-10/15/2020 4:26:18 PM : Error: Error while connecting. Message: No such host is known.
-
-10/15/2020 4:26:18 PM : Error: Error while connecting. Message: No such host is known.
-
-10/15/2020 4:26:29 PM : Reconnecting Ticker
-
-10/15/2020 4:26:32 PM : Error: Error while connecting. Message: Unable to connect to the remote server
-
-10/15/2020 4:26:32 PM : Error: Error while connecting. Message: An error occurred while sending the request.
-
-10/15/2020 4:26:32 PM : Error: Error while connecting. Message: Unable to read data from the transport connection: An established connection was aborted by the software in your host machine..
-
-10/15/2020 4:26:32 PM : Error: Error while connecting. Message: An established connection was aborted by the software in your host machine.
-
-10/15/2020 4:26:52 PM : Reconnecting Ticker
-
-10/15/2020 4:26:52 PM : Connected ticker
-
-10/15/2020 4:28:19 PM : Error: Lost ticker connection.
-
-10/15/2020 4:28:23 PM : Reconnecting Ticker
-
-10/15/2020 4:28:24 PM : Error: Error while connecting. Message: Unable to connect to the remote server
-
-10/15/2020 4:28:24 PM : Error: Error while connecting. Message: No such host is known.
-
-10/15/2020 4:28:24 PM : Error: Error while connecting. Message: No such host is known.
-
-10/15/2020 4:28:34 PM : Reconnecting Ticker
-
-10/15/2020 4:28:35 PM : Connected ticker
-
-10/15/2020 4:28:39 PM : Error: Lost ticker connection.
-
-10/15/2020 4:28:44 PM : Reconnecting Ticker
-
-10/15/2020 4:28:44 PM : Error: Error while connecting. Message: Unable to connect to the remote server
-
-10/15/2020 4:28:44 PM : Error: Error while connecting. Message: No such host is known.
-
-10/15/2020 4:28:44 PM : Error: Error while connecting. Message: No such host is known.
-
-10/15/2020 4:28:55 PM : Reconnecting Ticker
-
-10/15/2020 4:28:55 PM : Error: Error while connecting. Message: Unable to connect to the remote server
-
-10/15/2020 4:28:55 PM : Error: Error while connecting. Message: No such host is known.
-
-10/15/2020 4:28:55 PM : Error: Error while connecting. Message: No such host is known.
-
-10/15/2020 4:29:26 PM : Reconnecting Ticker
-
-10/15/2020 4:29:26 PM : Connected ticker
-
-10/15/2020 4:30:25 PM : Error: Lost ticker connection.
-
-10/15/2020 4:30:30 PM : Reconnecting Ticker
-
-10/15/2020 4:30:30 PM : Error: Error while connecting. Message: Unable to connect to the remote server
-
-10/15/2020 4:30:30 PM : Error: Error while connecting. Message: No such host is known.
-
-10/15/2020 4:30:30 PM : Error: Error while connecting. Message: No such host is known.
-
-10/15/2020 4:30:41 PM : Reconnecting Ticker
-
-10/15/2020 4:30:43 PM : Connected ticker
-
-10/15/2020 4:30:44 PM : Error: Lost ticker connection.
-
-10/15/2020 4:30:49 PM : Reconnecting Ticker
-
-10/15/2020 4:30:49 PM : Error: Error while connecting. Message: Unable to connect to the remote server
-
-10/15/2020 4:30:49 PM : Error: Error while connecting. Message: No such host is known.
-
-10/15/2020 4:30:49 PM : Error: Error while connecting. Message: No such host is known.
-
-10/15/2020 4:31:01 PM : Reconnecting Ticker
-
-10/15/2020 4:31:01 PM : Error: Error while connecting. Message: Unable to connect to the remote server
-
-10/15/2020 4:31:01 PM : Error: Error while connecting. Message: No such host is known.
-
-10/15/2020 4:31:01 PM : Error: Error while connecting. Message: No such host is known.
-
-10/15/2020 4:31:22 PM : Reconnecting Ticker
-
-10/15/2020 4:31:22 PM : Connected ticker
-
-10/15/2020 5:18:13 PM : User logged In
-
-10/15/2020 5:19:07 PM :    at KiteConnect.Kite.Request(String Route, String Method, Dictionary`2 Params) in D:\Prashant\IntelligentSoftware\2020\KiteConnect\Kite.cs:line 1215
-   at KiteConnect.Kite.Post(String Route, Dictionary`2 Params) in D:\Prashant\IntelligentSoftware\2020\KiteConnect\Kite.cs:line 1057
-   at KiteConnect.Kite.GenerateSession(String RequestToken, String AppSecret) in D:\Prashant\IntelligentSoftware\2020\KiteConnect\Kite.cs:line 174
-   at MarketView.Controllers.LoginController.Login(LoginParams data) in D:\Prashant\IntelligentSoftware\2020\Algo Services\MarketView\Controllers\LoginController.cs:line 42
-
-10/15/2020 6:07:26 PM : User logged In
-
-10/15/2020 6:08:36 PM :    at KiteConnect.Kite.Request(String Route, String Method, Dictionary`2 Params) in D:\Prashant\IntelligentSoftware\2020\KiteConnect\Kite.cs:line 1215
-   at KiteConnect.Kite.Post(String Route, Dictionary`2 Params) in D:\Prashant\IntelligentSoftware\2020\KiteConnect\Kite.cs:line 1057
-   at KiteConnect.Kite.GenerateSession(String RequestToken, String AppSecret) in D:\Prashant\IntelligentSoftware\2020\KiteConnect\Kite.cs:line 174
-   at MarketView.Controllers.LoginController.Login(LoginParams data) in D:\Prashant\IntelligentSoftware\2020\Algo Services\MarketView\Controllers\LoginController.cs:line 42
-
-10/15/2020 6:09:36 PM :    at KiteConnect.Kite.Request(String Route, String Method, Dictionary`2 Params) in D:\Prashant\IntelligentSoftware\2020\KiteConnect\Kite.cs:line 1215
-   at KiteConnect.Kite.Post(String Route, Dictionary`2 Params) in D:\Prashant\IntelligentSoftware\2020\KiteConnect\Kite.cs:line 1057
-   at KiteConnect.Kite.GenerateSession(String RequestToken, String AppSecret) in D:\Prashant\IntelligentSoftware\2020\KiteConnect\Kite.cs:line 174
-   at MarketView.Controllers.LoginController.Login(LoginParams data) in D:\Prashant\IntelligentSoftware\2020\Algo Services\MarketView\Controllers\LoginController.cs:line 42
-
-10/15/2020 6:18:03 PM : User logged In
-
-10/15/2020 6:18:55 PM :    at KiteConnect.Kite.Request(String Route, String Method, Dictionary`2 Params) in D:\Prashant\IntelligentSoftware\2020\KiteConnect\Kite.cs:line 1215
-   at KiteConnect.Kite.Post(String Route, Dictionary`2 Params) in D:\Prashant\IntelligentSoftware\2020\KiteConnect\Kite.cs:line 1057
-   at KiteConnect.Kite.GenerateSession(String RequestToken, String AppSecret) in D:\Prashant\IntelligentSoftware\2020\KiteConnect\Kite.cs:line 174
-   at MarketView.Controllers.LoginController.Login(LoginParams data) in D:\Prashant\IntelligentSoftware\2020\Algo Services\MarketView\Controllers\LoginController.cs:line 42
-
-10/15/2020 6:20:42 PM :    at KiteConnect.Kite.Request(String Route, String Method, Dictionary`2 Params) in D:\Prashant\IntelligentSoftware\2020\KiteConnect\Kite.cs:line 1215
-   at KiteConnect.Kite.Post(String Route, Dictionary`2 Params) in D:\Prashant\IntelligentSoftware\2020\KiteConnect\Kite.cs:line 1057
-   at KiteConnect.Kite.GenerateSession(String RequestToken, String AppSecret) in D:\Prashant\IntelligentSoftware\2020\KiteConnect\Kite.cs:line 174
-   at MarketView.Controllers.LoginController.Login(LoginParams data) in D:\Prashant\IntelligentSoftware\2020\Algo Services\MarketView\Controllers\LoginController.cs:line 42
-
-10/15/2020 6:20:59 PM :    at KiteConnect.Kite.Request(String Route, String Method, Dictionary`2 Params) in D:\Prashant\IntelligentSoftware\2020\KiteConnect\Kite.cs:line 1215
-   at KiteConnect.Kite.Post(String Route, Dictionary`2 Params) in D:\Prashant\IntelligentSoftware\2020\KiteConnect\Kite.cs:line 1057
-   at KiteConnect.Kite.GenerateSession(String RequestToken, String AppSecret) in D:\Prashant\IntelligentSoftware\2020\KiteConnect\Kite.cs:line 174
-   at MarketView.Controllers.LoginController.Login(LoginParams data) in D:\Prashant\IntelligentSoftware\2020\Algo Services\MarketView\Controllers\LoginController.cs:line 42
-
-10/15/2020 6:22:22 PM :    at KiteConnect.Kite.Request(String Route, String Method, Dictionary`2 Params) in D:\Prashant\IntelligentSoftware\2020\KiteConnect\Kite.cs:line 1215
-   at KiteConnect.Kite.Post(String Route, Dictionary`2 Params) in D:\Prashant\IntelligentSoftware\2020\KiteConnect\Kite.cs:line 1057
-   at KiteConnect.Kite.GenerateSession(String RequestToken, String AppSecret) in D:\Prashant\IntelligentSoftware\2020\KiteConnect\Kite.cs:line 174
-   at MarketView.Controllers.LoginController.Login(LoginParams data) in D:\Prashant\IntelligentSoftware\2020\Algo Services\MarketView\Controllers\LoginController.cs:line 42
-
-10/15/2020 6:22:34 PM :    at KiteConnect.Kite.Request(String Route, String Method, Dictionary`2 Params) in D:\Prashant\IntelligentSoftware\2020\KiteConnect\Kite.cs:line 1215
-   at KiteConnect.Kite.Post(String Route, Dictionary`2 Params) in D:\Prashant\IntelligentSoftware\2020\KiteConnect\Kite.cs:line 1057
-   at KiteConnect.Kite.GenerateSession(String RequestToken, String AppSecret) in D:\Prashant\IntelligentSoftware\2020\KiteConnect\Kite.cs:line 174
-   at MarketView.Controllers.LoginController.Login(LoginParams data) in D:\Prashant\IntelligentSoftware\2020\Algo Services\MarketView\Controllers\LoginController.cs:line 42
-
-10/15/2020 6:22:49 PM :    at KiteConnect.Kite.Request(String Route, String Method, Dictionary`2 Params) in D:\Prashant\IntelligentSoftware\2020\KiteConnect\Kite.cs:line 1215
-   at KiteConnect.Kite.Post(String Route, Dictionary`2 Params) in D:\Prashant\IntelligentSoftware\2020\KiteConnect\Kite.cs:line 1057
-   at KiteConnect.Kite.GenerateSession(String RequestToken, String AppSecret) in D:\Prashant\IntelligentSoftware\2020\KiteConnect\Kite.cs:line 174
-   at MarketView.Controllers.LoginController.Login(LoginParams data) in D:\Prashant\IntelligentSoftware\2020\Algo Services\MarketView\Controllers\LoginController.cs:line 42
-
-10/15/2020 6:24:55 PM : User logged In
-
-10/15/2020 6:27:52 PM :    at KiteConnect.Kite.Request(String Route, String Method, Dictionary`2 Params) in D:\Prashant\IntelligentSoftware\2020\KiteConnect\Kite.cs:line 1215
-   at KiteConnect.Kite.Post(String Route, Dictionary`2 Params) in D:\Prashant\IntelligentSoftware\2020\KiteConnect\Kite.cs:line 1057
-   at KiteConnect.Kite.GenerateSession(String RequestToken, String AppSecret) in D:\Prashant\IntelligentSoftware\2020\KiteConnect\Kite.cs:line 174
-   at MarketView.Controllers.LoginController.Login(LoginParams data) in D:\Prashant\IntelligentSoftware\2020\Algo Services\MarketView\Controllers\LoginController.cs:line 42
-
-10/15/2020 6:33:12 PM :    at KiteConnect.Kite.Request(String Route, String Method, Dictionary`2 Params) in D:\Prashant\IntelligentSoftware\2020\KiteConnect\Kite.cs:line 1215
-   at KiteConnect.Kite.Post(String Route, Dictionary`2 Params) in D:\Prashant\IntelligentSoftware\2020\KiteConnect\Kite.cs:line 1057
-   at KiteConnect.Kite.GenerateSession(String RequestToken, String AppSecret) in D:\Prashant\IntelligentSoftware\2020\KiteConnect\Kite.cs:line 174
-   at MarketView.Controllers.LoginController.Login(LoginParams data) in D:\Prashant\IntelligentSoftware\2020\Algo Services\MarketView\Controllers\LoginController.cs:line 42
+10/21/2020 3:34:05 PM : Connected ticker

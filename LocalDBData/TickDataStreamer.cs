@@ -104,7 +104,7 @@ namespace LocalDBData
                                         try
                                         {
                                             reader.GetValues(data);
-                                            Tick tick = ConvertToTicks(data);
+                                            Tick tick = ConvertToTicks(data, shortenedTick:true);
                                             currentTickTime = tick.Timestamp;
 
                                             if ((prevTickTime == null || (currentTickTime.Value - prevTickTime.Value).TotalSeconds < 1) && ticks.Count < 500)
@@ -121,7 +121,7 @@ namespace LocalDBData
                                                 //Storage storage = new Storage(false);
                                                 //storage.Store(ticks.ToArray());
 
-                                                zmqServer.PublishAllTicks(ticks);
+                                                zmqServer.PublishAllTicks(ticks, shortenedTick:true);
                                                 Thread.Sleep(100);
                                                 //zmqServer.PublishAllTicks(b);
 
@@ -201,37 +201,40 @@ namespace LocalDBData
             return counter;
         }
 
-        public Tick ConvertToTicks(object[] data)
+        public Tick ConvertToTicks(object[] data, bool shortenedTick = false)
         {
             Tick tick = new Tick();
             tick.InstrumentToken = Convert.ToUInt32(data[1]);
             tick.LastPrice = Convert.ToDecimal(data[2]);
-            tick.LastQuantity = Convert.ToUInt32(data[3]);
-            tick.AveragePrice = Convert.ToDecimal(data[4]);
-            tick.Volume = Convert.ToUInt32(data[5]);
-            tick.BuyQuantity = Convert.ToUInt32(data[6]);
-            tick.SellQuantity = Convert.ToUInt32(data[7]);
-            tick.Open = Convert.ToDecimal(data[8]);
-            tick.High = Convert.ToDecimal(data[9]);
-            tick.Low = Convert.ToDecimal(data[10]);
-            tick.Close = Convert.ToDecimal(data[11]);
-
+            tick.Volume = Convert.ToUInt32(data[3]);
             tick.Mode = Constants.MODE_FULL;
             tick.Tradable = (tick.InstrumentToken & 0xff) != 9;
+            tick.LastTradeTime = data[4] != System.DBNull.Value ? Convert.ToDateTime(data[4]) : DateTime.MinValue;
+            tick.OI = Convert.ToUInt32(data[5]);
+            tick.Timestamp = data[6] != System.DBNull.Value ? Convert.ToDateTime(data[6]) : DateTime.MinValue;
 
-            tick.LastTradeTime = data[13] != System.DBNull.Value ? Convert.ToDateTime(data[13]) : DateTime.MinValue;
+            
 
-            tick.OI = Convert.ToUInt32(data[15]);
-            tick.OIDayHigh = Convert.ToUInt32(data[16]);
-            tick.OIDayLow = Convert.ToUInt32(data[17]);
+            if (shortenedTick)
+            {
+                //DATA STOPPED TO REDUCE DB SPACE. THIS CAN BE RE ENABLED LATER.
+                tick.LastQuantity = 0;
+                tick.AveragePrice = 0;
+                tick.BuyQuantity = 0;
+                tick.SellQuantity = 0;
+                tick.Open = 0;//Convert.ToDecimal(data[8]);
+                tick.High = 0;// Convert.ToDecimal(data[9]);
+                tick.Low = 0;// Convert.ToDecimal(data[10]);
+                tick.Close = 0;// Convert.ToDecimal(data[11]);
+                tick.OIDayHigh = 0;// Convert.ToUInt32(data[16]);
+                tick.OIDayLow = 0;// Convert.ToUInt32(data[17]);
 
-            tick.Timestamp = data[18] != System.DBNull.Value ? Convert.ToDateTime(data[18]) : DateTime.MinValue;
-           // tempTickTime = tick.Timestamp;
+                //tempTickTime = tick.Timestamp;
 
-            DepthItem[][] backlogTicks = GetTickDataFromBacklog(Convert.ToString(data[14]));
-
-            tick.Bids = backlogTicks[0];
-            tick.Offers = backlogTicks[1];
+                //DepthItem[][] backlogTicks = GetTickDataFromBacklog(Convert.ToString(data[14]));
+                //tick.Bids = backlogTicks[0];
+                //tick.Offers = backlogTicks[1];
+            }
 
             return tick;
         }

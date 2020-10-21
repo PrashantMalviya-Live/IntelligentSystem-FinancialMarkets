@@ -1,5 +1,5 @@
 import { BrowserModule } from '@angular/platform-browser';
-import { NgModule } from '@angular/core';
+import { NgModule, EventEmitter } from '@angular/core';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { HttpClientModule } from '@angular/common/http';
 import { AppRoutingModule } from './app-routing.module';
@@ -27,7 +27,7 @@ import { RouterModule } from '@angular/router';
     BrowserAnimationsModule,
     AngularMaterialModule,
     HttpClientModule,
-    RouterModule
+    RouterModule,
   ],
   providers: [{ provide: 'BASE_URL', useFactory: getBaseUrl }, TradeService],
   bootstrap: [AppComponent]

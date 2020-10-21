@@ -7,26 +7,36 @@ using KiteConnect;
 using GlobalLayer;
 using System.Net.Http;
 using System.Configuration;
+using DataAccess;
+using System.Data;
+
 namespace ZConnectWrapper
 {
     public class ZConnect
     {
         // Initialize key and secret of your app
-        public static string MyAPIKey = "af61rvtidnnnyp8p";
+        public static string UserAPIkey = "af61rvtidnnnyp8p";
         //static string MySecret = "if1ur4umqitbi8kotw95iyuhuinlcj0i";
         // persist these data in settings or db or file
-        public static string UserAccessToken = "RKBY8vTVyU5DRIWQmSd1BHVo7FVhyEuJ";
+        public static string UserAccessToken = "fzzEEcjFuGC7mJ3tyR4wPiN0nyY845IT";
         public static string CurrentUser = "Prashant Malviya";
         public static string RequestToken = "";
 
-        public static bool Login(User user)
+        public static bool Login(User user = null)
         {
+            if(user == null)
+            {
+                MarketDAO dao = new MarketDAO();
+                DataSet dsUser = dao.GetActiveUser();
+                user = new User(dsUser.Tables[0]);
+            }
             ZObjects.kite = new Kite(user.APIKey, Debug: true);
 
             // For handling 403 errors
             ZObjects.kite.SetSessionExpiryHook(OnTokenExpire);
 
             UserAccessToken = user.AccessToken;
+            UserAPIkey = user.APIKey;
             // Initializes the login flow
 
             try
@@ -43,29 +53,35 @@ namespace ZConnectWrapper
             }
             return false;
         }
-        public static bool ZerodhaLogin(string _accessToken = "")
-        {
-            ZObjects.kite = new Kite(MyAPIKey, Debug: true);
+        //public static bool zerodhalogin(string _accesstoken = "")
+        //{
+        //    //if access token is not available retrieve from database
+        //    if (_accesstoken == "" && zobjects.kite == null)
+        //    {
+        //        marketdao dao = new marketdao();
+        //        _accesstoken = dao.getactiveuser();
+        //    }
+        //    zobjects.kite = new kite(myapikey, debug: true);
 
-            // For handling 403 errors
-            ZObjects.kite.SetSessionExpiryHook(OnTokenExpire);
+        //    // for handling 403 errors
+        //    zobjects.kite.setsessionexpiryhook(ontokenexpire);
 
-            // Initializes the login flow
+        //    // initializes the login flow
 
-            try
-            {
-                ZObjects.kite.SetAccessToken(UserAccessToken);
-            }
-            catch (Exception e)
-            {
-                return false;
-                // Cannot continue without proper authentication
-                //Logger.LogWrite(e.Message);
-                // Environment.Exit(0);
-            }
+        //    try
+        //    {
+        //        zobjects.kite.setaccesstoken(_accesstoken);
+        //    }
+        //    catch (exception e)
+        //    {
+        //        return false;
+        //        // cannot continue without proper authentication
+        //        //logger.logwrite(e.message);
+        //        // environment.exit(0);
+        //    }
 
-            return true;
-        }
+        //    return true;
+        //}
         private static void OnTokenExpire()
         {
             Logger.LogWrite("Need to login again");

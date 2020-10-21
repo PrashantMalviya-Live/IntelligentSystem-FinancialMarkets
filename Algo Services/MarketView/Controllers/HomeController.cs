@@ -40,6 +40,23 @@ namespace MarketView.Controllers
             return (from n in bInstruments select new BInstumentView {InstrumentToken = n.InstrumentToken, TradingSymbol = n.TradingSymbol.Trim(' ') }).ToList();
         }
 
+        // GET: api/<HomeController>
+        [HttpGet]
+        public IActionResult LoadTokens()
+        {
+            try
+            {
+                Utility.LoadTokens();
+
+                 return Ok(StatusCode(200));
+            }
+            catch (Exception ex)
+            {
+                Logger.LogWrite(ex.StackTrace);
+                return StatusCode(500);
+            }
+        }
+    //}
 
 
 

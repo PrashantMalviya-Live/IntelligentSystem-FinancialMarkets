@@ -6,6 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\DBAccess\DBAccess.csproj" />
     <ProjectReference Include="..\KiteConnect\KiteConnect.csproj" />
   </ItemGroup>
 

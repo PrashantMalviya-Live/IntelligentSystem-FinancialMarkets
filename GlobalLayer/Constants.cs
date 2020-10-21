@@ -33,6 +33,7 @@ namespace GlobalLayer
         public const string ORDER_STATUS_MODIFY_PENDING = "MODIFY PENDING";
         public const string ORDER_STATUS_MODIFY_VALIDATION_PENDING = "MODIFY VALIDATION PENDING";
         public const string ORDER_STATUS_AMQ_REQ_RECEIVED = "AMO REQ RECEIVED";
+        public const string ORDER_STATUS_TRIGGER_PENDING = "TRIGGER PENDING";
 
         // Varities
         public const string VARIETY_REGULAR = "regular";

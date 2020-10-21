@@ -15,6 +15,7 @@ export class AppComponent implements OnInit {
   request_token: any;
   action: string;
   status: string;
+  userName: any;
 
   constructor(private http: HttpClient, @Inject('BASE_URL') baseUrl: string, private as: AuthService, private route: ActivatedRoute) {
     this._baseUrl = baseUrl;
@@ -26,10 +27,9 @@ export class AppComponent implements OnInit {
       this.action = params['action'];
       this.status = params['status'];
 
-    if (!as.isLoggedIn) {
-      as.login(this.request_token, this.action, this.status, baseUrl);
+        if (!as.isLoggedIn) {
+          this.userName = as.login(this.request_token, this.action, this.status, baseUrl);
         }
-
       });
   }
   ngOnInit(): void {

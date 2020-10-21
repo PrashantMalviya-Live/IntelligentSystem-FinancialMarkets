@@ -29,31 +29,40 @@ namespace Global.Web
     public class ActiveAlgosView
     {
         //Algo ID
-        public int Aid { get; set; }
+        public int aid { get; set; }
         //Algo Name
-        public string AN { get; set; }
+        public string an { get; set; }
         //Algo instance ID
-        public int AIns { get; set; }
-
+        public int ains { get; set; }
+        //expiry
+        public string expiry { get; set; }
+        //candle time frame (in mins)
+        public int mins { get; set; }
+        //base instrument
+        public string binstrument { get; set; }
+        //Lot size
+        public int lotsize { get; set; }
+        //algo start date
+        public string algodate { get; set; }
         //List of orders in the algo
         public List<OrderView> Orders { get; set; } = new List<OrderView>();
     }
 
     public class OrderView
     {
-        public string OrderId { get; set; }
-        public UInt32 InstrumentToken { get; set; }
-        public string TradingSymbol { get; set; }
-        public string TransactionType { get; set; }
-        public decimal Price { get; set; }
-        public decimal TriggerPrice { get; set; }
-        public int Quantity { get; set; }
-        public string Status { get; set; }
-        public string StatusMessage { get; set; }
-        public string Algorithm { get; set; }
-        public int AlgoInstance { get; set; }
-        public string OrderTime { get; set; }
-        public string OrderType { get; set; }
+        public string orderid { get; set; }
+        public UInt32 instrumenttoken { get; set; }
+        public string tradingsymbol { get; set; }
+        public string transactiontype { get; set; }
+        public decimal price { get; set; }
+        public decimal triggerprice { get; set; }
+        public int quantity { get; set; }
+        public string status { get; set; }
+        public string statusmessage { get; set; }
+        public string algorithm { get; set; }
+        public int algoinstance { get; set; }
+        public string ordertime { get; set; }
+        public string ordertype { get; set; }
 
     }
     public class LogDataView

@@ -38,7 +38,7 @@ namespace ZMQFacade
         }
         public async Task Subscribe(IZMQ algoObject)
         {
-            Task<bool> dataProcessed = null;
+            //Task<bool> dataProcessed = null;
             while (true)
             {
                 try
@@ -79,7 +79,7 @@ namespace ZMQFacade
 
         public static void SendData(IZMQ algoObject, byte[] tickData)
         {
-            Tick tick = TickDataSchema.ParseTick(tickData);
+            Tick tick = TickDataSchema.ParseTick(tickData, shortenedTick: true);
 
             if (tick.InstrumentToken != 0 && tick.Timestamp != null)
                 algoObject.OnNext(new Tick[] { tick });

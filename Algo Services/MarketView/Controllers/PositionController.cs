@@ -83,18 +83,18 @@ namespace MarketView.Controllers
         {
             return new OrderView
             {
-                InstrumentToken = order.InstrumentToken,
-                TradingSymbol = order.Tradingsymbol.Trim(' '),
-                TransactionType = order.TransactionType,
-                Status = order.Status,
-                StatusMessage = order.StatusMessage,
-                Price = order.AveragePrice,
-                Quantity = order.Quantity,
-                TriggerPrice = order.TriggerPrice,
-                Algorithm = Convert.ToString((AlgoIndex)order.AlgoIndex),
-                AlgoInstance = order.AlgoInstance,
-                OrderTime = order.OrderTimestamp.GetValueOrDefault(DateTime.Now).ToString("yyyy-MM-dd HH:mm:ss"),
-                OrderType = Convert.ToString(order.OrderType)
+                instrumenttoken = order.InstrumentToken,
+                tradingsymbol = order.Tradingsymbol.Trim(' '),
+                transactiontype = order.TransactionType,
+                status = order.Status,
+                statusmessage = order.StatusMessage,
+                price = order.AveragePrice,
+                quantity = order.Quantity,
+                triggerprice = order.TriggerPrice,
+                algorithm = Convert.ToString((AlgoIndex)order.AlgoIndex),
+                algoinstance = order.AlgoInstance,
+                ordertime = order.OrderTimestamp.GetValueOrDefault(DateTime.Now).ToString("yyyy-MM-dd HH:mm:ss"),
+                ordertype = Convert.ToString(order.OrderType)
             };
         }
 

@@ -411,8 +411,8 @@ namespace KiteConnect
 
                     /*zmqServer1.PublishAllTicks(Data);*/
                     #endregion
-                    List<Tick> ticks = TickDataSchema.ParseTicks(Data);
-                    
+                    bool shortenedTick = true;
+                    List<Tick> ticks = TickDataSchema.ParseTicks(Data, shortenedTick);
                     
                     if(_storeCandles)
                     {
@@ -423,7 +423,7 @@ namespace KiteConnect
                         storage.StoreTicks(ticks);
                     }
 
-                    zmqServer.PublishAllTicks(ticks);
+                    zmqServer.PublishAllTicks(ticks, shortenedTick);
                     Interlocked.Increment(ref _healthCounter);
                 }
             }

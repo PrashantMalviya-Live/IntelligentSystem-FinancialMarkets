@@ -175,18 +175,27 @@
         <mat-expansion-panel-header>
 
           <mat-panel-title>
-            <p>{{activeAlgo.an}} <span matBadge={{activeAlgo.orders.length}} matBadgeSize="1px" matBadgeColor="accent" matBadgeOverlap="true"> </span></p>
+            <div class="flex-exp-container">
+              <p>{{activeAlgo.an}} <span matBadge={{activeAlgo.orders.length}} matBadgeSize="1px" matBadgeColor="accent" matBadgeOverlap="true"> </span></p>
 
-              <div class="warn-button-container" *ngIf ="!gethealthstatus(activeAlgo.aIns)">
-                <button mat-mini-fab class="button-fab" color="warn" mat-mini-fab-size="1px" aria-label="primary button">
-                  <!--<mat-icon>filter_list</mat-icon>-->
-                </button>
-              </div>
-              <div class="warn-button-container" *ngIf ="gethealthstatus(activeAlgo.aIns)">
-                <button mat-mini-fab class="button-fab" color="primary" mat-mini-fab-size="1px" aria-label="warn button">
-                </button>
-              </div>
+              <div class="ast"> Base Instrument: {{activeAlgo.binstrument}}</div>
+              <div class="ast">  Lot Size: {{activeAlgo.lotsize}}</div>
+              <div class="ast"> Candle Time: {{activeAlgo.mins}}</div>
+              <div class="ast"> Expiry: {{activeAlgo.expiry}}</div>
+              <div class="ast"> Algo Start : {{activeAlgo.algodate}}</div>
 
+              <div class="warn-flex-container">
+                <div class="warn-button-container" *ngIf="!gethealthstatus(activeAlgo.ains)">
+                  <button mat-mini-fab class="button-fab" color="warn" mat-mini-fab-size="1px" aria-label="primary button">
+                    <!--<mat-icon>filter_list</mat-icon>-->
+                  </button>
+                </div>
+                <div class="warn-button-container" *ngIf="gethealthstatus(activeAlgo.ains)">
+                  <button mat-mini-fab class="button-fab" color="primary" mat-mini-fab-size="1px" aria-label="warn button">
+                  </button>
+                </div>
+              </div>
+            </div>
           </mat-panel-title>
         </mat-expansion-panel-header>
         <mat-card>
@@ -197,13 +206,13 @@
                 <!-- Position Column -->
                 <ng-container matColumnDef="orderTime">
                   <mat-header-cell *matHeaderCellDef> Order Time </mat-header-cell>
-                  <mat-cell *matCellDef="let element"> {{element.orderTime}} </mat-cell>
+                  <mat-cell *matCellDef="let element"> {{element.ordertime.seconds | date:'h:mm:ss a' }} </mat-cell>
                 </ng-container>
 
                 <!-- Position Column -->
                 <ng-container matColumnDef="tradingSymbol">
                   <mat-header-cell *matHeaderCellDef> Symbol </mat-header-cell>
-                  <mat-cell *matCellDef="let element"> {{element.tradingSymbol}} </mat-cell>
+                  <mat-cell *matCellDef="let element"> {{element.tradingsymbol}} </mat-cell>
                 </ng-container>
 
                 <!-- Price Column -->
@@ -221,13 +230,13 @@
                 <!-- TransactionType Column -->
                 <ng-container matColumnDef="transactionType">
                   <mat-header-cell *matHeaderCellDef> TransactionType </mat-header-cell>
-                  <mat-cell *matCellDef="let element"> {{element.transactionType}} </mat-cell>
+                  <mat-cell *matCellDef="let element"> {{element.transactiontype}} </mat-cell>
                 </ng-container>
 
                 <!-- TransactionType Column -->
                 <ng-container matColumnDef="orderType">
                   <mat-header-cell *matHeaderCellDef> Order Type </mat-header-cell>
-                  <mat-cell *matCellDef="let element"> {{element.orderType}} </mat-cell>
+                  <mat-cell *matCellDef="let element"> {{element.ordertype}} </mat-cell>
                 </ng-container>
 
                 <!-- Algo name Column -->
@@ -244,9 +253,9 @@
               <!--Logger-->
               <div *ngIf="logs !== undefined">
                 <mat-card [dataSource]="logs" *ngFor="let log of filterLogsOfType(activeAlgo)">
-                  <!--<div *ngIf="log.algoInstance == activeAlgo.aIns">-->
+                  <div class="scrollable">
                   {{ log.messengerMethod }} @ {{ log.logTime.seconds * 1000 |  date:'short' }} : {{ log.message }}
-                  <!--</div>-->
+                  </div>
                 </mat-card>
               </div>
             </mat-tab>

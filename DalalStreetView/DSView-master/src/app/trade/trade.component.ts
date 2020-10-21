@@ -1,4 +1,4 @@
-import { Component, OnInit, Inject, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
+import { Component, OnInit, Inject, ViewChild, ElementRef, AfterViewInit, EventEmitter } from '@angular/core';
 import { Instrument } from '../data/instrument';
 import { Expiry } from '../data/expiry';
 import { Options } from '../data/options';
@@ -10,10 +10,8 @@ import { HttpClient } from '@angular/common/http';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { Constants, Loglevel } from '../data/constants';
-
 import { ErrorDialog } from './error.component';
 //import { TimeToStringPipe } from './TimeToString.Pipe';
-
 import { grpc } from "@improbable-eng/grpc-web";
 import { Logger, LoggerClient } from "../generated/log_pb_service";
 import { LogMessage, Status } from "../generated/log_pb";
@@ -21,10 +19,12 @@ import { OrderAlerter, OrderAlerterClient } from "../generated/log_pb_service";
 import { OrderMessage, PublishStatus } from "../generated/log_pb";
 import { error } from '@angular/compiler/src/util';
 
-import { BehaviorSubject, concat, Observable } from 'rxjs';
+import { BehaviorSubject, concat, Observable} from 'rxjs';
 import { MatDialog, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { Timestamp } from 'google-protobuf/google/protobuf/timestamp_pb';
+import { Howl, Howler } from "../../../node_modules/howler/dist/howler.js";
 
+declare var require: any;
 export interface DialogData {
   ain: number
   algo: string,
@@ -65,6 +65,7 @@ export class TradeComponent implements OnInit{
   ctf: any;
   quantity: any;
   momentumTradeOptionsForm: FormGroup;
+  _sound: any;
 
   constructor(private http: HttpClient, private formBuilder: FormBuilder,
     @Inject('BASE_URL') baseUrl: string, private ts: TradeService, private dialog: MatDialog) {
@@ -84,6 +85,18 @@ export class TradeComponent implements OnInit{
         this.activeAlgos.push(result);
       }
     }, error => console.error(error));
+
+    var context = new AudioContext();
+    this._sound = new Howl({
+      src: ['../assets/stop.mp3'],
+      autoplay: false,
+      loop: false,
+      volume: 0.5,
+      onend: function () {
+        console.log('Finished!');
+      }
+    });
+    context.resume();
   }
 
   private subj = new BehaviorSubject(this.log);
@@ -97,7 +110,7 @@ export class TradeComponent implements OnInit{
   }
 
   filterLogsOfType(type) {
-    return this.logs.filter(x => x.algoInstance == type.aIns);
+    return this.logs.filter(x => x.algoInstance == type.ains);
   }
   
   ngOnInit(): void {
@@ -121,6 +134,9 @@ export class TradeComponent implements OnInit{
             var rs =  data.message == "1" ? true : false;
             
             if (selectedAlgoIndex != -1) {
+              if (this.algosHealth[selectedAlgoIndex].ah === true && rs === false) {
+                this._sound.play();
+              }
               this.algosHealth[selectedAlgoIndex].ah = rs;
               this.algosHealth[selectedAlgoIndex].ad = Date.now();
             }
@@ -131,15 +147,19 @@ export class TradeComponent implements OnInit{
           else if (data.logLevel === Loglevel.Error.toString()) {
             this.openDialog(data.algoInstance, data.algoid, data.message, data.messengerMethod, data.logTime);
           }
+
+          //Do not add health pulse in to the log
+          if (data.logLevel !== Loglevel.Health.toString()) {
+            this.logs.push(data);
+          }
           
-          this.logs.push(data);
         }
       }
     );
     this.orderAsObservable().subscribe(
       data => {
         if (data !== undefined) {
-           var selectedAlgoIndex = this.activeAlgos.findIndex(x => x.aIns === data.algoinstance);
+           var selectedAlgoIndex = this.activeAlgos.findIndex(x => x.ains === data.algoinstance);
 
           var selectedOrderIndex = this.activeAlgos[selectedAlgoIndex].orders.findIndex(function (e) { e.orderid === data.orderid });
 
@@ -178,14 +198,29 @@ export class TradeComponent implements OnInit{
       subject.next(results);
     });
   }
-
   checkhealth(alh) {
     alh.forEach((x) => {
       if (x.ad < Date.now() - 60000) {
+        if (x.ah === true) {
+          var context = new AudioContext();
+          this._sound = new Howl({
+            src: ['../assets/stop.mp3'],
+            autoplay: false,
+            loop: false,
+            volume: 0.5,
+            onend: function () {
+              console.log('Finished!');
+            }
+          });
+          context.resume();
+          this._sound.play();
+        }
         x.ah = false;
       }
     });
-    }
+  }
+
+
 
   gethealthstatus(an) {
     var selectedAlgoIndex = this.algosHealth.findIndex(x => x.aIns === an);
@@ -260,7 +295,6 @@ export class TradeComponent implements OnInit{
   panelOpenState = false;
 
   executeAlgo() {
-    //alert('trade button clicked');
     const data = {
       token: this.selectedInst.value,
       expiry: this.selectedExpiry,
@@ -274,20 +308,10 @@ export class TradeComponent implements OnInit{
   }
 
   startdsservice() {
-
-    //var sc = require('windows-service-controller');
-    //const ServiceController = require("nodejs-windows-service-controller");
-
-    //var sc = require('windows-service-controller');
-
-    //sc.getDisplayName('SomeService')
-    //  .catch(function (error) {
-    //    console.log(error.message);
-    //  })
-    //  .done(function (displayName) {
-    //    console.log('Display name: ' + displayName);
-    //  });
-    //sc.start('MyService');
+    const data = { start: true};
+    this.http.post<any>(this._baseUrl + 'api/ws', data).subscribe(result => {
+      console.log(result);
+    }, error => console.error(error));
   }
 
 }
