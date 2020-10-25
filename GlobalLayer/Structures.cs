@@ -2687,6 +2687,28 @@ namespace GlobalLayer
         public CriticalLevels Levels { get; set; }
         public Order SLOrder { get; set; }
     }
+    
+    /// <summary>
+    /// Every order may have refernce to original order, and an SL order.
+    /// The SL order could be shared.
+    /// When an order is placed, its SL order could also be place and target order (sharing reference order) could be placed.
+    /// When target is executed, the SL order have to be cancelled.
+    /// </summary>
+    public class OrderLinkedList
+    {
+        public Instrument Option { get; set; }
+        public OrderLinkedListNode FirstOrderNode { get; set; }
+    }
+    public class OrderLinkedListNode
+    {
+        public bool FirstLegCompleted { get; set; } = false;
+        public Order Order { get; set; }
+        public Order SLOrder { get; set; }
+        public OrderLinkedListNode PrevOrderNode { get; set; }
+        public OrderLinkedListNode NextOrderNode { get; set; }
+    }
+
+
     /// <summary>
     /// ShortTrade structure
     /// </summary>

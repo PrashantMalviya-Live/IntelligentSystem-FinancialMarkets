@@ -16,31 +16,6 @@ namespace MarketView.Controllers
     [ApiController]
     public class HomeController : ControllerBase
     {
-        // GET: api/<HomeController>
-        [HttpGet]
-        public IEnumerable<BInstumentView> Get()
-        {
-            //ZConnect.ZerodhaLogin();
-            
-            DataLogic dl = new DataLogic();
-            List<Instrument> bInstruments = dl.RetrieveBaseInstruments();
-
-            //return JsonSerializer.Serialize(bInstruments);
-            //return bInstruments.Select(x => new BInstumentView { x.InstrumentToken, x.TradingSymbol }).ToList();
-
-            //List<BInstumentView> bInstumentViews = new List<BInstumentView>();
-            //foreach (Instrument inst in bInstruments)
-            //{
-            //    BInstumentView bi = new BInstumentView() {InstrumentToken = inst.InstrumentToken, TradingSymbol= inst.TradingSymbol };
-            //    bInstumentViews.Add(bi);
-            //}
-
-            //return bInstumentViews;
-            //return JsonSerializer.Serialize(bInstumentViews);
-            return (from n in bInstruments select new BInstumentView {InstrumentToken = n.InstrumentToken, TradingSymbol = n.TradingSymbol.Trim(' ') }).ToList();
-        }
-
-        // GET: api/<HomeController>
         [HttpGet]
         public IActionResult LoadTokens()
         {
@@ -85,47 +60,5 @@ namespace MarketView.Controllers
         }
 
 
-        //// GET api/<HomeController>/5
-        //[HttpGet("{token}/{expiry}")]
-        //public IEnumerable<Instrument> GetCallOptions(uint token, string expiry)
-        //{
-        //    //Retrieve expiry list ONLY here and fulllist at expiry click
-        //    DataLogic dl = new DataLogic();
-        //    List<Instrument> optionsList = dl.RetrieveOptions(token,
-        //        Convert.ToDateTime(expiry));
-
-        //    return optionsList.Where(x => x.InstrumentType.ToLower().Trim(' ') == "ce");
-        //}
-        //// GET api/<HomeController>/5
-        //[HttpGet("{token}/{expiry}")]
-        //public IEnumerable<Instrument> GetPutOptions(uint token, string expiry)
-        //{
-        //    //Retrieve expiry list ONLY here and fulllist at expiry click
-        //    DataLogic dl = new DataLogic();
-        //    List<Instrument> optionsList = dl.RetrieveOptions(token,
-        //        Convert.ToDateTime(expiry));
-
-        //    return optionsList.Where(x => x.InstrumentType.ToLower().Trim(' ') == "pe");
-        //}
-
-
-
-        //// POST api/<HomeController>
-        //[HttpPost]
-        //public void Post([FromBody] string value)
-        //{
-        //}
-
-        //// PUT api/<HomeController>/5
-        //[HttpPut("{id}")]
-        //public void Put(int id, [FromBody] string value)
-        //{
-        //}
-
-        //// DELETE api/<HomeController>/5
-        //[HttpDelete("{id}")]
-        //public void Delete(int id)
-        //{
-        //}
     }
 }

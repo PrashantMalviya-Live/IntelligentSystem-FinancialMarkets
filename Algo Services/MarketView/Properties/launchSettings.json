@@ -24,7 +24,8 @@
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       },
-      "applicationUrl": "http://localhost:8087"
+      "applicationUrl": "http://localhost:8087",
+      "anonymousAuthentication": true
     },
     "Docker": {
       "commandName": "Docker",

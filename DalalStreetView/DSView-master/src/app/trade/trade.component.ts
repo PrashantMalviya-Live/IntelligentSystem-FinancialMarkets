@@ -64,6 +64,8 @@ export class TradeComponent implements OnInit{
   result: any;
   ctf: any;
   quantity: any;
+  mlpt: any;
+  ps: any;
   momentumTradeOptionsForm: FormGroup;
   _sound: any;
 
@@ -122,8 +124,10 @@ export class TradeComponent implements OnInit{
     this.onSelectInstrument(this.selectedInstrument.instrumentToken);
 
     this.momentumTradeOptionsForm = this.formBuilder.group({
-      ctf: ['', Validators.required],
-      quantity: ['', Validators.required]
+      ctf: ['', Validators.required]
+      ,quantity: ['', Validators.required]
+      ,mlpt: ['', Validators.required]
+      //,ps: ['', Validators.required]
     });
     this.returnAsObservable().subscribe(
       data => {
@@ -150,7 +154,8 @@ export class TradeComponent implements OnInit{
 
           //Do not add health pulse in to the log
           if (data.logLevel !== Loglevel.Health.toString()) {
-            this.logs.push(data);
+            //this.logs.push(data);
+            this.logs.unshift(data);
           }
           
         }
@@ -168,9 +173,9 @@ export class TradeComponent implements OnInit{
           }
           else {
             this.activeAlgos[selectedAlgoIndex].orders = this.activeAlgos[selectedAlgoIndex].orders.concat(data);
-            
           }
 
+          this.playordersound();
         }
       }
     );
@@ -198,6 +203,22 @@ export class TradeComponent implements OnInit{
       subject.next(results);
     });
   }
+
+  playordersound() {
+    var context = new AudioContext();
+    this._sound = new Howl({
+      src: ['../assets/order.mp3'],
+      autoplay: false,
+      loop: false,
+      volume: 1.0,
+      onend: function () {
+        //console.log('Finished!');
+      }
+    });
+    context.resume();
+    this._sound.play();
+  }
+
   checkhealth(alh) {
     alh.forEach((x) => {
       if (x.ad < Date.now() - 60000) {
@@ -209,7 +230,7 @@ export class TradeComponent implements OnInit{
             loop: false,
             volume: 0.5,
             onend: function () {
-              console.log('Finished!');
+              //console.log('Finished!');
             }
           });
           context.resume();
@@ -286,11 +307,13 @@ export class TradeComponent implements OnInit{
   onSelectCall(e){
     this.selectedCallValue = e.value;
   }
-
+  
   onSelectPut(e){
     this.selectedPutValue = e.value;
   }
-
+  onPSChange(e) {
+    this.ps = e.checked;
+  }
   //algo panel section
   panelOpenState = false;
 
@@ -299,7 +322,9 @@ export class TradeComponent implements OnInit{
       token: this.selectedInst.value,
       expiry: this.selectedExpiry,
       ctf: this.momentumTradeOptionsForm.value.ctf,
-      quantity: this.momentumTradeOptionsForm.value.quantity
+      quantity: this.momentumTradeOptionsForm.value.quantity,
+      ps: this.ps,
+      mlpt: this.momentumTradeOptionsForm.value.mlpt
     }
     this.http.post<ActiveAlgo>(this._baseUrl + 'api/momentumvolume' ,data).subscribe(result => {
       //this.result = result;

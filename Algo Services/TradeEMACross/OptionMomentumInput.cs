@@ -25,6 +25,16 @@ namespace TradeEMACross
         /// </summary>
         public int CTF { get; set; }
 
+        /// <summary>
+        /// PositionSizing
+        /// </summary>
+        public bool PS { get; set; }
+
+        /// <summary>
+        /// MaxLossPerTrade
+        /// </summary>
+        public decimal MLPT { get; set; }
+
         public Order ActiveOrder { get; set; } = null;
     }
 }

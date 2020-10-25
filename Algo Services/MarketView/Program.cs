@@ -10,7 +10,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.Hosting.WindowsServices;
 using System.Diagnostics;
 using System.IO;
-
+using Algorithms.Utilities;
 namespace MarketView
 {
     public class Program
@@ -39,6 +39,7 @@ namespace MarketView
                 .UseUrls(GlobalLayer.APIPORT.MarketView)
                 .UseConfiguration(config)
                 .UseStartup<Startup>()
+                //.UseKestrel(options => options.ConfigureEndpoints())
                 .Build();
 
             if (isService)

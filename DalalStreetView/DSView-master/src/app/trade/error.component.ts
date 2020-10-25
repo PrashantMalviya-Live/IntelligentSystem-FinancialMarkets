@@ -18,7 +18,7 @@ export class ErrorDialog {
       loop: true,
       volume: 0.5,
       onend: function () {
-        console.log('Finished!');
+       // console.log('Finished!');
       }
     });
     context.resume();

@@ -42,6 +42,7 @@ namespace Global.Web
         public string binstrument { get; set; }
         //Lot size
         public int lotsize { get; set; }
+        public decimal maxLossPerTrade { get; set; }
         //algo start date
         public string algodate { get; set; }
         //List of orders in the algo

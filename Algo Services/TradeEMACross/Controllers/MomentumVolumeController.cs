@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using ZMQFacade;
 using System.Data;
@@ -59,7 +60,9 @@ namespace TradeEMACross.Controllers
                     Expiry = Convert.ToDateTime(drAlgo["Expiry"]),
                     CTF = Convert.ToInt32(drAlgo["CandleTimeFrame_Mins"]),
                     Quantity = Convert.ToInt32(drAlgo["InitialQtyInLotSize"]),
-                    Token = Convert.ToUInt32(drAlgo["BToken"])
+                    Token = Convert.ToUInt32(drAlgo["BToken"]),
+                    PS = Convert.ToBoolean( DBNull.Value != drAlgo["PositionSizing"]? drAlgo["PositionSizing"]:false),
+                    MLPT = Convert.ToDecimal(DBNull.Value != drAlgo["MaxLossPerTrade"] ? drAlgo["MaxLossPerTrade"] : 0),
                 };
                 algosView.aid = Convert.ToInt32(drAlgo["AlgoId"]);
                 algosView.an = Convert.ToString((AlgoIndex)algosView.aid);
@@ -136,7 +139,9 @@ namespace TradeEMACross.Controllers
 #endif
 
             ///FOR ALL STOCKS FUTURE , PASS INSTRUMENTTOKEN AS ZERO. FOR CE/PE ON BNF/NF SEND THE INDEX TOKEN AS INSTRUMENTTOKEN
-            OptionVolumeRateEMAThreshold volumeThreshold = new OptionVolumeRateEMAThreshold(endDateTime, candleTimeSpan, instrumentToken, expiry, optionQuantity, algoInstance);
+            OptionVolumeRateEMAThreshold volumeThreshold = 
+                new OptionVolumeRateEMAThreshold(endDateTime, candleTimeSpan, instrumentToken, expiry, 
+                optionQuantity, algoInstance, positionSizing: optionMomentumInput.PS, maxLossPerTrade: optionMomentumInput.MLPT);
 
             Order activeOrder = optionMomentumInput.ActiveOrder;
             if (activeOrder != null)
@@ -167,11 +172,11 @@ namespace TradeEMACross.Controllers
         }
 
         [HttpGet("dummyorder")]
-        public void GetDummyOrder()
+        public IActionResult GetDummyOrder()
         {
             //Order order = new Order()
             //{
-                 
+
             //    OrderId = "306a17e2-3bde-44ba-9668-c51081aa9d0b",
             //    AveragePrice = 128,
             //    ExchangeTimestamp = Convert.ToDateTime("2020-10-15 11:35:00"),
@@ -197,6 +202,18 @@ namespace TradeEMACross.Controllers
             //DataLogic dl = new DataLogic();
             //dl.LoadTokens();
 
+            try
+            {
+                Utility.LoadTokens();
+
+                return Ok(StatusCode(200));
+            }
+            catch (Exception ex)
+            {
+                Logger.LogWrite(ex.StackTrace);
+                return StatusCode(500);
+            }
+
         }
         private async Task NMQClientSubscription(OptionVolumeRateEMAThreshold volumeThreshold, uint token)
         {
@@ -211,14 +228,14 @@ namespace TradeEMACross.Controllers
             //publish trade details and count
             //Bind with trade token details, use that as an argument
             OrderCore.PublishOrder(st);
+            Thread.Sleep(100);
         }
 
         private void VolumeThreshold_OnTradeEntry(Order st)
         {
             //publish trade details and count
-
             OrderCore.PublishOrder(st);
-
+            Thread.Sleep(100);
         }
 
         [HttpPut("{id}")]
@@ -269,7 +286,7 @@ namespace TradeEMACross.Controllers
                 transactiontype = order.TransactionType,
                 status = order.Status,
                 statusmessage = order.StatusMessage,
-                price = order.AveragePrice,
+                price = order.OrderType == Constants.ORDER_TYPE_SLM ? order.TriggerPrice : order.AveragePrice,
                 quantity = order.Quantity,
                 triggerprice = order.TriggerPrice,
                 algorithm = Convert.ToString((AlgoIndex)order.AlgoIndex),

@@ -11,8 +11,6 @@ using Microsoft.Extensions.Configuration;
 using DataAccess;
 using Newtonsoft.Json;
 using Algos.TLogics;
-//using KafkaStreams;
-//using TibcoMessaging;
 
 namespace ExpiryStrangle.Controllers
 {

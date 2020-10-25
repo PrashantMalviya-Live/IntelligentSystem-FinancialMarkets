@@ -14,6 +14,8 @@ using Microsoft.EntityFrameworkCore;
 using MarketView.Data;
 using MarketView.Hubs;
 using GrpcLoggerService;
+using Microsoft.AspNetCore.Http;
+
 namespace MarketView
 {
     public class Startup
@@ -28,18 +30,26 @@ namespace MarketView
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddGrpc();
-            //services.AddCors(options =>
+            //services.AddHttpsRedirection(opts =>
             //{
-            //    options.AddPolicy("CorsPolicy", builder => builder
-            //    //.AllowAnyOrigin()
-            //    //.WithOrigins("http://localhost:4200", "https://kite.trade/*", "http://localhost:8087")
-            //   // .SetIsOriginAllowedToAllowWildcardSubdomains()
-            //    );
+            //    opts.RedirectStatusCode = StatusCodes.Status308PermanentRedirect;
+            //    opts.HttpsPort = 44300;
             //});
 
+            //services.AddHttpsRedirection(opts =>
+            //{
+            //    opts.RedirectStatusCode = StatusCodes.Status307TemporaryRedirect;
+            //    opts.HttpsPort = 443;
+            //});
+
+            services.AddGrpc();
+
             services.AddControllers();
-            //services.AddSignalR();
+            //services.AddHttpsRedirection(options =>
+            //{
+            //    options.RedirectStatusCode = StatusCodes.Status307TemporaryRedirect;
+            //    options.HttpsPort = 8087;
+            //});
 
             services.AddDbContext<DBContext>(options =>
                     options.UseSqlServer(Configuration.GetConnectionString("DBContext")));
@@ -55,8 +65,12 @@ namespace MarketView
             {
                 app.UseDeveloperExceptionPage();
             }
+            //else
+            //{
+            //    app.UseHsts();
+            //}
 
-            app.UseHttpsRedirection();
+           // app.UseHttpsRedirection();
 
             app.UseRouting();
 

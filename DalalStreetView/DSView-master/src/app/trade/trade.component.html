@@ -3,50 +3,50 @@
     <mat-card>
 
       <!--<div class="inputvals" style="display:flex;flex-direction:column;margin-top:20px">
-      <h2 style="margin-left:20px">Strangles (short)</h2>
-      <div style="display:flex;justify-content:space-around">
-        <div>
-          <mat-form-field appearance="fill">
-            <mat-label>Base Instrument</mat-label>
-            <mat-select [(ngModel)]="selectedInstrument.instrumentToken" name="inst" (selectionChange)="onSelectInstrument($event)">
-              <mat-option *ngFor="let inst of instrument" [value]="inst.instrumentToken">
-                {{inst.tradingSymbol}}
-              </mat-option>
-            </mat-select>
-          </mat-form-field>
-        </div>
-        <div>
-          <mat-form-field appearance="fill">
-            <mat-label>Expiry</mat-label>
-            <mat-select (selectionChange)="onSelectExpiry($event)">
-              <mat-option *ngFor="let exp of expiry" [value]="exp">
-                {{exp}}
-              </mat-option>
-            </mat-select>
-          </mat-form-field>
-        </div>
-      </div>-->
+  <h2 style="margin-left:20px">Strangles (short)</h2>
+  <div style="display:flex;justify-content:space-around">
+    <div>
+      <mat-form-field appearance="fill">
+        <mat-label>Base Instrument</mat-label>
+        <mat-select [(ngModel)]="selectedInstrument.instrumentToken" name="inst" (selectionChange)="onSelectInstrument($event)">
+          <mat-option *ngFor="let inst of instrument" [value]="inst.instrumentToken">
+            {{inst.tradingSymbol}}
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
+    </div>
+    <div>
+      <mat-form-field appearance="fill">
+        <mat-label>Expiry</mat-label>
+        <mat-select (selectionChange)="onSelectExpiry($event)">
+          <mat-option *ngFor="let exp of expiry" [value]="exp">
+            {{exp}}
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
+    </div>
+  </div>-->
       <!--<div style="display:none;justify-content:space-around">
-        <mat-form-field appearance="fill">
-          <mat-label>Call</mat-label>
-          <mat-select (selectionChange)="onSelectCall($event)">
-            <mat-option *ngFor="let c of call" [value]="c.tradingSymbol">
-              {{c.strike}}
-            </mat-option>
-          </mat-select>
-        </mat-form-field>
-        <p><b>Call:&nbsp;</b>{{selectedCallValue}}</p>
+    <mat-form-field appearance="fill">
+      <mat-label>Call</mat-label>
+      <mat-select (selectionChange)="onSelectCall($event)">
+        <mat-option *ngFor="let c of call" [value]="c.tradingSymbol">
+          {{c.strike}}
+        </mat-option>
+      </mat-select>
+    </mat-form-field>
+    <p><b>Call:&nbsp;</b>{{selectedCallValue}}</p>
 
-        <mat-form-field appearance="fill">
-          <mat-label>Put</mat-label>
-          <mat-select (selectionChange)="onSelectPut($event)">
-            <mat-option *ngFor="let p of put" [value]="p.tradingSymbol">
-              {{p.strike}}
-            </mat-option>
-          </mat-select>
-        </mat-form-field>
-        <p><b>Put:&nbsp;</b>{{selectedPutValue}}</p>
-      </div>-->
+    <mat-form-field appearance="fill">
+      <mat-label>Put</mat-label>
+      <mat-select (selectionChange)="onSelectPut($event)">
+        <mat-option *ngFor="let p of put" [value]="p.tradingSymbol">
+          {{p.strike}}
+        </mat-option>
+      </mat-select>
+    </mat-form-field>
+    <p><b>Put:&nbsp;</b>{{selectedPutValue}}</p>
+  </div>-->
       <!--</div>-->
       <div class="algorithms" style="display:flex;flex-direction:column">
         <h2 style="margin-left:20px">Algorithms</h2>
@@ -80,6 +80,12 @@
               <div style="display:flex;justify-content:space-around">
                 <mat-form-field appearance="fill"><input type="number" matInput placeholder="Candle Time (in mins)" formControlName="ctf"></mat-form-field>
                 <mat-form-field appearance="fill"><input type="number" matInput placeholder="Quantity (in lots)" formControlName="quantity"></mat-form-field>
+              </div>
+              <div style="display:flex;justify-content:space-around">
+                  <mat-checkbox matInput (change)="onPSChange($event)"  formControlName="ps">Postion Sizing</mat-checkbox>
+                  <mat-form-field appearance="fill" >
+                    <input type="number" matInput placeholder="Max Loss Per Trade" formControlName="mlpt">
+                  </mat-form-field>
               </div>
 
               <!--</mat-grid-list>-->
@@ -164,7 +170,8 @@
 
       <button style="margin-top:30px" (click)="getLog()" mat-raised-button color="primary">Buy/Sell</button>
 
-      <button style="margin-top:30px" (click)="startdsservice()" mat-raised-button [color]="gethealthstatus(-99) ? 'primary':'warn'">Ticker Service</button>
+      <!--<button style="margin-top:30px" (click)="startdsservice()" mat-raised-button [color]="gethealthstatus(-99) ? 'primary':'warn'">Ticker Service</button>-->
+      <button style="margin-top:30px" (click)="startdsservice()" mat-raised-button [ngClass]="gethealthstatus(-99)?'button-fab-green':'button-fab-red'">Ticker Service</button>
     </mat-card>
   </div>
 
@@ -179,19 +186,19 @@
               <p>{{activeAlgo.an}} <span matBadge={{activeAlgo.orders.length}} matBadgeSize="1px" matBadgeColor="accent" matBadgeOverlap="true"> </span></p>
 
               <div class="ast"> Base Instrument: {{activeAlgo.binstrument}}</div>
-              <div class="ast">  Lot Size: {{activeAlgo.lotsize}}</div>
-              <div class="ast"> Candle Time: {{activeAlgo.mins}}</div>
+              <div class="ast">  Lots: {{activeAlgo.lotsize}}</div>
+              <div class="ast"> Candle Time: {{activeAlgo.mins}} mins</div>
               <div class="ast"> Expiry: {{activeAlgo.expiry}}</div>
               <div class="ast"> Algo Start : {{activeAlgo.algodate}}</div>
 
               <div class="warn-flex-container">
                 <div class="warn-button-container" *ngIf="!gethealthstatus(activeAlgo.ains)">
-                  <button mat-mini-fab class="button-fab" color="warn" mat-mini-fab-size="1px" aria-label="primary button">
+                  <button mat-mini-fab class="button-fab-red" mat-mini-fab-size="1px" style="width:20px;height:20px;line-height:16px" aria-label="primary button">
                     <!--<mat-icon>filter_list</mat-icon>-->
                   </button>
                 </div>
                 <div class="warn-button-container" *ngIf="gethealthstatus(activeAlgo.ains)">
-                  <button mat-mini-fab class="button-fab" color="primary" mat-mini-fab-size="1px" aria-label="warn button">
+                  <button mat-mini-fab class="button-fab-green"  mat-mini-fab-size="1px" style="width:20px;height:20px;line-height:16px" aria-label="warn button">
                   </button>
                 </div>
               </div>
@@ -206,7 +213,7 @@
                 <!-- Position Column -->
                 <ng-container matColumnDef="orderTime">
                   <mat-header-cell *matHeaderCellDef> Order Time </mat-header-cell>
-                  <mat-cell *matCellDef="let element"> {{element.ordertime.seconds | date:'h:mm:ss a' }} </mat-cell>
+                  <mat-cell *matCellDef="let element"> {{element.ordertime.seconds * 1000| date:'hh:mm:ss a' :'UTC'}} </mat-cell>
                 </ng-container>
 
                 <!-- Position Column -->
@@ -254,7 +261,9 @@
               <div *ngIf="logs !== undefined">
                 <mat-card [dataSource]="logs" *ngFor="let log of filterLogsOfType(activeAlgo)">
                   <div class="scrollable">
-                  {{ log.messengerMethod }} @ {{ log.logTime.seconds * 1000 |  date:'short' }} : {{ log.message }}
+                    {{ log.logTime.seconds * 1000 |  date:'hh:mm a':'UTC' }} : {{ log.message }}
+                    <!--{{ log.messengerMethod }} @-->
+
                   </div>
                 </mat-card>
               </div>

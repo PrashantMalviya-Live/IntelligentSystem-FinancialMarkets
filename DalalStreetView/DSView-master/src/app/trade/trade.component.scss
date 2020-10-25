@@ -35,6 +35,9 @@ $button: mat-typography-level(14px, 14px, 500), $input: mat-typography-level(inh
 }
 mat-table{ max-height:600px; overflow-y:auto}
 
+.example-margin {
+  margin: 0 12px;
+}
 mat-tab {
   max-height: 600px;
   overflow-y: auto
@@ -80,11 +83,19 @@ mat-tab {
   //width:100%;
 }
 
-.button-fab {
-  width: 20px;
+.button-fab-green {
+/*  width: 20px;
   height: 20px;
-  line-height: 16px;
-  }
+  line-height: 16px;*/
+  background-color: #4CAF50;
+}
+.button-fab-red {
+  /*width: 20px;
+  height: 20px;
+  line-height: 16px;*/
+  background-color: #F44336;
+}
+
 
 .flex-exp-container{
     display:flex;

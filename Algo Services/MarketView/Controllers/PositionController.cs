@@ -15,6 +15,7 @@ using Newtonsoft.Json;
 
 namespace MarketView.Controllers
 {
+    //[RequireHttps]
     [Route("api/[controller]")]
     [ApiController]
     public class PositionController : ControllerBase

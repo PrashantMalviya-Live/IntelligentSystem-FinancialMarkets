@@ -132,8 +132,15 @@ namespace Algorithms.Utilities
             try
             {
 #if market
-            
-                Dictionary<string, dynamic> orderStatus = ZObjects.kite.ModifyOrder(orderId, TriggerPrice: stoploss);
+                Dictionary<string, dynamic> orderStatus;
+                if (stoploss == 0)
+                {
+                    orderStatus = ZObjects.kite.ModifyOrder(orderId, OrderType:Constants.ORDER_TYPE_MARKET);
+                }
+                else
+                {
+                    orderStatus = ZObjects.kite.ModifyOrder(orderId, TriggerPrice: stoploss);
+                }
                 if (orderStatus != null && orderStatus["data"]["order_id"] != null)
                 {
                     //order = new Order(orderStatus["data"]);
@@ -193,6 +200,42 @@ namespace Algorithms.Utilities
             }
             return order;
         }
+
+        /// <summary>
+        /// Modify existing order. This is used to change the SL of existing order
+        /// </summary>
+        /// <param name="instrument_tradingsymbol"></param>
+        /// <param name="instrumenttype"></param>
+        /// <param name="instrument_currentPrice"></param>
+        /// <param name="instrument_Token"></param>
+        /// <param name="buyOrder"></param>
+        /// <param name="quantity"></param>
+        /// <param name="tickTime"></param>
+        /// <returns></returns>
+        public async static Task CancelOrder(int algoInstance, AlgoIndex algoIndex, Order order, DateTime currentTime)
+        {
+            try
+            {
+#if market
+                string orderId = order.OrderId;
+                Dictionary<string, dynamic> orderStatus;
+                    orderStatus = ZObjects.kite.CancelOrder(orderId);
+                if (orderStatus != null && orderStatus["data"]["order_id"] != null)
+                {
+                    order = GetOrder(orderId, algoInstance, algoIndex, true).Result;
+                }
+#endif
+#if local
+                order.Status = Constants.ORDER_STATUS_CANCELLED;
+#endif
+                UpdateOrderDetails(algoInstance, algoIndex, order);
+            }
+            catch (Exception ex)
+            {
+                LoggerCore.PublishLog(algoInstance, algoIndex, LogLevel.Error, currentTime, "Order cancellation failed. Trade will continue.", "CancelOrder");
+            }
+        }
+
 
         public async static Task<Order> GetOrder(string orderId, int algoInstance, AlgoIndex algoIndex, bool slOrder = false)
         {

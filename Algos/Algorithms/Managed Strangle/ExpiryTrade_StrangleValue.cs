@@ -66,7 +66,7 @@ namespace Algos.TLogics
 
             //_algoInstance = StrangleNode.ID; Utility.GenerateAlgoInstance(algoIndex, DateTime.Now);
 
-            //ZConnect.ZerodhaLogin();
+            ZConnect.Login();
         }
 
         private void ManageStrangle(StrangleDataStructure strangleNode, Tick[] ticks)
