@@ -2,7 +2,7 @@
 using System.Threading;
 using System.Reflection;
 using System.Collections.Generic;
-
+using Google.Protobuf.WellKnownTypes;
 namespace Global.Web
 {
     public class ChartModel
@@ -62,7 +62,7 @@ namespace Global.Web
         public string statusmessage { get; set; }
         public string algorithm { get; set; }
         public int algoinstance { get; set; }
-        public string ordertime { get; set; }
+        public Timestamp ordertime { get; set; }
         public string ordertype { get; set; }
 
     }

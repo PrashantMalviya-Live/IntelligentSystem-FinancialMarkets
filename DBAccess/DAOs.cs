@@ -178,6 +178,28 @@ namespace DataAccess
 
             return dsInstruments;
         }
+        public DataSet GetInstrument(uint instrumentToken)
+        {
+            SqlConnection sqlConnection = new SqlConnection(Utility.GetConnectionString());
+
+            SqlCommand selectCMD = new SqlCommand("GetInstrument", sqlConnection)
+            {
+                CommandTimeout = 30,
+                CommandType = CommandType.StoredProcedure
+            };
+            selectCMD.Parameters.AddWithValue("@InstrumentToken", Convert.ToInt64(instrumentToken));
+            SqlDataAdapter daInstrument = new SqlDataAdapter()
+            {
+                SelectCommand = selectCMD
+            };
+
+            sqlConnection.Open();
+            DataSet dsInstrument = new DataSet();
+            daInstrument.Fill(dsInstrument);
+            sqlConnection.Close();
+
+            return dsInstrument;
+        }
         public DataSet GetOrders(AlgoIndex algoindex, int orderid = 0)
         {
             SqlConnection sqlConnection = new SqlConnection(Utility.GetConnectionString());

@@ -4,6 +4,13 @@ using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
 using ZMQFacade;
+using Algorithms.Algorithms;
+using Algorithms.Utilities;
+using GlobalLayer;
+using Global.Web;
+using GlobalCore;
+using System.Linq;
+using System.Data;
 
 namespace ExpiryStrangle.Controllers
 {
@@ -14,7 +21,6 @@ namespace ExpiryStrangle.Controllers
         IConfiguration configuration;
         ZMQClient zmqClient;
 
-        // GET: api/<RSIStrangleController>
         [HttpGet]
         public void Get()
         {
@@ -30,11 +36,6 @@ namespace ExpiryStrangle.Controllers
         [HttpGet("startservice")]
         public void StartService()
         {
-            //uint instrumentToken = 256265;
-            //DateTime startDateTime = DateTime.Today.AddDays(-1).Add(new TimeSpan(15, 0, 0));
-            //DateTime endDateTime = DateTime.Now;
-            //TimeSpan candleTimeSpan = new TimeSpan(0, 3, 0);
-
             //BNF PE/ CE
             uint instrumentToken = 260105;
             DateTime startDateTime = DateTime.Today.AddDays(-1).Add(new TimeSpan(15, 0, 0));

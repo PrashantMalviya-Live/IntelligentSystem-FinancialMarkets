@@ -1,5 +1,6 @@
 ﻿using Algorithms.Algorithms;
 using Algorithms.Utilities;
+using Algorithms.Utilities.Views;
 using GlobalLayer;
 using Global.Web;
 using GlobalCore;
@@ -38,6 +39,8 @@ namespace TradeEMACross.Controllers
             return (from n in bInstruments select new BInstumentView { InstrumentToken = n.InstrumentToken, TradingSymbol = n.TradingSymbol.Trim(' ') }).ToList();
         }
 
+
+        
 
         [HttpGet("activealgos")]
         public async Task <IEnumerable<ActiveAlgosView>> GetActiveAlgos()
@@ -78,7 +81,7 @@ namespace TradeEMACross.Controllers
                 List<Order> orders = new List<Order>();
                 foreach (DataRow drOrder in drOrders)
                 {
-                    Order o = GetOrder(drOrder);
+                    Order o = ViewUtility.GetOrder(drOrder);
                     orders.Add(o);
                 }
 
@@ -89,8 +92,8 @@ namespace TradeEMACross.Controllers
 
                 if (pendingOrders != null && pendingOrders.Count() > 0)
                 {
-                    algoInput.ActiveOrder = pendingOrders.FirstOrDefault(null);
-                    algosView.Orders.Add(GetOrderView(pendingOrders.FirstOrDefault(null)));
+                    algoInput.ActiveOrder = pendingOrders.FirstOrDefault();
+                    algosView.Orders.Add(ViewUtility.GetOrderView(pendingOrders.FirstOrDefault()));
                     if (algoInput.ActiveOrder != null)
                     {
                         Trade(algoInput, algosView.ains);
@@ -257,43 +260,11 @@ namespace TradeEMACross.Controllers
 
             }
         }
-        private Order GetOrder(DataRow drOrders)
+
+        [HttpGet("healthy")]
+        public Task<int> Health()
         {
-            return new Order
-            {
-                OrderId = Convert.ToString(drOrders["OrderId"]),
-                InstrumentToken = Convert.ToUInt32(drOrders["InstrumentToken"]),
-                Tradingsymbol = (string)drOrders["TradingSymbol"],
-                TransactionType = (string)drOrders["TransactionType"],
-                AveragePrice = Convert.ToDecimal(drOrders["AveragePrice"]),
-                Quantity = (int)drOrders["Quantity"],
-                TriggerPrice = Convert.ToDecimal(drOrders["TriggerPrice"]),
-                Status = (string)drOrders["Status"],
-                StatusMessage = Convert.ToString(drOrders["StatusMessage"]),
-                OrderType = Convert.ToString(drOrders["OrderType"]),
-                OrderTimestamp = Convert.ToDateTime(drOrders["OrderTimeStamp"]),
-                AlgoIndex = Convert.ToInt32(drOrders["AlgoIndex"]),
-                AlgoInstance = Convert.ToInt32(drOrders["AlgoInstance"])
-            };
-        }
-        private OrderView GetOrderView(Order order)
-        {
-            return new OrderView
-            {
-                orderid = order.OrderId,
-                instrumenttoken = order.InstrumentToken,
-                tradingsymbol = order.Tradingsymbol.Trim(' '),
-                transactiontype = order.TransactionType,
-                status = order.Status,
-                statusmessage = order.StatusMessage,
-                price = order.OrderType == Constants.ORDER_TYPE_SLM ? order.TriggerPrice : order.AveragePrice,
-                quantity = order.Quantity,
-                triggerprice = order.TriggerPrice,
-                algorithm = Convert.ToString((AlgoIndex)order.AlgoIndex),
-                algoinstance = order.AlgoInstance,
-                ordertime = order.OrderTimestamp.GetValueOrDefault(DateTime.Now).ToString("yyyy-MM-dd HH:mm:ss"),
-                ordertype = Convert.ToString(order.OrderType)
-            };
+            return Task.FromResult((int) AlgoIndex.MomentumTrade_Option);
         }
 
         //[HttpPost]

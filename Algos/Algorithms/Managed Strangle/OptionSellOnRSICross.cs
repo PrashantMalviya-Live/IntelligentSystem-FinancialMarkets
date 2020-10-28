@@ -16,12 +16,20 @@ using Algorithms.Candles;
 using System.Threading;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Timers;
+using System.Reflection.Metadata;
 
 namespace Algos.TLogics
 {
     public class OptionSellOnRSICross : IZMQ
     {
         private readonly int _algoInstance;
+
+        public int AlgoInstance
+        {
+            get
+            { return _algoInstance; }
+        }
 
         IOrderedEnumerable<KeyValuePair<decimal, Instrument>> callOptions;
         IOrderedEnumerable<KeyValuePair<decimal, Instrument>> putOptions;
@@ -34,7 +42,8 @@ namespace Algos.TLogics
         public Dictionary<int, TradedOption> _tradedOptionInstance;
 
         List<Instrument> _activeOptions;
-        List<TradedOption> _tradedOptions;
+        //List<TradedOption> _tradedOptions;
+        public OrderLinkedList orderList;
         private bool _stopTrade;
         public decimal _baseInstrumentPrice;
         public uint _baseInstrumentToken;
@@ -73,6 +82,8 @@ namespace Algos.TLogics
         public const AlgoIndex algoIndex = AlgoIndex.SellOnRSICross;
         //public List<string> SubscriptionTokens;
         public List<uint> SubscriptionTokens;
+        private System.Timers.Timer _healthCheckTimer;
+        private int _healthCounter = 0;
 
         [field: NonSerialized]
         public delegate void OnOptionUniverseChangeHandler(OptionSellOnRSICross source);
@@ -80,10 +91,21 @@ namespace Algos.TLogics
         [field: NonSerialized]
         public event OnOptionUniverseChangeHandler OnOptionUniverseChange;
 
+        [field: NonSerialized]
+        public delegate void OnTradeEntryHandler(Order st);
+        [field: NonSerialized]
+        public event OnTradeEntryHandler OnTradeEntry;
+
+        [field: NonSerialized]
+        public delegate void OnTradeExitHandler(Order st);
+        [field: NonSerialized]
+        public event OnTradeExitHandler OnTradeExit;
+
         /// TODO: All orders initially should go to database and then it should be loaded here.
-        
+
+
         public OptionSellOnRSICross(TimeSpan candleTimeSpan, uint baseInstrumentToken, 
-            DateTime endTime, DateTime? expiry, int maxDistanceForTrail = 400)
+            DateTime endTime, DateTime? expiry, int quantity, int algoInstance = 0, int maxDistanceForTrail = 400)
         {
             //TODO: This method would be used to load previously held , but not yet closed, options
             //LoadActiveData();
@@ -94,7 +116,8 @@ namespace Algos.TLogics
             _expiryDate = expiry;
             _baseInstrumentToken = baseInstrumentToken;
             _activeOptions = new List<Instrument>();
-            _tradedOptions = new List<TradedOption>();
+            //_tradedOptions = new List<TradedOption>();
+            orderList = new OrderLinkedList();
             MAX_DISTANCE_FOR_TRAIL = maxDistanceForTrail;
 
             SubscriptionTokens = new List<uint>();
@@ -120,11 +143,25 @@ namespace Algos.TLogics
             
             _stopTrade = false;
 
-            _algoInstance = Utility.GenerateAlgoInstance(algoIndex, _baseInstrumentToken,
-                endTime, expiry.Value, QUANTITY, candleTimeFrameInMins: (float)candleTimeSpan.TotalMinutes, candleType: CandleType.Time);
-           // ZConnect.ZerodhaLogin();
+            _algoInstance = algoInstance != 0 ? algoInstance :
+                Utility.GenerateAlgoInstance(algoIndex, _baseInstrumentToken, endTime,
+                expiry.GetValueOrDefault(DateTime.Now), quantity, candleTimeFrameInMins:
+                (float)candleTimeSpan.TotalMinutes, candleType: CandleType.Time);
+           
+            ZConnect.Login();
+
+            //health check after 1 mins
+            _healthCheckTimer = new System.Timers.Timer(interval: 1 * 60 * 1000);
+            _healthCheckTimer.Elapsed += CheckHealth;
+            _healthCheckTimer.Start();
         }
 
+        public void LoadActiveOrders(Order activeOrder)
+        {
+            OrderLinkedListNode orderNode = new OrderLinkedListNode();
+            orderNode.SLOrder = activeOrder;
+            orderList.FirstOrderNode = orderNode;
+        }
 
 
         ///Steps:
@@ -159,7 +196,8 @@ namespace Algos.TLogics
 
             LoadActiveOptions(_baseInstrumentPrice, callOptions, putOptions);
         }
-        private void LoadActiveOptions(decimal baseInstrumentPrice, IOrderedEnumerable<KeyValuePair<decimal, Instrument>> calls, IOrderedEnumerable<KeyValuePair<decimal, Instrument>> puts)
+        private void LoadActiveOptions(decimal baseInstrumentPrice, IOrderedEnumerable<KeyValuePair<decimal, Instrument>> calls, 
+            IOrderedEnumerable<KeyValuePair<decimal, Instrument>> puts)
         {
             KeyValuePair<decimal, Instrument> callNode = calls.First();
             KeyValuePair<decimal, Instrument> putNode = puts.Last();
@@ -172,23 +210,33 @@ namespace Algos.TLogics
             _activeOptions.Add(call);
             _activeOptions.Add(put);
             
-            if (_tradedOptions.Count != 0)
+            //if (_tradedOptions.Count != 0)
+            //{
+            //    for (int i = 0; i < _activeOptions.Count; i++)
+            //    {
+            //        Instrument option = _activeOptions[i];
+            //        if (!_tradedOptions.Any(x => x.Option.InstrumentToken == option.InstrumentToken))
+            //        {
+            //            _activeOptions.Remove(option);
+            //            option = option.InstrumentType.Trim(' ').ToLower() == "ce" ? call : put;
+            //            _activeOptions.Insert(i, option);
+            //        }
+            //    }
+            //}
+
+            for (int i = 0; i < _activeOptions.Count; i++)
             {
-                for (int i = 0; i < _activeOptions.Count; i++)
+                Instrument option = _activeOptions[i];
+                if (orderList.Option != null && orderList.Option.InstrumentToken != option.InstrumentToken)
                 {
-                    Instrument option = _activeOptions[i];
-                    if (!_tradedOptions.Any(x => x.Option.InstrumentToken == option.InstrumentToken))
-                    {
-                        _activeOptions.Remove(option);
-                        option = option.InstrumentType.Trim(' ').ToLower() == "ce" ? call : put;
-                        _activeOptions.Insert(i, option);
-                    }
+                    _activeOptions.Remove(option);
+                    option = option.InstrumentType.Trim(' ').ToLower() == "ce" ? call : put;
+                    _activeOptions.Insert(i, option);
+
+                    ///TODO: after updating this value, check if ActiveOptions gets update or not.
                 }
             }
         }
-        
-
-
         /// <summary>
         ///
         /// </summary>
@@ -228,6 +276,7 @@ namespace Algos.TLogics
                         TrailMarket(tick);
                     }
                 }
+                Interlocked.Increment(ref _healthCounter);
             }
             catch (Exception ex)
             {
@@ -243,69 +292,108 @@ namespace Algos.TLogics
         }
         private void UpdateTradedOptionPrice(Tick tick)
         {
-            TradedOption to = _tradedOptions.FirstOrDefault(x => x.Option.InstrumentToken == tick.InstrumentToken && x.TradingStatus == PositionStatus.Open);
-            if (to != null)
+            //TradedOption to = _tradedOptions.FirstOrDefault(x => x.Option.InstrumentToken == tick.InstrumentToken && x.TradingStatus == PositionStatus.Open);
+            if (orderList.Option != null && orderList.FirstOrderNode != null)
             {
-                to.Option.LastPrice = tick.LastPrice;
+                orderList.Option.LastPrice = tick.LastPrice;
             }
         }
         private async void TrailMarket(Tick tick)
         {
-            if (_tradedOptions.Count > 0)
+
+            if (orderList.Option != null && orderList.FirstOrderNode != null)
             {
-                TradedOption tradedCE = _tradedOptions.FirstOrDefault(x => x.TradingStatus == PositionStatus.Open && x.Option.InstrumentType.Trim(' ').ToLower() == "ce");
-                TradedOption tradedPE = _tradedOptions.FirstOrDefault(x => x.TradingStatus == PositionStatus.Open && x.Option.InstrumentType.Trim(' ').ToLower() == "pe");
+                //TradedOption tradedCE = _tradedOptions.FirstOrDefault(x => x.TradingStatus == PositionStatus.Open && x.Option.InstrumentType.Trim(' ').ToLower() == "ce");
+                //TradedOption tradedPE = _tradedOptions.FirstOrDefault(x => x.TradingStatus == PositionStatus.Open && x.Option.InstrumentType.Trim(' ').ToLower() == "pe");
+                Instrument option = orderList.Option;
 
                 Instrument atmCE = callOptions.First().Value;
                 Instrument atmPE = putOptions.Last().Value;
 
                 RelativeStrengthIndex ce_rsi, pe_rsi;
 
-                if (tradedCE != null && tradedCE.Option.Strike > _baseInstrumentPrice + MAX_DISTANCE_FOR_TRAIL
+                if (option.InstrumentType.Trim(' ').ToLower() == "ce" && option.Strike > _baseInstrumentPrice + MAX_DISTANCE_FOR_TRAIL
                     && tokenRSI.TryGetValue(atmCE.InstrumentToken, out ce_rsi) && tokenRSI.TryGetValue(atmPE.InstrumentToken, out pe_rsi)
                     && ce_rsi.GetCurrentValue<decimal>() < pe_rsi.GetCurrentValue<decimal>())
                 {
-                    PlaceTrailingOrder(tradedCE, atmCE, tick, InstrumentType.CE);
-                    tradedCE.TradingStatus = PositionStatus.Closed;
+                    PlaceTrailingOrder(option, atmCE, tick, InstrumentType.CE);
+                    //tradedCE.TradingStatus = PositionStatus.Closed;
                     //LoggerCore.PublishLog(_algoInstance, LogLevel.Info, tick.Timestamp.Value, "Trailing Order placed", "TrailMarket");
                 }
-                else if (tradedPE != null && tradedPE.Option.Strike < _baseInstrumentPrice - MAX_DISTANCE_FOR_TRAIL
+                else if (option.InstrumentType.Trim(' ').ToLower() == "ce" && option.Strike < _baseInstrumentPrice - MAX_DISTANCE_FOR_TRAIL
                     && tokenRSI.TryGetValue(atmPE.InstrumentToken, out pe_rsi) && tokenRSI.TryGetValue(atmCE.InstrumentToken, out ce_rsi)
                     && pe_rsi.GetCurrentValue<decimal>() < ce_rsi.GetCurrentValue<decimal>())
                 {
-                    PlaceTrailingOrder(tradedPE, atmPE, tick, InstrumentType.PE);
-                    tradedPE.TradingStatus = PositionStatus.Closed;
+                    PlaceTrailingOrder(option, atmPE, tick, InstrumentType.PE);
+                    //tradedPE.TradingStatus = PositionStatus.Closed;
                     //LoggerCore.PublishLog(_algoInstance, LogLevel.Info, tick.Timestamp.Value, "Trailing Order placed", "TrailMarket");
                 }
             }
         }
-        private void PlaceTrailingOrder(TradedOption tradedOption, Instrument newInstrument, Tick tick, InstrumentType instrumentType)
+        private void PlaceTrailingOrder(Instrument option, 
+            Instrument newInstrument, Tick tick, InstrumentType instrumentType)
         {
-            //exit current Trade
-            //Instrument currentInstrument = _tradedOptions[(int)InstrumentType.PE].Option;
-            Instrument currentInstrument = tradedOption.Option;
+            try
+            {
+                LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Info, tick.Timestamp.Value,
+                        "Trailing market...", "PlaceTrailingOrder");
+                //exit current Trade
+                //Instrument currentInstrument = _tradedOptions[(int)InstrumentType.PE].Option;
+                //Instrument currentInstrument = tradedOption.Option;
 
-            ShortTrade shortTrade = PlaceOrder(currentInstrument.TradingSymbol, currentInstrument.InstrumentType,
-                tradedOption.Option.LastPrice, currentInstrument.InstrumentToken, true,
-                TRADE_QTY * Convert.ToInt32(currentInstrument.LotSize), tick.Timestamp);
+                //ShortTrade shortTrade = PlaceOrder(option.TradingSymbol, option.InstrumentType,
+                //    option.LastPrice, option.InstrumentToken, true,
+                //    TRADE_QTY * Convert.ToInt32(option.LotSize), tick.Timestamp);
 
-            shortTrade.TradingStatus = TradeStatus.Closed;
-            tradedOption.BuyTrade = shortTrade;
-            tradedOption.TradingStatus = PositionStatus.Closed;
-            _tradedOptions.Remove(tradedOption);
+                Order order = MarketOrders.PlaceOrder(_algoInstance, option.TradingSymbol, option.InstrumentType,
+                    option.LastPrice, option.InstrumentToken, true,
+                    TRADE_QTY * Convert.ToInt32(option.LotSize), algoIndex, tick.Timestamp, Constants.ORDER_TYPE_MARKET);
 
-            //ENTRY Trailing ORDER - SELL ALERT
-            //Instrument option = _activeOptions.FirstOrDefault(x => x.InstrumentType.Trim(' ').ToLower() == "pe");
+                LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Info, order.OrderTimestamp.Value,
+                        string.Format("Closed Option {0}. Bought {1} lots @ {2}.", option.TradingSymbol, 
+                        TRADE_QTY, order.AveragePrice), "PlaceTrailingOrder");
 
-            shortTrade = PlaceOrder(newInstrument.TradingSymbol, newInstrument.InstrumentType, tick.LastPrice,
-                newInstrument.InstrumentToken, false, TRADE_QTY * Convert.ToInt32(newInstrument.LotSize), tick.Timestamp);
+                //shortTrade.TradingStatus = TradeStatus.Closed;
+                //tradedOption.BuyTrade = shortTrade;
+                //tradedOption.TradingStatus = PositionStatus.Closed;
+                //_tradedOptions.Remove(tradedOption);
 
-            TradedOption to = new TradedOption();
-            to.Option = newInstrument;
-            to.SellTrade = shortTrade;
-            to.TradingStatus = PositionStatus.Open;
-            _tradedOptions.Add(to);
-            
+                //ENTRY Trailing ORDER - SELL ALERT
+                //Instrument option = _activeOptions.FirstOrDefault(x => x.InstrumentType.Trim(' ').ToLower() == "pe");
+
+                //shortTrade = PlaceOrder(newInstrument.TradingSymbol, newInstrument.InstrumentType, tick.LastPrice,
+                //    newInstrument.InstrumentToken, false, TRADE_QTY * Convert.ToInt32(newInstrument.LotSize), tick.Timestamp);
+
+                order = MarketOrders.PlaceOrder(_algoInstance, newInstrument.TradingSymbol, newInstrument.InstrumentType, tick.LastPrice,
+                    newInstrument.InstrumentToken, false, TRADE_QTY * Convert.ToInt32(newInstrument.LotSize), 
+                    algoIndex, tick.Timestamp, Constants.ORDER_TYPE_MARKET);
+
+                LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Info, order.OrderTimestamp.Value,
+                       string.Format("Traded Option {0}. Sold {1} lots @ {2}.", newInstrument.TradingSymbol,
+                       TRADE_QTY, order.AveragePrice), "PlaceTrailingOrder");
+
+                orderList.Option = newInstrument;
+                OrderLinkedListNode orderNode = new OrderLinkedListNode();
+                orderNode.FirstLegCompleted = true;
+                orderNode.Order = order;
+                orderList.FirstOrderNode = orderNode;
+                //TradedOption to = new TradedOption();
+                //to.Option = newInstrument;
+                //to.SellTrade = shortTrade;
+                //to.TradingStatus = PositionStatus.Open;
+                //_tradedOptions.Add(to);
+            }
+            catch (Exception ex)
+            {
+                _stopTrade = true;
+                Logger.LogWrite(ex.StackTrace);
+                Logger.LogWrite("Closing Application");
+                LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Error, tick.Timestamp.Value, 
+                    String.Format(@"Error occurred! Trading has stopped. \r\n {0}", ex.Message), "PlaceTrailingOrder");
+                Thread.Sleep(100);
+                Environment.Exit(0);
+            }
+
         }
 
         /// <summary>
@@ -315,39 +403,80 @@ namespace Algos.TLogics
         /// <param name="option"></param>
         private void TradeEntry(Candle previousCandle, Instrument current)
         {
-            uint token = previousCandle.InstrumentToken;
-
-            //Candle previousCandle = TimeCandles[token].LastOrDefault(x => x.State == CandleStates.Finished);
-            //Candle currentCandle = TimeCandles[token].Last();
-
-            Instrument opposite = _activeOptions.FirstOrDefault(x => x.InstrumentToken != current.InstrumentToken);
-
-            if (tokenRSI[token].IsFormed && tokenRSI[opposite.InstrumentToken].IsFormed
-                && CheckRSICross(current, opposite)
-                && !_tradedOptions.Any(x => x.Option.InstrumentType == current.InstrumentType
-                && x.TradingStatus != PositionStatus.Closed))
+            try
             {
-                //ENTRY ORDER - SELL ALERT
-                ShortTrade shortTrade = PlaceOrder(current.TradingSymbol, current.InstrumentType, previousCandle.ClosePrice,
-                    current.InstrumentToken, false, TRADE_QTY * Convert.ToInt32(current.LotSize), previousCandle.CloseTime);
+                uint token = previousCandle.InstrumentToken;
 
+                //Candle previousCandle = TimeCandles[token].LastOrDefault(x => x.State == CandleStates.Finished);
+                //Candle currentCandle = TimeCandles[token].Last();
 
-                if (_tradedOptions.Count > 0)
+                Instrument opposite = _activeOptions.FirstOrDefault(x => x.InstrumentToken != current.InstrumentToken);
+
+                if (tokenRSI[token].IsFormed && tokenRSI[opposite.InstrumentToken].IsFormed
+                    && CheckRSICross(current, opposite)
+                    //&& !_tradedOptions.Any(x => x.Option.InstrumentType == current.InstrumentType
+                    //&& x.TradingStatus != PositionStatus.Closed)
+                    && (orderList != null && orderList.Option.InstrumentType == current.InstrumentType)
+                    )
                 {
-                    Instrument existingOption = _tradedOptions[0].Option;
+                    //ENTRY ORDER - SELL ALERT
+                    //ShortTrade shortTrade = PlaceOrder(current.TradingSymbol, current.InstrumentType, previousCandle.ClosePrice,
+                    //    current.InstrumentToken, false, TRADE_QTY * Convert.ToInt32(current.LotSize), previousCandle.CloseTime);
 
-                    //Close opposite option type
-                    ShortTrade buyTrade = PlaceOrder(existingOption.TradingSymbol, existingOption.InstrumentType, existingOption.LastPrice,
-                        existingOption.InstrumentToken, false, TRADE_QTY * Convert.ToInt32(existingOption.LotSize), previousCandle.CloseTime);
 
-                    _tradedOptions.Clear();
+                    Order order = MarketOrders.PlaceOrder(_algoInstance, current.TradingSymbol, current.InstrumentType, previousCandle.ClosePrice,
+                            token, false, TRADE_QTY * Convert.ToInt32(current.LotSize),
+                            algoIndex, previousCandle.CloseTime, Constants.ORDER_TYPE_MARKET);
+
+                    LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Info, order.OrderTimestamp.Value, 
+                        string.Format("TRADE!! Sold {0} lots of {1} @ {2}.", TRADE_QTY, current.TradingSymbol, 
+                        order.AveragePrice), "TradeEntry");
+
+
+
+                    if (orderList.FirstOrderNode != null)
+                    {
+                        Instrument existingOption = orderList.Option;
+
+                        //Close opposite option type
+                        //ShortTrade buyTrade = PlaceOrder(existingOption.TradingSymbol, existingOption.InstrumentType, existingOption.LastPrice,
+                        //    existingOption.InstrumentToken, false, TRADE_QTY * Convert.ToInt32(existingOption.LotSize), previousCandle.CloseTime);
+
+                        Order buyOrder = MarketOrders.PlaceOrder(_algoInstance, existingOption.TradingSymbol, existingOption.InstrumentType, existingOption.LastPrice,
+                           existingOption.InstrumentToken, true, TRADE_QTY * Convert.ToInt32(existingOption.LotSize),
+                           algoIndex, previousCandle.CloseTime, Constants.ORDER_TYPE_MARKET);
+
+                        LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Info, buyOrder.OrderTimestamp.Value,
+                            string.Format("TRADE!! Bought back {0} lots of {1} @ {2}.", TRADE_QTY, existingOption.TradingSymbol, 
+                            buyOrder.AveragePrice), "TradeEntry");
+
+                        orderList.Option = null;
+                        orderList.FirstOrderNode = null;
+                       // _tradedOptions.Clear();
+                    }
+
+                    //TradedOption to = new TradedOption();
+                    //to.Option = current;
+                    //to.SellTrade = order;
+                    //to.TradingStatus = PositionStatus.Open;
+                    //_tradedOptions.Add(to);
+
+                    OrderLinkedListNode orderNode = new OrderLinkedListNode();
+                    orderNode.Order = order;
+                    orderNode.FirstLegCompleted = true;
+                    orderList.Option = current;
+                    orderList.FirstOrderNode = orderNode;
                 }
-
-                TradedOption to = new TradedOption();
-                to.Option = current;
-                to.SellTrade = shortTrade;
-                to.TradingStatus = PositionStatus.Open;
-                _tradedOptions.Add(to);
+            }
+            catch (Exception ex)
+            {
+                _stopTrade = true;
+                Logger.LogWrite(ex.StackTrace);
+                Logger.LogWrite("Closing Application");
+                LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Error, previousCandle.CloseTime,
+                    String.Format(@"Error occurred! Trading has stopped. \r\n {0}", ex.Message), "TradeEntry");
+                Thread.Sleep(100);
+                Environment.Exit(0);
             }
         }
         private bool CheckRSICross(Instrument current, Instrument opposite)
@@ -391,84 +520,112 @@ namespace Algos.TLogics
         //}
         private async void MonitorCandles(Tick tick)
         {
-            uint token = tick.InstrumentToken;
-            //Check the below statement, this should not keep on adding to 
-            //TimeCandles with everycall, as the list doesnt return new candles unless built
-            if (TimeCandles.ContainsKey(token))
+            try
             {
-                candleManger.StreamingShortTimeFrameCandle(tick, token, _candleTimeSpan, true); // TODO: USING LOCAL VERSION RIGHT NOW
-            }
-            else
-            {
-                DateTime lastCandleEndTime;
-                DateTime? candleStartTime = CheckCandleStartTime(tick.Timestamp.Value, out lastCandleEndTime);
-
-                if (candleStartTime.HasValue)
+                uint token = tick.InstrumentToken;
+                //Check the below statement, this should not keep on adding to 
+                //TimeCandles with everycall, as the list doesnt return new candles unless built
+                if (TimeCandles.ContainsKey(token))
                 {
-                    LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Info, tick.Timestamp.Value, "Starting first Candle now", "MonitorCandles");
-                    //candle starts from there
-                    candleManger.StreamingShortTimeFrameCandle(tick, token, _candleTimeSpan, true, candleStartTime); // TODO: USING LOCAL VERSION
+                    candleManger.StreamingShortTimeFrameCandle(tick, token, _candleTimeSpan, true); // TODO: USING LOCAL VERSION RIGHT NOW
                 }
+                else
+                {
+                    DateTime lastCandleEndTime;
+                    DateTime? candleStartTime = CheckCandleStartTime(tick.Timestamp.Value, out lastCandleEndTime);
+
+                    if (candleStartTime.HasValue)
+                    {
+                        LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Info, tick.Timestamp.Value, "Starting first Candle now", "MonitorCandles");
+                        //candle starts from there
+                        candleManger.StreamingShortTimeFrameCandle(tick, token, _candleTimeSpan, true, candleStartTime); // TODO: USING LOCAL VERSION
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _stopTrade = true;
+                Logger.LogWrite(ex.StackTrace);
+                Logger.LogWrite("Closing Application");
+                LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Error, tick.Timestamp.Value,
+                    String.Format(@"Error occurred! Trading has stopped. \r\n {0}", ex.Message), "MonitorCandles");
+                Thread.Sleep(100);
+                Environment.Exit(0);
             }
         }
 
         private void UpdateRSI(Tick tick, bool isFinal)
         {
-            //foreach (Tick tick in ticks)
-            //{
-            if (!_RSILoaded.Contains(tick.InstrumentToken))
+            try
             {
-                //this method can now be slow doenst matter. 
-                //make it async
-                LoadHistoricalRSIs(tick.Timestamp.Value);
-            }
+                //foreach (Tick tick in ticks)
+                //{
+                if (!_RSILoaded.Contains(tick.InstrumentToken))
+                {
+                    //this method can now be slow doenst matter. 
+                    //make it async
+                    LoadHistoricalRSIs(tick.Timestamp.Value);
+                }
 
-            if (tokenRSI.ContainsKey(tick.InstrumentToken))
-            {
-                tokenRSI[tick.InstrumentToken].Process(tick.LastPrice, isFinal: isFinal);
+                if (tokenRSI.ContainsKey(tick.InstrumentToken))
+                {
+                    tokenRSI[tick.InstrumentToken].Process(tick.LastPrice, isFinal: isFinal);
+                }
+                //}
             }
-            //}
+            catch (Exception ex)
+            {
+                _stopTrade = true;
+                Logger.LogWrite(ex.StackTrace);
+                Logger.LogWrite("Closing Application");
+                LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Error, tick.Timestamp.Value,
+                    String.Format(@"Error occurred! Trading has stopped. \r\n {0}", ex.Message), "UpdateRSI");
+                Thread.Sleep(100);
+                Environment.Exit(0);
+            }
         }
 
         private async void LoadHistoricalRSIs(DateTime currentTime)
         {
-            DateTime lastCandleEndTime;
-            DateTime? candleStartTime = CheckCandleStartTime(currentTime, out lastCandleEndTime);
-
-            var tokens = SubscriptionTokens.Where(x => x != _baseInstrumentToken && !_RSILoaded.Contains(x));
-
-            StringBuilder sb = new StringBuilder();
-            foreach (uint t in tokens)
+            try
             {
-                if (!_firstCandleOpenPriceNeeded.ContainsKey(t))
+                DateTime lastCandleEndTime;
+                DateTime? candleStartTime = CheckCandleStartTime(currentTime, out lastCandleEndTime);
+
+                var tokens = SubscriptionTokens.Where(x => x != _baseInstrumentToken && !_RSILoaded.Contains(x));
+
+                StringBuilder sb = new StringBuilder();
+                foreach (uint t in tokens)
                 {
-                    _firstCandleOpenPriceNeeded.Add(t, candleStartTime != lastCandleEndTime);
+                    if (!_firstCandleOpenPriceNeeded.ContainsKey(t))
+                    {
+                        _firstCandleOpenPriceNeeded.Add(t, candleStartTime != lastCandleEndTime);
+                    }
+                    if (!tokenRSI.ContainsKey(t) && !_SQLLoading.Contains(t))
+                    {
+                        sb.AppendFormat("{0},", t);
+                        _SQLLoading.Add(t);
+                    }
                 }
-                if (!tokenRSI.ContainsKey(t) && !_SQLLoading.Contains(t))
+                string tokenList = sb.ToString().TrimEnd(',');
+
+                int firstCandleFormed = 0; //historicalPricesLoaded = 0;
+                                           //if (!tokenRSI.ContainsKey(token) && !_SQLLoading.Contains(token))
+                                           //{
+                                           //_SQLLoading.Add(token);
+                if (tokenList != string.Empty)
                 {
-                    sb.AppendFormat("{0},", t);
-                    _SQLLoading.Add(t);
+                    Task task = Task.Run(() => LoadHistoricalCandles(tokenList, 15, lastCandleEndTime));
                 }
-            }
-            string tokenList = sb.ToString().TrimEnd(',');
 
-            int firstCandleFormed = 0; //historicalPricesLoaded = 0;
-                                       //if (!tokenRSI.ContainsKey(token) && !_SQLLoading.Contains(token))
-                                       //{
-                                       //_SQLLoading.Add(token);
-            if (tokenList != string.Empty)
-            {
-                Task task = Task.Run(() => LoadHistoricalCandles(tokenList, 15, lastCandleEndTime));
-            }
-
-            //LoadHistoricalCandles(token, LONG_EMA, lastCandleEndTime);
-            //historicalPricesLoaded = 1;
-            //}
-            foreach (uint tkn in tokens)
-            {
-                //if (tk != string.Empty)
-                //{
-                   // uint tkn = Convert.ToUInt32(tk);
+                //LoadHistoricalCandles(token, LONG_EMA, lastCandleEndTime);
+                //historicalPricesLoaded = 1;
+                //}
+                foreach (uint tkn in tokens)
+                {
+                    //if (tk != string.Empty)
+                    //{
+                    // uint tkn = Convert.ToUInt32(tk);
 
 
                     if (TimeCandles.ContainsKey(tkn) && tokenRSI.ContainsKey(tkn))
@@ -493,29 +650,54 @@ namespace Algos.TLogics
                     if ((firstCandleFormed == 1 || !_firstCandleOpenPriceNeeded[tkn]) && tokenRSI.ContainsKey(tkn))
                     {
                         _RSILoaded.Add(tkn);
-                    LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Info, currentTime, String.Format("RSI loaded from DB for {0}", tkn), "MonitorCandles");
-                }
+                        LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Info, currentTime, String.Format("RSI loaded from DB for {0}", tkn), "MonitorCandles");
+                    }
                     //}
-               // }
+                    // }
+                }
+            }
+            catch (Exception ex)
+            {
+                _stopTrade = true;
+                Logger.LogWrite(ex.StackTrace);
+                Logger.LogWrite("Closing Application");
+                LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Error, currentTime,
+                    String.Format(@"Error occurred! Trading has stopped. \r\n {0}", ex.Message), "LoadHistoricalRSIs");
+                Thread.Sleep(100);
+                Environment.Exit(0);
             }
         }
 
         private DateTime? CheckCandleStartTime(DateTime currentTime, out DateTime lastEndTime)
         {
-            double mselapsed = (currentTime.TimeOfDay - MARKET_START_TIME).TotalMilliseconds % _candleTimeSpan.TotalMilliseconds;
             DateTime? candleStartTime = null;
-            //if(mselapsed < 1000) //less than a second
-            //{
-            //    candleStartTime =  currentTime;
-            //}
-            if (mselapsed < 60 * 1000)
+            lastEndTime = DateTime.Now;
+            try
             {
-                candleStartTime = currentTime.Date.Add(TimeSpan.FromMilliseconds(currentTime.TimeOfDay.TotalMilliseconds - mselapsed));
+                double mselapsed = (currentTime.TimeOfDay - MARKET_START_TIME).TotalMilliseconds % _candleTimeSpan.TotalMilliseconds;
+                //if(mselapsed < 1000) //less than a second
+                //{
+                //    candleStartTime =  currentTime;
+                //}
+                if (mselapsed < 60 * 1000)
+                {
+                    candleStartTime = currentTime.Date.Add(TimeSpan.FromMilliseconds(currentTime.TimeOfDay.TotalMilliseconds - mselapsed));
+                }
+                //else
+                //{
+                lastEndTime = currentTime.Date.Add(TimeSpan.FromMilliseconds(currentTime.TimeOfDay.TotalMilliseconds - mselapsed));
+                //}
             }
-            //else
-            //{
-            lastEndTime = currentTime.Date.Add(TimeSpan.FromMilliseconds(currentTime.TimeOfDay.TotalMilliseconds - mselapsed));
-            //}
+            catch (Exception ex)
+            {
+                _stopTrade = true;
+                Logger.LogWrite(ex.StackTrace);
+                Logger.LogWrite("Closing Application");
+                LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Error, currentTime,
+                    String.Format(@"Error occurred! Trading has stopped. \r\n {0}", ex.Message), "CheckCandleStartTime");
+                Thread.Sleep(100);
+                Environment.Exit(0);
+            }
 
             return candleStartTime;
         }
@@ -635,89 +817,116 @@ namespace Algos.TLogics
         //}
         private async void UpdateInstrumentSubscription(DateTime currentTime)
         {
-            bool dataUpdated = false;
-            //foreach (var option in CandleOptions)
-            foreach (var optionList in OptionUniverse)
-                foreach (var option in optionList)
-                {
-                    if (!SubscriptionTokens.Contains(option.Value.InstrumentToken))
-                    {
-                        SubscriptionTokens.Add(option.Value.InstrumentToken);
-                        dataUpdated = true;
-                    }
-                }
-            if (dataUpdated)
+            try
             {
-                LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Info, currentTime, "Subscribing to new tokens", "UpdateInstrumentSubscription");
-                Task task = Task.Run(() => OnOptionUniverseChange(this));
+                bool dataUpdated = false;
+                //foreach (var option in CandleOptions)
+                foreach (var optionList in OptionUniverse)
+                    foreach (var option in optionList)
+                    {
+                        if (!SubscriptionTokens.Contains(option.Value.InstrumentToken))
+                        {
+                            SubscriptionTokens.Add(option.Value.InstrumentToken);
+                            dataUpdated = true;
+                        }
+                    }
+                if (dataUpdated)
+                {
+                    LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Info, 
+                        currentTime, "Subscribing to new tokens", "UpdateInstrumentSubscription");
+                    Task task = Task.Run(() => OnOptionUniverseChange(this));
+                }
+            }
+            catch (Exception ex)
+            {
+                _stopTrade = true;
+                Logger.LogWrite(ex.StackTrace);
+                Logger.LogWrite("Closing Application");
+                LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Error, currentTime,
+                    String.Format(@"Error occurred! Trading has stopped. \r\n {0}", ex.Message), "UpdateInstrumentSubscription");
+                Thread.Sleep(100);
+                Environment.Exit(0);
             }
         }
         private void CandleManger_TimeCandleFinished(object sender, Candle e)
         {
-            tokenRSI[e.InstrumentToken].Process(e.ClosePrice, isFinal: true);
-
-            ///putting trade entry at candle close only
-
-            Instrument option = _activeOptions.FirstOrDefault(x => x.InstrumentToken == e.InstrumentToken);
-            if (option != null)
+            try
             {
-                TradeEntry(e, option);
+                tokenRSI[e.InstrumentToken].Process(e.ClosePrice, isFinal: true);
+
+                ///putting trade entry at candle close only
+
+                Instrument option = _activeOptions.FirstOrDefault(x => x.InstrumentToken == e.InstrumentToken);
+                if (option != null)
+                {
+                    TradeEntry(e, option);
+                }
+            }
+            catch (Exception ex)
+            {
+                _stopTrade = true;
+                Logger.LogWrite(ex.StackTrace);
+                Logger.LogWrite("Closing Application");
+                LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Error, e.CloseTime,
+                    String.Format(@"Error occurred! Trading has stopped. \r\n {0}", ex.Message), "CandleManger_TimeCandleFinished");
+                Thread.Sleep(100);
+                Environment.Exit(0);
             }
         }
 
-        private ShortTrade PlaceOrder(string instrument_tradingsymbol, string instrumenttype, decimal instrument_currentPrice, uint instrument_Token,
-           bool buyOrder, int quantity, DateTime? tickTime = null)
-        {
-            string tradingSymbol = instrument_tradingsymbol;
-            decimal currentPrice = instrument_currentPrice;
-            //Dictionary<string, dynamic> orderStatus = ZObjects.kite.PlaceOrder(Constants.EXCHANGE_NFO, tradingSymbol.TrimEnd(),
-            //                          buyOrder ? Constants.TRANSACTION_TYPE_BUY : Constants.TRANSACTION_TYPE_SELL, quantity, Product: Constants.PRODUCT_MIS,
-            //                          OrderType: Constants.ORDER_TYPE_MARKET, Validity: Constants.VALIDITY_DAY);
+        //private ShortTrade PlaceOrder(string instrument_tradingsymbol, string instrumenttype, decimal instrument_currentPrice, uint instrument_Token,
+        //   bool buyOrder, int quantity, DateTime? tickTime = null)
+        //{
+        //    string tradingSymbol = instrument_tradingsymbol;
+        //    decimal currentPrice = instrument_currentPrice;
+        //    //Dictionary<string, dynamic> orderStatus = ZObjects.kite.PlaceOrder(Constants.EXCHANGE_NFO, tradingSymbol.TrimEnd(),
+        //    //                          buyOrder ? Constants.TRANSACTION_TYPE_BUY : Constants.TRANSACTION_TYPE_SELL, quantity, Product: Constants.PRODUCT_MIS,
+        //    //                          OrderType: Constants.ORDER_TYPE_MARKET, Validity: Constants.VALIDITY_DAY);
 
-            ///TEMP, REMOVE Later
-            if (currentPrice == 0)
-            {
-                DataLogic dl = new DataLogic();
-                currentPrice = dl.RetrieveLastPrice(instrument_Token, tickTime, buyOrder);
-            }
+        //    ///TEMP, REMOVE Later
+        //    if (currentPrice == 0)
+        //    {
+        //        DataLogic dl = new DataLogic();
+        //        currentPrice = dl.RetrieveLastPrice(instrument_Token, tickTime, buyOrder);
+        //    }
 
-            string orderId = "0";
-            decimal averagePrice = 0;
-            //if (orderStatus["data"]["order_id"] != null)
-            //{
-            //    orderId = orderStatus["data"]["order_id"];
-            //}
-            if (orderId != "0")
-            {
-                System.Threading.Thread.Sleep(200);
-                List<Order> orderInfo = ZObjects.kite.GetOrderHistory(orderId);
-                averagePrice = orderInfo[orderInfo.Count - 1].AveragePrice;
-            }
-            if (averagePrice == 0)
-                averagePrice = buyOrder ? currentPrice : currentPrice;
-            // averagePrice = buyOrder ? averagePrice * -1 : averagePrice;
+        //    string orderId = "0";
+        //    decimal averagePrice = 0;
+        //    //if (orderStatus["data"]["order_id"] != null)
+        //    //{
+        //    //    orderId = orderStatus["data"]["order_id"];
+        //    //}
+        //    if (orderId != "0")
+        //    {
+        //        System.Threading.Thread.Sleep(200);
+        //        List<Order> orderInfo = ZObjects.kite.GetOrderHistory(orderId);
+        //        averagePrice = orderInfo[orderInfo.Count - 1].AveragePrice;
+        //    }
+        //    if (averagePrice == 0)
+        //        averagePrice = buyOrder ? currentPrice : currentPrice;
+        //    // averagePrice = buyOrder ? averagePrice * -1 : averagePrice;
 
-            ShortTrade trade = new ShortTrade();
-            trade.InstrumentToken = instrument_Token;
-            trade.AveragePrice = averagePrice;
-            trade.ExchangeTimestamp = tickTime;// DateTime.Now;
-            trade.TradeTime = tickTime ?? DateTime.Now;
-            trade.Quantity = quantity;
-            trade.OrderId = orderId;
-            trade.TransactionType = buyOrder ? "Buy" : "Sell";
-            trade.TriggerID = Convert.ToInt32(AlgoIndex.VolumeThreshold);
-            trade.TradingStatus = buyOrder ? TradeStatus.Closed : TradeStatus.Open;
-            trade.InstrumentType = instrumenttype;
+        //    ShortTrade trade = new ShortTrade();
+        //    trade.InstrumentToken = instrument_Token;
+        //    trade.AveragePrice = averagePrice;
+        //    trade.ExchangeTimestamp = tickTime;// DateTime.Now;
+        //    trade.TradeTime = tickTime ?? DateTime.Now;
+        //    trade.Quantity = quantity;
+        //    trade.OrderId = orderId;
+        //    trade.TransactionType = buyOrder ? "Buy" : "Sell";
+        //    trade.TriggerID = Convert.ToInt32(AlgoIndex.VolumeThreshold);
+        //    trade.TradingStatus = buyOrder ? TradeStatus.Closed : TradeStatus.Open;
+        //    trade.InstrumentType = instrumenttype;
 
-            UpdateTradeDetails(strategyID: 0, instrument_Token, quantity, trade, Convert.ToInt32(trade.TriggerID));
+        //    UpdateTradeDetails(strategyID: 0, instrument_Token, quantity, trade, Convert.ToInt32(trade.TriggerID));
 
-            return trade;
-        }
-        private void UpdateTradeDetails(int strategyID, uint instrumentToken, int tradedLot, ShortTrade trade, int triggerID)
-        {
-            DataLogic dl = new DataLogic();
-            dl.UpdateTrade(strategyID, instrumentToken, trade, AlgoIndex.ExpiryTrade, tradedLot, triggerID);
-        }
+        //    return trade;
+        //}
+        //private void UpdateTradeDetails(int strategyID, uint instrumentToken, int tradedLot, ShortTrade trade, int triggerID)
+        //{
+        //    DataLogic dl = new DataLogic();
+        //    dl.UpdateTrade(strategyID, instrumentToken, trade, AlgoIndex.ExpiryTrade, tradedLot, triggerID);
+        //}
 
         private void UpdateTokenSubcription()
         {
@@ -730,12 +939,47 @@ namespace Algos.TLogics
             return nodeData;
         }
 
-        public virtual async Task<bool> OnNext(Tick[] ticks)
+        public Task<bool> OnNext(Tick[] ticks)
         {
-            ManageTrades(ticks[0]);
-            return true;
+           
+            //return true;
+
+            try
+            {
+                if (_stopTrade || !ticks[0].Timestamp.HasValue)
+                {
+                    return Task.FromResult(false);
+                }
+                ManageTrades(ticks[0]);
+                return Task.FromResult(true);
+            }
+            catch (Exception ex)
+            {
+                _stopTrade = true;
+                Logger.LogWrite(ex.StackTrace);
+                Logger.LogWrite("Trading Stopped as algo encountered an error");
+                //throw new Exception("Trading Stopped as algo encountered an error. Check log file for details");
+                LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Error, ticks[0].Timestamp.GetValueOrDefault(DateTime.UtcNow), 
+                    String.Format(@"Error occurred! Trading has stopped. \r\n {0}", ex.Message), "OnNext");
+                Thread.Sleep(100);
+                Environment.Exit(0);
+                return Task.FromResult(false);
+            }
         }
 
+        private void CheckHealth(object sender, ElapsedEventArgs e)
+        {
+            //expecting atleast 30 ticks in 1 min
+            if (_healthCounter >= 30)
+            {
+                _healthCounter = 0;
+                LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Health, e.SignalTime, "1", "CheckHealth");
+            }
+            else
+            {
+                LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Health, e.SignalTime, "0", "CheckHealth");
+            }
+        }
 
         public virtual void OnError(Exception ex)
         {

@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Algorithms.Utilities;
-//using Algorithms.Utilities;
+using Google.Protobuf.WellKnownTypes;
 using GlobalLayer;
 using Global.Web;
 using Microsoft.EntityFrameworkCore.Internal;
@@ -94,7 +94,7 @@ namespace MarketView.Controllers
                 triggerprice = order.TriggerPrice,
                 algorithm = Convert.ToString((AlgoIndex)order.AlgoIndex),
                 algoinstance = order.AlgoInstance,
-                ordertime = order.OrderTimestamp.GetValueOrDefault(DateTime.Now).ToString("yyyy-MM-dd HH:mm:ss"),
+                ordertime = Timestamp.FromDateTime(DateTime.SpecifyKind(order.OrderTimestamp.GetValueOrDefault(DateTime.Now),DateTimeKind.Utc)),
                 ordertype = Convert.ToString(order.OrderType)
             };
         }

@@ -32,10 +32,29 @@ namespace Algorithms.Utilities
             decimal currentPrice = instrument_currentPrice;
 
 #if market
-
-            Dictionary<string, dynamic> orderStatus = ZObjects.kite.PlaceOrder(Constants.EXCHANGE_NFO, tradingSymbol.TrimEnd(),
-                                      buyOrder ? Constants.TRANSACTION_TYPE_BUY : Constants.TRANSACTION_TYPE_SELL, quantity, Product: Constants.PRODUCT_NRML,
-                                      OrderType: orderType, Validity: Constants.VALIDITY_DAY, TriggerPrice: currentPrice);
+            Dictionary<string, dynamic> orderStatus = null;
+            string product = algoIndex == AlgoIndex.ExpiryTrade ? Constants.PRODUCT_MIS : Constants.PRODUCT_NRML;
+            if (orderType == Constants.ORDER_TYPE_SLM)
+            {
+                orderStatus = ZObjects.kite.PlaceOrder(Constants.EXCHANGE_NFO, tradingSymbol.TrimEnd(),
+                                      buyOrder ? Constants.TRANSACTION_TYPE_BUY : Constants.TRANSACTION_TYPE_SELL, quantity,
+                                      Product: product, OrderType: orderType, Validity: Constants.VALIDITY_DAY,
+                                      TriggerPrice: currentPrice);
+            }
+            else if (orderType == Constants.ORDER_TYPE_SL)
+            {
+                orderStatus = ZObjects.kite.PlaceOrder(Constants.EXCHANGE_NFO, tradingSymbol.TrimEnd(),
+                                      buyOrder ? Constants.TRANSACTION_TYPE_BUY : Constants.TRANSACTION_TYPE_SELL, quantity,
+                                      Price: currentPrice, Product: product, OrderType: orderType, Validity: Constants.VALIDITY_DAY,
+                                      TriggerPrice: currentPrice);
+            }
+            else
+            {
+                orderStatus = ZObjects.kite.PlaceOrder(Constants.EXCHANGE_NFO, tradingSymbol.TrimEnd(),
+                                          buyOrder ? Constants.TRANSACTION_TYPE_BUY : Constants.TRANSACTION_TYPE_SELL, quantity,
+                                          Price: currentPrice, Product: product,
+                                          OrderType: orderType, Validity: Constants.VALIDITY_DAY);
+            }
 
             Order order = null;
 

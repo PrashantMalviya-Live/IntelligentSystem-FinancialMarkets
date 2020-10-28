@@ -2546,6 +2546,10 @@ namespace GlobalLayer
         public int StepQty { get; set; }
         public int InitialQty { get; set; }
 
+        public int MinDistanceFromBInstrument { get; set; }
+
+        public decimal MinPremiumToTrade { get; set; }
+
         //public Decimal[,] callMatix { get; set; }
         //public Decimal[,] putMatix { get; set; }
 

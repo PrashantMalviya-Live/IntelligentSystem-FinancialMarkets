@@ -161,13 +161,15 @@ namespace Algorithms.Algorithms
 
         public void LoadActiveOrders (Order activeOrder)
         {
-            //tokenTradeLevels.Add(activeOrder.InstrumentToken, 
-            //    new OrderLevels { FirstLegOrder = null, SLOrder = activeOrder, 
-            //        Levels = new CriticalLevels { StopLossPrice = activeOrder.TriggerPrice } });
-
             OrderLinkedListNode orderNode = new OrderLinkedListNode();
             orderNode.SLOrder = activeOrder;
+            orderNode.FirstLegCompleted = true;
             orderList.FirstOrderNode = orderNode;
+
+            DataLogic dl = new DataLogic();
+            orderList.Option = dl.GetInstrument(activeOrder.InstrumentToken);
+
+            ActiveOptions.Add(orderList.Option);
         }
         private async void ActiveTradeIntraday(Tick tick)
         {
@@ -544,7 +546,7 @@ namespace Algorithms.Algorithms
                             decimal order2Price = 0;
                             GetOrder2PriceQty(tradeQty, order.AveragePrice - cl.StopLossPrice, previousCandle, option.LotSize, out order2Qty, out order2Price);
 
-                            if (order2Qty > 0)
+                            if (order2Qty > 0 && order2Price > cl.StopLossPrice)
                             {
                                 order2 = MarketOrders.PlaceOrder(_algoInstance, option.TradingSymbol, option.InstrumentType, order2Price,
                                     token, true, order2Qty * Convert.ToInt32(option.LotSize),
@@ -573,7 +575,7 @@ namespace Algorithms.Algorithms
                             }
                         }
 
-                        orderList = new OrderLinkedList();
+                        //orderList = new OrderLinkedList();
                         orderList.Option = option;
                         orderList.FirstOrderNode = orderNode;
                         _pastOrders.Add(order);
@@ -603,6 +605,7 @@ namespace Algorithms.Algorithms
             decimal candleSize = previousCandle.ClosePrice - previousCandle.OpenPrice;
 
             price = previousCandle.ClosePrice - (candleSize * 0.2m);
+            price = Math.Round(price * 20) / 20;
 
             qty = Convert.ToInt32(Math.Ceiling((buffer / price)/lotSize));
         }
@@ -674,7 +677,7 @@ namespace Algorithms.Algorithms
                 var ceStrike = Math.Floor(_baseInstrumentPrice / 100m) * 100m;
                 var peStrike = Math.Ceiling(_baseInstrumentPrice / 100m) * 100m;
 
-                if (ActiveOptions.Count > 0)
+                if (ActiveOptions.Count > 1)
                 {
                     Instrument ce = ActiveOptions.First(x => x.InstrumentType.Trim(' ').ToLower() == "ce");
                     Instrument pe = ActiveOptions.First(x => x.InstrumentType.Trim(' ').ToLower() == "pe");
@@ -744,6 +747,11 @@ namespace Algorithms.Algorithms
                 {
                     ActiveOptions.Add(activeCE.Value);
                     ActiveOptions.Add(activePE.Value);
+                }
+                //Already loaded from last run
+                else if (ActiveOptions.Count == 1)
+                {
+                    ActiveOptions.Add(ActiveOptions[0].InstrumentType.Trim(' ').ToLower() == "ce" ? activePE.Value : activeCE.Value);
                 }
                 else
                 {

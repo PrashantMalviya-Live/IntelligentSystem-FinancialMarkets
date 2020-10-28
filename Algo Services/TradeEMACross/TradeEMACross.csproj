@@ -29,6 +29,7 @@
 
   <ItemGroup>
     <Compile Remove="MarketViewColllection.cs" />
+    <Compile Remove="OptionMomentumInput.cs" />
   </ItemGroup>
 
   <ItemGroup>

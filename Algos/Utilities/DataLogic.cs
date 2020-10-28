@@ -94,6 +94,30 @@ namespace Algorithms.Utilities
             MarketDAO marketDAO = new MarketDAO();
             return marketDAO.GetDailyOHLC(tokens, date);
         }
+        public Instrument GetInstrument(uint instrumentToken)
+        {
+            MarketDAO marketDAO = new MarketDAO();
+            DataSet dsInstrument = marketDAO.GetInstrument(instrumentToken);
+            DataRow data = dsInstrument.Tables[0].Rows[0];
+
+            Instrument instrument = new Instrument();
+            instrument.InstrumentToken = Convert.ToUInt32(data["Instrument_Token"]);
+            instrument.TradingSymbol = Convert.ToString(data["TradingSymbol"]);
+            instrument.Strike = Convert.ToDecimal(data["Strike"]);
+            if (data["Expiry"] != DBNull.Value)
+            {
+                instrument.Expiry = Convert.ToDateTime(data["Expiry"]);
+            }
+            instrument.InstrumentType = Convert.ToString(data["Instrument_Type"]);
+            instrument.LotSize = Convert.ToUInt32(data["Lot_Size"]);
+            instrument.Exchange = Convert.ToString(data["Exchange"]);
+            instrument.Segment = Convert.ToString(data["Segment"]);
+            if (data["BToken"] != DBNull.Value)
+            {
+                instrument.BaseInstrumentToken = Convert.ToUInt32(data["BToken"]);
+            }
+            return instrument;
+        }
 
         public Dictionary<uint, Instrument> LoadInstruments(AlgoIndex algoIndex, DateTime? expiry, uint baseInstrumentToken, decimal baseInstrumentPrice)
             //,decimal FromStrikePrice = 0, decimal ToStrikePrice = 0, InstrumentType instrumentType = InstrumentType.ALL)

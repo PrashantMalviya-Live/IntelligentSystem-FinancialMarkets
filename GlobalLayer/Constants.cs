@@ -122,6 +122,7 @@ namespace GlobalLayer
         public const string OptionOptimizer = "http://*:8085";
         public const string StoreData = "http://*:8086";
         public const string MarketView = "http://*:8087";
+        public const string RSICross = "http://*:8088";
     }
 
    

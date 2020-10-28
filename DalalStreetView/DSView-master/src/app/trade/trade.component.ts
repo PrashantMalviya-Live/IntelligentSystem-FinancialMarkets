@@ -9,7 +9,7 @@ import { TradeService } from './trade.service';
 import { HttpClient } from '@angular/common/http';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
-import { Constants, Loglevel } from '../data/constants';
+import { Constants, Loglevel, AlgoControllers, RunningAlgos } from '../data/constants';
 import { ErrorDialog } from './error.component';
 //import { TimeToStringPipe } from './TimeToString.Pipe';
 import { grpc } from "@improbable-eng/grpc-web";
@@ -67,18 +67,43 @@ export class TradeComponent implements OnInit{
   mlpt: any;
   ps: any;
   momentumTradeOptionsForm: FormGroup;
+  rsiCrossOptionsForm: FormGroup;
+  expiryTradeOptionsForm: FormGroup;
   _sound: any;
-
+  _ctrl: string;
+  Algos: any;
+  _algoCtrls: string;
+  _ras: RunningAlgos[]=[];
+  _ra: RunningAlgos;
   constructor(private http: HttpClient, private formBuilder: FormBuilder,
     @Inject('BASE_URL') baseUrl: string, private ts: TradeService, private dialog: MatDialog) {
     this._baseUrl = baseUrl;
-    
+
     //get Instruments
     http.get<Instrument[]>(baseUrl + 'api/momentumvolume').subscribe(result => {
       this.instrument = result;
     }, error => console.error(error));
 
+    //get Instruments
+    http.get<Instrument[]>(baseUrl + 'api/rsicross').subscribe(result => {
+      this.instrument = result;
+    }, error => console.error(error));
+    //get Instruments
+    http.get<Instrument[]>(baseUrl + 'api/expirystrangle').subscribe(result => {
+      this.instrument = result;
+    }, error => console.error(error));
+
     http.get<any>(baseUrl + 'api/momentumvolume/activealgos').subscribe(result => {
+
+      if (this.orders == null) {
+        this.activeAlgos = result;
+      }
+      else {
+        this.activeAlgos.push(result);
+      }
+    }, error => console.error(error));
+
+    http.get<any>(baseUrl + 'api/rsicross/activealgos').subscribe(result => {
 
       if (this.orders == null) {
         this.activeAlgos = result;
@@ -103,6 +128,8 @@ export class TradeComponent implements OnInit{
 
   private subj = new BehaviorSubject(this.log);
   private osubj = new BehaviorSubject(this.porder);
+  private alsubj = new BehaviorSubject(this._ra);
+
   returnAsObservable() {
     return this.subj.asObservable();
   }
@@ -110,23 +137,86 @@ export class TradeComponent implements OnInit{
   orderAsObservable() {
     return this.osubj.asObservable();
   }
+  algoAsObservable() {
+    return this.alsubj.asObservable();
+  }
 
   filterLogsOfType(type) {
     return this.logs.filter(x => x.algoInstance == type.ains);
+  }
+  filterbyname(ctrl)
+  {
+    //return this._ras.filter(x => x._algoCrtl == ctrl);
+    //this._ras.findIndex(x => x._algoCtrl == '171')
+    
+    if (this._ras !== undefined && this._ras.findIndex(x => x!== undefined && x._algoCtrl == ctrl) >=0)
+    {
+      return true;
+    }
+    else return false;
   }
   
   ngOnInit(): void {
     let subject = this.subj;
     let osubject = this.osubj;
+    let asubject = this.alsubj;
+
+    for (var algo in AlgoControllers) {
+      this.http.get<any>(this._baseUrl + 'api/' + algo + '/healthy').subscribe(result => {
+
+        let ra = new RunningAlgos();
+       // this._ra = new RunningAlgos();
+       // this._ra._isRunning = result;
+       // this._ra._algoCrtl = algo;
+       //// this._ras.push(this._ra);
+       // asubject.next(this._ra);
+
+        //ra._isRunning = result;
+        ra._algoCtrl = result;
+        this._ras.push(ra);
+        asubject.next(ra);
+      }, error => {
+
+          //let ra = new RunningAlgos();
+          //// this._ra = new RunningAlgos();
+          //// this._ra._isRunning = result;
+          //// this._ra._algoCrtl = algo;
+          ////// this._ras.push(this._ra);
+          //// asubject.next(this._ra);
+
+          //ra._isRunning = false;
+          //ra._algoCrtl = algo;
+          //// this._ras.push(this._ra);
+          //asubject.next(ra);
+        
+      });
+
+    }
+
+  
 
     window.setInterval(this.checkhealth, 60001, this.algosHealth);
 
-    this.onSelectInstrument(this.selectedInstrument.instrumentToken);
+    this.onSelectInstrument(this.selectedInstrument.instrumentToken, this._ctrl);
 
     this.momentumTradeOptionsForm = this.formBuilder.group({
       ctf: ['', Validators.required]
       ,quantity: ['', Validators.required]
       ,mlpt: ['', Validators.required]
+      //,ps: ['', Validators.required]
+    });
+    this.rsiCrossOptionsForm = this.formBuilder.group({
+      ctf: ['', Validators.required]
+      , quantity: ['', Validators.required]
+      //,ps: ['', Validators.required]
+    });
+    this.expiryTradeOptionsForm = this.formBuilder.group({
+      iqty: ['', Validators.required], 
+      sqty: ['', Validators.required], 
+      mqty: ['', Validators.required], 
+      sl: ['', Validators.required], 
+      mdfbi: ['', Validators.required], 
+      mptt: ['', Validators.required]
       //,ps: ['', Validators.required]
     });
     this.returnAsObservable().subscribe(
@@ -166,19 +256,27 @@ export class TradeComponent implements OnInit{
         if (data !== undefined) {
            var selectedAlgoIndex = this.activeAlgos.findIndex(x => x.ains === data.algoinstance);
 
-          var selectedOrderIndex = this.activeAlgos[selectedAlgoIndex].orders.findIndex(function (e) { e.orderid === data.orderid });
+          if (selectedAlgoIndex != -1) {
+            var selectedOrderIndex = this.activeAlgos[selectedAlgoIndex].orders.findIndex(function (e) { e.orderid === data.orderid });
 
-          if (selectedOrderIndex != -1) {
-            this.activeAlgos[selectedAlgoIndex].orders[selectedOrderIndex] = data;
-          }
-          else {
-            this.activeAlgos[selectedAlgoIndex].orders = this.activeAlgos[selectedAlgoIndex].orders.concat(data);
-          }
+            if (selectedOrderIndex != -1) {
+              this.activeAlgos[selectedAlgoIndex].orders[selectedOrderIndex] = data;
+            }
+            else {
+              this.activeAlgos[selectedAlgoIndex].orders = this.activeAlgos[selectedAlgoIndex].orders.concat(data);
+            }
 
-          this.playordersound();
+            this.playordersound();
+          }
         }
       }
     );
+
+    this.algoAsObservable().subscribe(
+      data => {
+        if (data !== undefined)
+        this._ras.push(this._ra);
+      });
 
     //Code for GRPS Order Service
     var pstatus = new PublishStatus();
@@ -203,6 +301,8 @@ export class TradeComponent implements OnInit{
       subject.next(results);
     });
   }
+
+
 
   playordersound() {
     var context = new AudioContext();
@@ -276,14 +376,14 @@ export class TradeComponent implements OnInit{
 
 
   //get Expiry
-  getExpiry(token) {
-    this.http.get<Expiry[]>(this._baseUrl + 'api/momentumvolume/' + token.value).subscribe(result => {
+  getExpiry(token, ctrl) {
+    this.http.get<Expiry[]>(this._baseUrl + 'api/' + ctrl + '/' + token.value).subscribe(result => {
       this.expiry = result;
     }, error => console.error(error));
   }
   //get call put options
-  getOption(token, expval) {
-    this.http.get<Options[]>(this._baseUrl + 'api/momentumvolume/' + token.value + '/' + expval.value).subscribe(result => {
+  getOption(token, expval, ctrl) {
+    this.http.get<Options[]>(this._baseUrl + 'api/' + ctrl + '/' + token.value + '/' + expval.value).subscribe(result => {
       this.options = result;
       this.call = this.options.filter(function (item) {
         return item.type.toLowerCase() === 'ce';
@@ -294,14 +394,14 @@ export class TradeComponent implements OnInit{
     }, error => console.error(error));
   }
 
-  onSelectInstrument(instid) {
+  onSelectInstrument(instid, ctrl) {
     this.selectedInst = instid;
-    this.getExpiry(instid);
+    this.getExpiry(instid, ctrl);
   }
 
-  onSelectExpiry(expval) {
+  onSelectExpiry(expval, ctrl) {
     this.selectedExpiry = expval.value;
-    this.getOption(this.selectedInst, expval);
+    this.getOption(this.selectedInst, expval, ctrl);
   }
 
   onSelectCall(e){
@@ -327,10 +427,42 @@ export class TradeComponent implements OnInit{
       mlpt: this.momentumTradeOptionsForm.value.mlpt
     }
     this.http.post<ActiveAlgo>(this._baseUrl + 'api/momentumvolume' ,data).subscribe(result => {
-      //this.result = result;
       this.activeAlgos.push(result);
     }, error => console.error(error));
   }
+
+  executeRsiCross() {
+    const data = {
+      token: this.selectedInst.value,
+      expiry: this.selectedExpiry,
+      ctf: this.rsiCrossOptionsForm.value.ctf,
+      quantity: this.rsiCrossOptionsForm.value.quantity,
+    }
+    this.http.post<ActiveAlgo>(this._baseUrl + 'api/rsicross', data).subscribe(result => {
+      this.activeAlgos.push(result);
+    }, error => console.error(error));
+  }
+
+  executeExpiryTrade() {
+    const data = {
+      btoken: this.selectedInst.value,
+      expiry: this.selectedExpiry,
+      iqty: this.expiryTradeOptionsForm.value.iqty,
+      sqty: this.expiryTradeOptionsForm.value.sqty,
+      mqty: this.expiryTradeOptionsForm.value.mqty,
+      sl: this.expiryTradeOptionsForm.value.sl,
+      mdfbi: this.expiryTradeOptionsForm.value.mdfbi,
+      mptt: this.expiryTradeOptionsForm.value.mptt,
+    }
+    this.http.post<ActiveAlgo>(this._baseUrl + 'api/expirystrangle', data).subscribe(result => {
+      if (this.activeAlgos == undefined) {
+        this.activeAlgos = [];
+      }
+      this.activeAlgos.push(result);
+    }, error => console.error(error));
+  }
+
+  
 
   startdsservice() {
     const data = { start: true};

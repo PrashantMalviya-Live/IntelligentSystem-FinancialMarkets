@@ -9,6 +9,10 @@ using Algorithms.Utilities;
 using ZMQFacade;
 using System.Data;
 using Microsoft.Extensions.Configuration;
+using Algorithms.Algorithms;
+using Global.Web;
+using GlobalCore;
+using System.Threading;
 
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
@@ -21,12 +25,31 @@ namespace ExpiryStrangle.Controllers
         IConfiguration configuration;
         ZMQClient zmqClient;
 
-        // GET: api/<RSIStrangleController>
+
         [HttpGet]
-        public void Get()
+        public IEnumerable<BInstumentView> Get()
         {
-            StartService();
+            DataLogic dl = new DataLogic();
+            List<Instrument> bInstruments = dl.RetrieveBaseInstruments();
+
+            return (from n in bInstruments select new BInstumentView { InstrumentToken = n.InstrumentToken, TradingSymbol = n.TradingSymbol.Trim(' ') }).ToList();
         }
+
+        // GET api/<HomeController>/5
+        [HttpGet("{token}")]
+        public IEnumerable<string> OptionExpiries(uint token)
+        {
+            DataLogic dl = new DataLogic();
+            List<string> expiryList = dl.RetrieveOptionExpiries(token);
+            return expiryList;
+        }
+
+        // GET: api/<RSIStrangleController>
+        //[HttpGet]
+        //public void Get()
+        //{
+        //    StartService();
+        //}
 
         [HttpGet("startservice")]
         public void StartService()

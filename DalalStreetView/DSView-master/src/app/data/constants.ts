@@ -11,3 +11,11 @@ export enum Loglevel {
   Stop = 5,
   Health = 6
 }
+export enum AlgoControllers {
+  momentumvolume,
+  rsicross,
+  expirystrangle,
+}
+export class RunningAlgos {
+  public _algoCtrl: string;
+}
