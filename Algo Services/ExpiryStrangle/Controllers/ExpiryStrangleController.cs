@@ -24,20 +24,11 @@ namespace ExpiryStrangle.Controllers
     {
         IConfiguration configuration;
         ZMQClient zmqClient;
-        //KConsumer consumer = new KConsumer();
-        public IActionResult Index()
-        {
-            return View();
-        }
 
         public ExpiryStrangleController(IConfiguration config)
         {
             configuration = config;
         }
-        private static readonly string[] Summaries = new[]
-      {
-            "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-        };
 
         [HttpGet]
         public IEnumerable<BInstumentView> Get()

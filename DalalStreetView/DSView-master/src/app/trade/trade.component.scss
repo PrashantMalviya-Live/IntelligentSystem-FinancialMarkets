@@ -42,6 +42,7 @@ mat-tab {
   max-height: 600px;
   overflow-y: auto
 }
+
 .mat-cell {
   padding: 8px 8px 8px 0;
 }
@@ -89,13 +90,15 @@ mat-tab {
   line-height: 16px;*/
   background-color: #4CAF50;
   color: white;
+  cursor: pointer;
 }
 .button-fab-red {
   /*width: 20px;
   height: 20px;
   line-height: 16px;*/
   background-color: #F44336;
-  color:white;
+  color: white;
+  cursor: pointer;
 }
 
 

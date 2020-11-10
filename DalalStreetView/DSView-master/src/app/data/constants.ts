@@ -15,6 +15,8 @@ export enum AlgoControllers {
   momentumvolume,
   rsicross,
   expirystrangle,
+  rsistrangle,
+  rsitrade
 }
 export class RunningAlgos {
   public _algoCtrl: string;

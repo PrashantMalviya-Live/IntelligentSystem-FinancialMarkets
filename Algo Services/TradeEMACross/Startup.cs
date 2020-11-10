@@ -36,6 +36,7 @@ namespace TradeEMACross
             //});
 
             services.AddControllers();
+            services.AddMemoryCache();
 
             services.AddSingleton<ILoggerService, LoggerService>();
             services.AddSingleton<IOrderService, OrderService>();

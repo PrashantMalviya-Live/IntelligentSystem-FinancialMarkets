@@ -7,7 +7,15 @@
     "target": "http://localhost:8081",
     "secure": false
   },
+  "/api/rsitrade/*": {
+    "target": "http://localhost:8081",
+    "secure": false
+  },
   "/api/login/*": {
+    "target": "http://localhost:8087",
+    "secure": false
+  },
+  "/api/home/*": {
     "target": "http://localhost:8087",
     "secure": false
   },
@@ -16,11 +24,15 @@
     "secure": false
   },
   "/api/rsicross/*": {
-    "target": "http://localhost:8088",
+    "target": "http://localhost:8089",
     "secure": false
   },
   "/api/expirystrangle/*": {
     "target": "http://localhost:8080",
+    "secure": false
+  },
+  "/api/rsistrangle/*": {
+    "target": "http://localhost:8089",
     "secure": false
   }
 }

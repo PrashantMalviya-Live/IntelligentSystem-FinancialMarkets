@@ -19,6 +19,7 @@
 
   <ItemGroup>
     <Compile Remove="Controllers\RSICrossController_moved.cs" />
+    <Compile Remove="Controllers\RSIStrangleController.cs" />
   </ItemGroup>
 
   <ItemGroup>

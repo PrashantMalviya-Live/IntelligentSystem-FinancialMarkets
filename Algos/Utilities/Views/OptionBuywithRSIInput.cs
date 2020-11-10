@@ -1,0 +1,65 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Text;
+
+namespace Algos.Utilities.Views
+{
+    public class OptionBuywithRSIInput
+    {
+        /// <summary>
+        /// Base Instrument Token
+        /// </summary>
+        public uint BToken { get; set; }
+
+        /// <summary>
+        /// Expiry
+        /// </summary>
+        public DateTime Expiry { get; set; }
+
+        /// <summary>
+        /// Candle Time frame
+        /// </summary>
+        public int CTF { get; set; }
+
+        /// <summary>
+        /// Number of periods for EMA
+        /// </summary>
+        public int EMA { get; set; }
+
+        /// <summary>
+        /// Initial quantity
+        /// </summary>
+        public int Qty { get; set; }
+
+        /// <summary>
+        /// Min distance from BI
+        /// </summary>
+        public decimal MinDFBI { get; set; }
+
+        /// <summary>
+        /// Max distance from BI
+        /// </summary>
+        public decimal MaxDFBI { get; set; }
+
+        /// <summary>
+        /// Target Profit
+        /// </summary>
+        public decimal TP { get; set; }
+
+        ///// <summary>
+        ///// Stop Loss
+        ///// </summary>
+        //public decimal SL { get; set; }
+
+        /// <summary>
+        /// RSI Upper Limit for Exit
+        /// </summary>
+        public decimal RULX { get; set; }
+
+        /// <summary>
+        /// RSI Lower Limit for entry
+        /// </summary>
+        public decimal RLLE { get; set; }
+
+    }
+}

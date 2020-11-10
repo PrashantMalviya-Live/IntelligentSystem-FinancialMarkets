@@ -23,6 +23,7 @@ import { BehaviorSubject, concat, Observable} from 'rxjs';
 import { MatDialog, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { Timestamp } from 'google-protobuf/google/protobuf/timestamp_pb';
 import { Howl, Howler } from "../../../node_modules/howler/dist/howler.js";
+import { MatSnackBar } from '@angular/material/snack-bar';
 
 declare var require: any;
 export interface DialogData {
@@ -69,6 +70,8 @@ export class TradeComponent implements OnInit{
   momentumTradeOptionsForm: FormGroup;
   rsiCrossOptionsForm: FormGroup;
   expiryTradeOptionsForm: FormGroup;
+  sellwithRSIOptionsForm: FormGroup;
+  buywithRSIOptionsForm: FormGroup;
   _sound: any;
   _ctrl: string;
   Algos: any;
@@ -76,7 +79,7 @@ export class TradeComponent implements OnInit{
   _ras: RunningAlgos[]=[];
   _ra: RunningAlgos;
   constructor(private http: HttpClient, private formBuilder: FormBuilder,
-    @Inject('BASE_URL') baseUrl: string, private ts: TradeService, private dialog: MatDialog) {
+    @Inject('BASE_URL') baseUrl: string, private ts: TradeService, private dialog: MatDialog, private _snackBar: MatSnackBar) {
     this._baseUrl = baseUrl;
 
     //get Instruments
@@ -90,6 +93,15 @@ export class TradeComponent implements OnInit{
     }, error => console.error(error));
     //get Instruments
     http.get<Instrument[]>(baseUrl + 'api/expirystrangle').subscribe(result => {
+      this.instrument = result;
+    }, error => console.error(error));
+
+    //get Instruments
+    http.get<Instrument[]>(baseUrl + 'api/rsistrangle').subscribe(result => {
+      this.instrument = result;
+    }, error => console.error(error));
+
+    http.get<Instrument[]>(baseUrl + 'api/rsitrade').subscribe(result => {
       this.instrument = result;
     }, error => console.error(error));
 
@@ -113,6 +125,26 @@ export class TradeComponent implements OnInit{
       }
     }, error => console.error(error));
 
+    http.get<any>(baseUrl + 'api/rsistrangle/activealgos').subscribe(result => {
+
+      if (this.orders == null) {
+        this.activeAlgos = result;
+      }
+      else {
+        this.activeAlgos.push(result);
+      }
+    }, error => console.error(error));
+
+    http.get<any>(baseUrl + 'api/rsitrade/activealgos').subscribe(result => {
+
+      if (this.orders == null) {
+        this.activeAlgos = result;
+      }
+      else {
+        this.activeAlgos.push(result);
+      }
+    }, error => console.error(error));
+
     var context = new AudioContext();
     this._sound = new Howl({
       src: ['../assets/stop.mp3'],
@@ -125,6 +157,8 @@ export class TradeComponent implements OnInit{
     });
     context.resume();
   }
+
+
 
   private subj = new BehaviorSubject(this.log);
   private osubj = new BehaviorSubject(this.porder);
@@ -207,8 +241,10 @@ export class TradeComponent implements OnInit{
     });
     this.rsiCrossOptionsForm = this.formBuilder.group({
       ctf: ['', Validators.required]
-      , quantity: ['', Validators.required]
-      //,ps: ['', Validators.required]
+      , qty: ['', Validators.required]
+      , rmx: ['', Validators.required]
+      , maxdfbi: ['', Validators.required]
+      , mindfbi: ['', Validators.required]
     });
     this.expiryTradeOptionsForm = this.formBuilder.group({
       iqty: ['', Validators.required], 
@@ -217,6 +253,28 @@ export class TradeComponent implements OnInit{
       sl: ['', Validators.required], 
       mdfbi: ['', Validators.required], 
       mptt: ['', Validators.required]
+      //,ps: ['', Validators.required]
+    });
+    this.sellwithRSIOptionsForm = this.formBuilder.group({
+      qty: ['', Validators.required],
+      ctf: ['', Validators.required],
+      rlle: ['', Validators.required],
+      rule: ['', Validators.required],
+      rlx: ['', Validators.required],
+      rmx: ['', Validators.required],
+      mindfbi: ['', Validators.required],
+      maxdfbi: ['', Validators.required],
+      ema: ['', Validators.required]
+    });
+    this.buywithRSIOptionsForm = this.formBuilder.group({
+      qty: ['', Validators.required],
+      ctf: ['', Validators.required],
+      mindfbi: ['', Validators.required],
+      maxdfbi: ['', Validators.required],
+      ema: ['', Validators.required],
+      tp: ['', Validators.required],
+      rulx: ['', Validators.required],
+      rlle: ['', Validators.required]
       //,ps: ['', Validators.required]
     });
     this.returnAsObservable().subscribe(
@@ -302,6 +360,11 @@ export class TradeComponent implements OnInit{
     });
   }
 
+  openSnackBar(message: string, action: string) {
+    this._snackBar.open(message, action, {
+      duration: 2000,
+    });
+  }
 
 
   playordersound() {
@@ -354,10 +417,10 @@ export class TradeComponent implements OnInit{
     }
   }
   
-  getLog() {
-    this.http.get(this._baseUrl + 'api/momentumvolume/dummyorder').subscribe(result => {
-        this.result = result;
-      }, error => console.error(error));
+  getTokens() {
+    this.http.get(this._baseUrl + 'api/home').subscribe(result => {
+        this.openSnackBar(result.toString(),"Tokens Loaded");
+     }, error => console.error(error));
   }
 
   openDialog(ain, algo, message, source, time) {
@@ -433,10 +496,13 @@ export class TradeComponent implements OnInit{
 
   executeRsiCross() {
     const data = {
-      token: this.selectedInst.value,
+      btoken: this.selectedInst.value,
       expiry: this.selectedExpiry,
       ctf: this.rsiCrossOptionsForm.value.ctf,
-      quantity: this.rsiCrossOptionsForm.value.quantity,
+      qty: this.rsiCrossOptionsForm.value.qty,
+      //rmx: this.rsiCrossOptionsForm.value.rmx,
+      mindfbi: this.rsiCrossOptionsForm.value.mindfbi,
+      maxdfbi: this.rsiCrossOptionsForm.value.maxdfbi,
     }
     this.http.post<ActiveAlgo>(this._baseUrl + 'api/rsicross', data).subscribe(result => {
       this.activeAlgos.push(result);
@@ -462,7 +528,71 @@ export class TradeComponent implements OnInit{
     }, error => console.error(error));
   }
 
-  
+  executeSellOnRsiTrade() {
+    const data = {
+      btoken: this.selectedInst.value,
+      expiry: this.selectedExpiry,
+      qty: this.sellwithRSIOptionsForm.value.qty,
+      ctf: this.sellwithRSIOptionsForm.value.ctf,
+      ema: this.sellwithRSIOptionsForm.value.ema,
+      rlle: this.sellwithRSIOptionsForm.value.rlle,
+      rule: this.sellwithRSIOptionsForm.value.rule,
+      rmx: this.sellwithRSIOptionsForm.value.rmx,
+      rlx: this.sellwithRSIOptionsForm.value.rlx,
+      mindfbi: this.sellwithRSIOptionsForm.value.mindfbi,
+      maxdfbi: this.sellwithRSIOptionsForm.value.maxdfbi
+    }
+    this.http.post<ActiveAlgo>(this._baseUrl + 'api/rsistrangle', data).subscribe(result => {
+      if (this.activeAlgos == undefined) {
+        this.activeAlgos = [];
+      }
+      this.activeAlgos.push(result);
+    }, error => console.error(error));
+  }
+
+  executeBuyOnRsiTrade() {
+    const data = {
+      btoken: this.selectedInst.value,
+      expiry: this.selectedExpiry,
+      qty: this.buywithRSIOptionsForm.value.qty,
+      ctf: this.buywithRSIOptionsForm.value.ctf,
+      ema: this.buywithRSIOptionsForm.value.ema,
+      tp: this.buywithRSIOptionsForm.value.tp,
+      rulx: this.buywithRSIOptionsForm.value.rulx,
+      rlle: this.buywithRSIOptionsForm.value.rlle,
+      mindfbi: this.buywithRSIOptionsForm.value.mindfbi,
+      maxdfbi: this.buywithRSIOptionsForm.value.maxdfbi
+    }
+    this.http.post<ActiveAlgo>(this._baseUrl + 'api/rsitrade', data).subscribe(result => {
+      if (this.activeAlgos == undefined) {
+        this.activeAlgos = [];
+      }
+      this.activeAlgos.push(result);
+    }, error => console.error(error));
+  }
+
+  startstopalgo(ain, aid, s) {
+    var ctrl = "";
+    if (aid == "20") {
+      ctrl = "rsitrade";
+    }
+    if (aid == "18") {
+      ctrl = "rsicross";
+    }
+    if (aid == "19") {
+      ctrl = "rsistrangle";
+    }
+    if (aid == "17") {
+      ctrl = "momentumvolume";
+    }
+
+    const start = s ;
+    this.http.put<boolean>(this._baseUrl + 'api/' + ctrl + '/' + ain, start).subscribe(result => {
+      var message: string;
+      if (start == 1) { message = "The algo has started. Wait for the light to turn green!" } else { message = "The algo has stopped. Wait for the light to turn red!" };
+      this.openSnackBar(message,"");
+    }, error => console.error(error));
+  }
 
   startdsservice() {
     const data = { start: true};

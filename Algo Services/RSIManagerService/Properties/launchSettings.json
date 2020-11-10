@@ -20,11 +20,11 @@
     "RSIManagerService": {
       "commandName": "Project",
       "launchBrowser": true,
-      "launchUrl": "api/rsicross",
+      "launchUrl": "api/rsistrangle",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       },
-      "applicationUrl": "http://localhost:8088"
+      "applicationUrl": "http://localhost:8089"
     }
   }
 }

@@ -62,7 +62,7 @@ namespace Algorithms.Utilities
             {
                 //order = new Order(orderStatus["data"]);
                 string orderId = orderStatus["data"]["order_id"];
-                order = GetOrder(orderId, algoInstance, algoIndex, orderType == Constants.ORDER_TYPE_SLM).Result;
+                order = GetOrder(orderId, algoInstance, algoIndex, orderType == Constants.ORDER_TYPE_SLM? Constants.ORDER_STATUS_TRIGGER_PENDING: Constants.ORDER_STATUS_COMPLETE).Result;
 
 
                 //orderTimestamp = Utils.StringToDate(orderStatus["data"]["order_timestamp"]);
@@ -101,13 +101,15 @@ namespace Algorithms.Utilities
                 TransactionType = buyOrder ? "buy" : "sell",
                 Status = orderType == Constants.ORDER_TYPE_MARKET ? "Complete" : "Trigger Pending",
                 Variety = "regular",
+                 //if(Tag != null)
+                 //{
+                 //   order.Tag = Tag;
+                 //}
                 Tag = "Test",
                 AlgoIndex = (int)algoIndex,
                 StatusMessage = "Ordered",
             };
 
-            
-            
 #endif
             //ShortTrade trade = new ShortTrade();
             //trade.InstrumentToken = instrument_Token;
@@ -124,7 +126,7 @@ namespace Algorithms.Utilities
 
             //UpdateTradeDetails(strategyID: 0, instrument_Token, quantity, trade, Convert.ToInt32(trade.TriggerID));
 
-            if(Tag != null)
+            if (Tag != null)
             {
                 order.Tag = Tag;
             }
@@ -144,7 +146,7 @@ namespace Algorithms.Utilities
         /// <param name="quantity"></param>
         /// <param name="tickTime"></param>
         /// <returns></returns>
-        public async static Task<Order> ModifyOrder(int algoInstance, AlgoIndex algoIndex, decimal stoploss, Order slOrder, DateTime currentTime)
+        public async static Task<Order> ModifyOrder(int algoInstance, AlgoIndex algoIndex, decimal stoploss, Order slOrder, DateTime currentTime, decimal currentmarketPrice = 0)
         {
             string orderId = slOrder.OrderId;
             Order order = null;
@@ -164,7 +166,7 @@ namespace Algorithms.Utilities
                 {
                     //order = new Order(orderStatus["data"]);
                     //string orderId = orderStatus["data"]["order_id"];
-                    order = GetOrder(orderId, algoInstance, algoIndex, true).Result;
+                    order = GetOrder(orderId, algoInstance, algoIndex, Constants.ORDER_STATUS_TRIGGER_PENDING).Result;
 
                     //orderId = orderStatus["data"]["order_id"];
                     //orderTimestamp = Utils.StringToDate(orderStatus["data"]["order_timestamp"]);
@@ -177,7 +179,7 @@ namespace Algorithms.Utilities
            
 
 #elif local
-                decimal currentPrice = stoploss;
+                decimal currentPrice = stoploss == 0 ? currentmarketPrice : stoploss;
                 // CurrentPostion = sl;
                 ///TEMP, REMOVE Later
                 //if (currentPrice == 0)
@@ -231,7 +233,7 @@ namespace Algorithms.Utilities
         /// <param name="quantity"></param>
         /// <param name="tickTime"></param>
         /// <returns></returns>
-        public async static Task CancelOrder(int algoInstance, AlgoIndex algoIndex, Order order, DateTime currentTime)
+        public async static Task<Order> CancelOrder(int algoInstance, AlgoIndex algoIndex, Order order, DateTime currentTime)
         {
             try
             {
@@ -241,22 +243,25 @@ namespace Algorithms.Utilities
                     orderStatus = ZObjects.kite.CancelOrder(orderId);
                 if (orderStatus != null && orderStatus["data"]["order_id"] != null)
                 {
-                    order = GetOrder(orderId, algoInstance, algoIndex, true).Result;
+                    order = GetOrder(orderId, algoInstance, algoIndex, Constants.ORDER_STATUS_CANCELLED).Result;
                 }
 #endif
 #if local
                 order.Status = Constants.ORDER_STATUS_CANCELLED;
+                order.OrderTimestamp = currentTime;
 #endif
                 UpdateOrderDetails(algoInstance, algoIndex, order);
+                return order;
             }
             catch (Exception ex)
             {
                 LoggerCore.PublishLog(algoInstance, algoIndex, LogLevel.Error, currentTime, "Order cancellation failed. Trade will continue.", "CancelOrder");
+                return null;
             }
         }
 
 
-        public async static Task<Order> GetOrder(string orderId, int algoInstance, AlgoIndex algoIndex, bool slOrder = false)
+        public async static Task<Order> GetOrder(string orderId, int algoInstance, AlgoIndex algoIndex, string status) // bool slOrder = false)
         {
             Order oh = null;
             int counter = 0;
@@ -268,21 +273,23 @@ namespace Algorithms.Utilities
 
                 oh = orderInfo[orderInfo.Count - 1];
 
-                if (oh.Status.ToLower() == "complete" && !slOrder)
+                if (oh.Status == status)
                 {
                     //order.AveragePrice = oh.AveragePrice;
                     break;
                 }
-                else if (oh.Status.ToLower() == "trigger pending" && slOrder)
-                {
-                    //order.TriggerPrice = oh.TriggerPrice;
-                    break;
-                }
-                else if (oh.Status.ToLower() == "rejected")
+                //else if (oh.Status == Constants.ORDER_STATUS_TRIGGER_PENDING)
+                //{
+                //    //order.TriggerPrice = oh.TriggerPrice;
+                //    break;
+                //}
+                //else 
+                else if (oh.Status == Constants.ORDER_STATUS_REJECTED)
                 {
                     //_stopTrade = true;
-                    Logger.LogWrite("order did not execute properly");
+                    Logger.LogWrite("Order Rejected");
                     LoggerCore.PublishLog(algoInstance, algoIndex, LogLevel.Error, oh.OrderTimestamp.GetValueOrDefault(DateTime.UtcNow), "Order Rejected", "GetOrder");
+                    break;
                     //throw new Exception("order did not execute properly");
                 }
                 if (counter > 3000)
@@ -290,7 +297,8 @@ namespace Algorithms.Utilities
                     //_stopTrade = true;
                     Logger.LogWrite("order did not execute properly. Waited for 10 minutes");
                     LoggerCore.PublishLog(algoInstance, algoIndex, LogLevel.Error, oh.OrderTimestamp.GetValueOrDefault(DateTime.UtcNow), "Order did not go through. Waited for 10 minutes", "GetOrder");
-                    throw new Exception("order did not execute properly. Waited for 10 minutes");
+                    break;
+                    //throw new Exception("order did not execute properly. Waited for 10 minutes");
                 }
                 counter++;
             }
@@ -310,7 +318,7 @@ namespace Algorithms.Utilities
             DataLogic dl = new DataLogic();
             dl.UpdateOrder(algoInstance, order, strategyId);
 
-            LoggerCore.PublishLog(algoInstance, algoIndex, LogLevel.Info, order.OrderTimestamp.GetValueOrDefault(DateTime.UtcNow), "Order detailed updated in the database", "UpdateOrderDetails");
+            //LoggerCore.PublishLog(algoInstance, algoIndex, LogLevel.Info, order.OrderTimestamp.GetValueOrDefault(DateTime.UtcNow), "Order detailed updated in the database", "UpdateOrderDetails");
         }
     }
 }

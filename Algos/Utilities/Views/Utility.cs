@@ -25,7 +25,8 @@ namespace Algorithms.Utilities.Views
                 OrderType = Convert.ToString(drOrders["OrderType"]),
                 OrderTimestamp = Convert.ToDateTime(drOrders["OrderTimeStamp"]),
                 AlgoIndex = Convert.ToInt32(drOrders["AlgoIndex"]),
-                AlgoInstance = Convert.ToInt32(drOrders["AlgoInstance"])
+                AlgoInstance = Convert.ToInt32(drOrders["AlgoInstance"]),
+                Tag = Convert.ToString(DBNull.Value != drOrders["Tag"] ? drOrders["Tag"] : null)
             };
         }
         public static OrderView GetOrderView(Order order)

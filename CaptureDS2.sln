@@ -49,7 +49,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TradeEMACross", "Algo Servi
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GrpcLoggerService", "GrpcLoggerService\GrpcLoggerService.csproj", "{BC3024F9-7361-4720-8C2C-44F648739B1E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RSIManagerService", "Algo Services\RSIManagerService\RSIManagerService.csproj", "{3962A096-B25A-4A69-BAD4-4849EAA070AA}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RSIManagerService", "Algo Services\RSIManagerService\RSIManagerService.csproj", "{3962A096-B25A-4A69-BAD4-4849EAA070AA}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -173,8 +173,8 @@ Global
 		{0ED0946F-E485-4671-9119-2CA800AC169F}.Release|Any CPU.Build.0 = Release|Any CPU
 		{DF0EB493-4786-443B-988F-EF2D63C72950}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{DF0EB493-4786-443B-988F-EF2D63C72950}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{DF0EB493-4786-443B-988F-EF2D63C72950}.Local|Any CPU.ActiveCfg = Debug|Any CPU
-		{DF0EB493-4786-443B-988F-EF2D63C72950}.Local|Any CPU.Build.0 = Debug|Any CPU
+		{DF0EB493-4786-443B-988F-EF2D63C72950}.Local|Any CPU.ActiveCfg = Local|Any CPU
+		{DF0EB493-4786-443B-988F-EF2D63C72950}.Local|Any CPU.Build.0 = Local|Any CPU
 		{DF0EB493-4786-443B-988F-EF2D63C72950}.Market|Any CPU.ActiveCfg = Debug|Any CPU
 		{DF0EB493-4786-443B-988F-EF2D63C72950}.Market|Any CPU.Build.0 = Debug|Any CPU
 		{DF0EB493-4786-443B-988F-EF2D63C72950}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -229,8 +229,8 @@ Global
 		{BC3024F9-7361-4720-8C2C-44F648739B1E}.Release|Any CPU.Build.0 = Release|Any CPU
 		{3962A096-B25A-4A69-BAD4-4849EAA070AA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{3962A096-B25A-4A69-BAD4-4849EAA070AA}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{3962A096-B25A-4A69-BAD4-4849EAA070AA}.Local|Any CPU.ActiveCfg = Debug|Any CPU
-		{3962A096-B25A-4A69-BAD4-4849EAA070AA}.Local|Any CPU.Build.0 = Debug|Any CPU
+		{3962A096-B25A-4A69-BAD4-4849EAA070AA}.Local|Any CPU.ActiveCfg = Local|Any CPU
+		{3962A096-B25A-4A69-BAD4-4849EAA070AA}.Local|Any CPU.Build.0 = Local|Any CPU
 		{3962A096-B25A-4A69-BAD4-4849EAA070AA}.Market|Any CPU.ActiveCfg = Debug|Any CPU
 		{3962A096-B25A-4A69-BAD4-4849EAA070AA}.Market|Any CPU.Build.0 = Debug|Any CPU
 		{3962A096-B25A-4A69-BAD4-4849EAA070AA}.Release|Any CPU.ActiveCfg = Release|Any CPU

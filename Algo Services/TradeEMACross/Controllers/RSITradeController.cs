@@ -1,6 +1,4 @@
-﻿using Algos.TLogics;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Configuration;
+﻿using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
 using ZMQFacade;
@@ -15,19 +13,22 @@ using System.Threading.Tasks;
 using Algorithms.Utilities.Views;
 using Algos.Utilities.Views;
 using System.Threading;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
 
-namespace RSIManagerService.Controllers
+namespace TradeEMACross.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class RSIStrangleController : ControllerBase
+    public class RSITradeController : ControllerBase
     {
+        private const string key = "ACTIVE_RSIBUYSTRANGLE_OBJECTS";
         IConfiguration configuration;
         ZMQClient zmqClient;
-        List<OptionSellingWithRSI> activeAlgoObjects;
-        public RSIStrangleController()
+        private IMemoryCache _cache;
+        public RSITradeController(IMemoryCache cache)
         {
-            activeAlgoObjects = new List<OptionSellingWithRSI>();
+            this._cache = cache;
         }
 
         [HttpGet]
@@ -51,7 +52,7 @@ namespace RSIManagerService.Controllers
         public async Task<IEnumerable<ActiveAlgosView>> GetActiveAlgos()
         {
             DataLogic dl = new DataLogic();
-            DataSet ds = dl.GetActiveAlgos(AlgoIndex.MomentumTrade_Option);
+            DataSet ds = dl.GetActiveAlgos(AlgoIndex.MomentumBuyWithRSI);
 
             List<ActiveAlgosView> activeAlgos = new List<ActiveAlgosView>();
 
@@ -63,18 +64,19 @@ namespace RSIManagerService.Controllers
             {
                 ActiveAlgosView algosView = new ActiveAlgosView();
 
-                OptionSellwithRSIInput algoInput = new OptionSellwithRSIInput
+                OptionBuywithRSIInput algoInput = new OptionBuywithRSIInput
                 {
                     Expiry = Convert.ToDateTime(drAlgo["Expiry"]),
                     CTF = Convert.ToInt32(drAlgo["CandleTimeFrame_Mins"]),
                     Qty = Convert.ToInt32(drAlgo["InitialQtyInLotSize"]),
                     BToken = Convert.ToUInt32(drAlgo["BToken"]),
-                    //PS = Convert.ToBoolean(DBNull.Value != drAlgo["PositionSizing"] ? drAlgo["PositionSizing"] : false),
-                    MinDFBI = Convert.ToDecimal(DBNull.Value != drAlgo["MaxLossPerTrade"] ? drAlgo["MaxLossPerTrade"] : 0),
-                    MaxDFBI = Convert.ToDecimal(DBNull.Value != drAlgo["MaxLossPerTrade"] ? drAlgo["MaxLossPerTrade"] : 0),
-                    RUL = Convert.ToDecimal(DBNull.Value != drAlgo["UpperLimit"] ? drAlgo["MaxLossPerTrade"] : 0),
-                    RLL = Convert.ToDecimal(DBNull.Value != drAlgo["LowerLimit"] ? drAlgo["MaxLossPerTrade"] : 0),
+                    MinDFBI = Convert.ToDecimal(DBNull.Value != drAlgo["Arg5"] ? drAlgo["Arg5"] : 0),
+                    MaxDFBI = Convert.ToDecimal(DBNull.Value != drAlgo["Arg4"] ? drAlgo["Arg4"] : 0),
+                    RULX = Convert.ToDecimal(DBNull.Value != drAlgo["UpperLimit"] ? drAlgo["UpperLimit"] : 0),
+                    RLLE = Convert.ToDecimal(DBNull.Value != drAlgo["LowerLimit"] ? drAlgo["LowerLimit"] : 0),
                     EMA = Convert.ToInt32(DBNull.Value != drAlgo["Arg1"] ? drAlgo["Arg1"] : 0),
+                    //PS = Convert.ToBoolean(DBNull.Value != drAlgo["PositionSizing"] ? drAlgo["PositionSizing"] : false),
+                    TP = Convert.ToDecimal(DBNull.Value != drAlgo["Arg2"] ? drAlgo["Arg2"] : 0),
                 };
                 algosView.aid = Convert.ToInt32(drAlgo["AlgoId"]);
                 algosView.an = Convert.ToString((AlgoIndex)algosView.aid);
@@ -115,49 +117,53 @@ namespace RSIManagerService.Controllers
 
 
         [HttpPost]
-        public async Task<ActiveAlgosView> Trade([FromBody] OptionSellwithRSIInput optionSellwithRSIInput, int algoInstance = 0)
+        public async Task<ActiveAlgosView> Trade([FromBody] OptionBuywithRSIInput optionBuywithRSIInput, int algoInstance = 0)
         {
-            uint instrumentToken = optionSellwithRSIInput.BToken;
+            uint instrumentToken = optionBuywithRSIInput.BToken;
             DateTime endDateTime = DateTime.Now;
-            TimeSpan candleTimeSpan = TimeSpan.FromMinutes(optionSellwithRSIInput.CTF);
+            TimeSpan candleTimeSpan = TimeSpan.FromMinutes(optionBuywithRSIInput.CTF);
 
-            DateTime expiry = optionSellwithRSIInput.Expiry; // Convert.ToDateTime("2020-10-01");
-            //decimal strikePriceRange = 1;
-            int optionQuantity = optionSellwithRSIInput.Qty;
+            DateTime expiry = optionBuywithRSIInput.Expiry; 
+            int optionQuantity = optionBuywithRSIInput.Qty;
 
 #if local
-            endDateTime = Convert.ToDateTime("2020-10-16 12:21:00");
+            endDateTime = Convert.ToDateTime("2020-11-09 09:15:00");
 #endif
 
             ///FOR ALL STOCKS FUTURE , PASS INSTRUMENTTOKEN AS ZERO. FOR CE/PE ON BNF/NF SEND THE INDEX TOKEN AS INSTRUMENTTOKEN
-            OptionSellingWithRSI optionSellwithRSI =
-                new OptionSellingWithRSI(endDateTime, candleTimeSpan, instrumentToken, expiry,
-                optionQuantity,optionSellwithRSIInput.MinDFBI, optionSellwithRSIInput.MaxDFBI, 
-                algoInstance: algoInstance, rsiUpperLimit: optionSellwithRSIInput.RUL,
-                rsiLowerLimit: optionSellwithRSIInput.RLL);
+            OptionBuyingWithRSI optionBuywithRSI =
+                new OptionBuyingWithRSI(endDateTime, candleTimeSpan, instrumentToken, expiry,
+                optionQuantity, optionBuywithRSIInput.MinDFBI, optionBuywithRSIInput.MaxDFBI, 
+                optionBuywithRSIInput.RLLE, optionBuywithRSIInput.RULX, targetProfit: optionBuywithRSIInput.TP, 
+                optionBuywithRSIInput.EMA, algoInstance,  false, 0);
 
-           // optionSellwithRSI.LoadActiveOrders(optionSellwithRSIInput.ActiveOrder);
+            optionBuywithRSI.OnOptionUniverseChange += OptionBuywithRSI_OnOptionUniverseChange;
+            optionBuywithRSI.OnTradeEntry += OptionSellwithRSI_OnTradeEntry;
+            optionBuywithRSI.OnTradeExit += OptionSellwithRSI_OnTradeExit;
 
-            optionSellwithRSI.OnOptionUniverseChange += ExpiryTrade_OnOptionUniverseChange;
-            optionSellwithRSI.OnTradeEntry += OptionSellwithRSI_OnTradeEntry;
-            optionSellwithRSI.OnTradeExit += OptionSellwithRSI_OnTradeExit; 
+            List<OptionBuyingWithRSI> activeAlgoObjects = _cache.Get<List<OptionBuyingWithRSI>>(key);
 
-            activeAlgoObjects.Add(optionSellwithRSI);
+            if (activeAlgoObjects == null)
+            {
+                activeAlgoObjects = new List<OptionBuyingWithRSI>();
+            }
+            activeAlgoObjects.Add(optionBuywithRSI);
+            _cache.Set(key, activeAlgoObjects);
 
 
-            Task task = Task.Run(() => NMQClientSubscription(optionSellwithRSI, instrumentToken));
+            Task task = Task.Run(() => NMQClientSubscription(optionBuywithRSI, instrumentToken));
 
             //await task;
             return new ActiveAlgosView
             {
-                aid = Convert.ToInt32(AlgoIndex.StrangleWithRSI),
-                an = Convert.ToString((AlgoIndex)AlgoIndex.MomentumTrade_Option),
-                ains = optionSellwithRSI.AlgoInstance,
+                aid = Convert.ToInt32(AlgoIndex.MomentumBuyWithRSI),
+                an = Convert.ToString((AlgoIndex)AlgoIndex.MomentumBuyWithRSI),
+                ains = optionBuywithRSI.AlgoInstance,
                 algodate = endDateTime.ToString("yyyy-MM-dd"),
                 binstrument = instrumentToken.ToString(),
                 expiry = expiry.ToString("yyyy-MM-dd"),
                 lotsize = optionQuantity,
-                mins = optionSellwithRSIInput.CTF
+                mins = optionBuywithRSIInput.CTF
             };
         }
 
@@ -176,15 +182,15 @@ namespace RSIManagerService.Controllers
             Thread.Sleep(100);
         }
 
-        private async Task NMQClientSubscription(OptionSellingWithRSI sellOnRSICross, uint token)
+        private async Task NMQClientSubscription(OptionBuyingWithRSI buyWithRSI, uint token)
         {
             zmqClient = new ZMQClient();
             zmqClient.AddSubscriber(new List<uint>() { token });
 
-            await zmqClient.Subscribe(sellOnRSICross);
+            await zmqClient.Subscribe(buyWithRSI);
         }
 
-        private void ExpiryTrade_OnOptionUniverseChange(OptionSellingWithRSI source)
+        private void OptionBuywithRSI_OnOptionUniverseChange(OptionBuyingWithRSI source)
         {
             try
             {
@@ -199,7 +205,25 @@ namespace RSIManagerService.Controllers
         [HttpGet("healthy")]
         public Task<int> Health()
         {
-            return Task.FromResult((int)AlgoIndex.StrangleWithRSI);
+            return Task.FromResult((int)AlgoIndex.MomentumBuyWithRSI);
+        }
+        [HttpPut("{ain}")]
+        public bool Put(int ain, [FromBody] int start)
+        {
+            List<OptionBuyingWithRSI> activeAlgoObjects;
+            if (!_cache.TryGetValue(key, out activeAlgoObjects))
+            {
+                activeAlgoObjects = new List<OptionBuyingWithRSI>();
+            }
+
+            OptionBuyingWithRSI algoObject = activeAlgoObjects.FirstOrDefault(x => x.AlgoInstance == ain);
+            if (algoObject != null)
+            {
+                algoObject.StopTrade(!Convert.ToBoolean(start));
+            }
+            _cache.Set(key, activeAlgoObjects);
+
+            return true;
         }
 
         //// GET api/<RSICrossController>/5

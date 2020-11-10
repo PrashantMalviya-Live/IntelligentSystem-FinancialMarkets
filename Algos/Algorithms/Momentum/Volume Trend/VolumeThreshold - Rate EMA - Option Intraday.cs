@@ -232,7 +232,7 @@ namespace Algorithms.Algorithms
             catch (Exception ex)
             {
                 _stopTrade = true;
-                Logger.LogWrite(ex.StackTrace);
+                Logger.LogWrite(String.Format("{0}, {1}", ex.Message, ex.StackTrace));
                 Logger.LogWrite("Trading Stopped as algo encountered an error");
                 //throw new Exception("Trading Stopped as algo encountered an error. Check log file for details");
                 LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Error, currentTime, String.Format(@"Error occurred! Trading has stopped. \r\n {0}", ex.Message), "ActiveTradeIntraday");
@@ -305,7 +305,7 @@ namespace Algorithms.Algorithms
             catch (Exception ex)
             {
                 _stopTrade = true;
-                Logger.LogWrite(ex.StackTrace);
+                Logger.LogWrite(String.Format("{0}, {1}", ex.Message, ex.StackTrace));
                 Logger.LogWrite("Trading Stopped as algo encountered an error");
                 //throw new Exception("Trading Stopped as algo encountered an error. Check log file for details");
                 LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Error, tick.Timestamp.Value, String.Format(@"Error occurred! Trading has stopped. \r\n {0}", ex.Message), "MonitorCandles");
@@ -399,7 +399,7 @@ namespace Algorithms.Algorithms
             catch(Exception ex)
             {
                 _stopTrade = true;
-                Logger.LogWrite(ex.StackTrace);
+                Logger.LogWrite(String.Format("{0}, {1}", ex.Message, ex.StackTrace));
                 Logger.LogWrite("Trading Stopped as algo encountered an error");
                 LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Error, currentTime, String.Format(@"Error occurred! Trading has stopped. \r\n {0}", ex.Message), "LoadHistoricalEMAs");
                 Thread.Sleep(100);
@@ -480,7 +480,7 @@ namespace Algorithms.Algorithms
             catch (Exception ex)
             {
                 _stopTrade = true;
-                Logger.LogWrite(ex.StackTrace);
+                Logger.LogWrite(String.Format("{0}, {1}", ex.Message, ex.StackTrace));
                 Logger.LogWrite("Closing Application");
                 LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Error, e.CloseTime, 
                     String.Format(@"Error occurred! Trading has stopped. \r\n {0}", ex.Message), "CandleManger_TimeCandleFinished");
@@ -585,7 +585,7 @@ namespace Algorithms.Algorithms
             catch (Exception ex)
             {
                 _stopTrade = true;
-                Logger.LogWrite(ex.StackTrace);
+                Logger.LogWrite(String.Format("{0}, {1}", ex.Message, ex.StackTrace));
                 Logger.LogWrite("Closing Application");
                 //throw new Exception("Trading Stopped as algo encountered an error. Check log file for details");
                 LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Error, currentTime, String.Format(@"Error occurred! Trading has stopped. \r\n {0}", ex.Message), "TradeEntry");
@@ -634,7 +634,7 @@ namespace Algorithms.Algorithms
             catch (Exception ex)
             {
                 _stopTrade = true;
-                Logger.LogWrite(ex.StackTrace);
+                Logger.LogWrite(String.Format("{0}, {1}", ex.Message, ex.StackTrace));
                 Logger.LogWrite("Closing Application");
                 LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Error, previousCandle.CloseTime, String.Format(@"Error occurred! Trading has stopped. \r\n {0}", ex.Message), "CheckEMA");
                 Thread.Sleep(100);
@@ -701,7 +701,7 @@ namespace Algorithms.Algorithms
                 {
                     LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Info, currentTime, " Loading Tokens from database...", "LoadOptionsToTrade");
                     //Load options asynchronously
-                    OptionUniverse = dl.LoadCloseByOptions(_expiryDate, _baseInstrumentToken, _baseInstrumentPrice);
+                    OptionUniverse = dl.LoadCloseByOptions(_expiryDate, _baseInstrumentToken, _baseInstrumentPrice, _strikePriceIncrement * 2);
 
                     LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Info, currentTime, " Tokens Loaded", "LoadOptionsToTrade");
                 }
@@ -796,7 +796,7 @@ namespace Algorithms.Algorithms
             catch (Exception ex)
             {
                 _stopTrade = true;
-                Logger.LogWrite(ex.StackTrace);
+                Logger.LogWrite(String.Format("{0}, {1}", ex.Message, ex.StackTrace));
                 Logger.LogWrite("Closing Application");
                 LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Error, currentTime, String.Format(@"Error occurred! Trading has stopped. \r\n {0}", ex.Message), "LoadOptionsToTrade");
                 Thread.Sleep(100);
@@ -878,13 +878,12 @@ namespace Algorithms.Algorithms
                     {
                         if (!orderNode.FirstLegCompleted && tick.LastPrice < orderNode.Order.AveragePrice)
                         {
-                            orderNode.FirstLegCompleted = true;
                             Order order = orderNode.Order;
 #if market
                             
                             //DONOT PUT NEWEXIT ORDER . CHECK FOR LIMIT HIT IN ZERODHA
                             //Check if sl order to executed
-                            order = MarketOrders.GetOrder(order.OrderId, _algoInstance, algoIndex).Result;
+                            order = MarketOrders.GetOrder(order.OrderId, _algoInstance, algoIndex, Constants.ORDER_STATUS_COMPLETE).Result;
 #elif local
 
                             order.AveragePrice = tick.LastPrice;
@@ -893,15 +892,19 @@ namespace Algorithms.Algorithms
                             order.ExchangeTimestamp = tick.Timestamp;
                             order.OrderTimestamp = tick.LastTradeTime;
                             order.Tag = "Test";
-                            order.Status = "Complete";
+                            order.Status = Constants.ORDER_STATUS_COMPLETE;
 #endif
-                            orderNode.Order = order;
-                            LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Info, tick.LastTradeTime.Value, 
-                                string.Format("Trade!! Bought {0} lots of {1} @ {2}.", order.Quantity, option.TradingSymbol, order.AveragePrice), "CheckEntry");
+                            if (order.Status == Constants.ORDER_STATUS_COMPLETE)
+                            {
+                                orderNode.FirstLegCompleted = true;
+                                orderNode.Order = order;
+                                LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Info, tick.LastTradeTime.Value,
+                                    string.Format("Trade!! Bought {0} lots of {1} @ {2}.", order.Quantity, option.TradingSymbol, order.AveragePrice), "CheckEntry");
 
-                            MarketOrders.UpdateOrderDetails(_algoInstance, algoIndex, order);
+                                MarketOrders.UpdateOrderDetails(_algoInstance, algoIndex, order);
 
-                            OnTradeEntry(order);
+                                OnTradeEntry(order);
+                            }
                         }
                         orderNode = orderNode.NextOrderNode;
                     }
@@ -914,7 +917,7 @@ namespace Algorithms.Algorithms
                 Logger.LogWrite("Closing Application");
                 LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Error, tick.Timestamp.Value, String.Format(@"Error occurred! Trading has stopped. \r\n {0}", exp.Message), "TradeExit");
                 Thread.Sleep(100);
-                Environment.Exit(0);
+                //Environment.Exit(0);
             }
         }
 
@@ -939,7 +942,7 @@ namespace Algorithms.Algorithms
                             
                             //DONOT PUT NEWEXIT ORDER . CHECK FOR SL HIT IN ZERODHA
                             //Check if sl order to executed
-                            order = MarketOrders.GetOrder(order.OrderId, _algoInstance, algoIndex).Result;
+                            order = MarketOrders.GetOrder(order.OrderId, _algoInstance, algoIndex, Constants.ORDER_STATUS_COMPLETE).Result;
 #elif local
 
                             order.AveragePrice = tick.LastPrice;
@@ -948,7 +951,7 @@ namespace Algorithms.Algorithms
                             order.ExchangeTimestamp = tick.Timestamp;
                             order.OrderTimestamp = tick.LastTradeTime;
                             order.Tag = "Test";
-                            order.Status = "Complete";
+                            order.Status = Constants.ORDER_STATUS_COMPLETE;
 #endif
                             LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Info, tick.LastTradeTime.Value, string.Format("Exited the trade @ {0}", order.AveragePrice), "TradeExit");
 
@@ -1075,7 +1078,7 @@ namespace Algorithms.Algorithms
             catch (Exception ex)
             {
                 _stopTrade = true;
-                Logger.LogWrite(ex.StackTrace);
+                Logger.LogWrite(String.Format("{0}, {1}", ex.Message, ex.StackTrace));
                 Logger.LogWrite("Closing Application");
                 LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Error, currentTime, String.Format(@"Error occurred! Trading has stopped. \r\n {0}", ex.Message), "CheckCandleStartTime");
                 Thread.Sleep(100);
@@ -1113,7 +1116,7 @@ namespace Algorithms.Algorithms
             catch (Exception ex)
             {
                 _stopTrade = true;
-                Logger.LogWrite(ex.StackTrace);
+                Logger.LogWrite(String.Format("{0}, {1}", ex.Message, ex.StackTrace));
                 Logger.LogWrite("Closing Application");
                 LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Error, currentTime, String.Format(@"Error occurred! Trading has stopped. \r\n {0}", ex.Message), "UpdateInstrumentSubscription");
                 Thread.Sleep(100);
@@ -1163,7 +1166,7 @@ namespace Algorithms.Algorithms
             catch (Exception ex)
             {
                 _stopTrade = true;
-                Logger.LogWrite(ex.StackTrace);
+                Logger.LogWrite(String.Format("{0}, {1}", ex.Message, ex.StackTrace));
                 Logger.LogWrite("Closing Application");
                 LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Error, 
                     lastCandleEndTime, String.Format(@"Error occurred! Trading has stopped. {0}", ex.Message), "LoadHistoricalCandles");
@@ -1281,7 +1284,7 @@ namespace Algorithms.Algorithms
             catch (Exception ex)
             {
                 _stopTrade = true;
-                Logger.LogWrite(ex.StackTrace);
+                Logger.LogWrite(String.Format("{0}, {1}", ex.Message, ex.StackTrace));
                 Logger.LogWrite("Trading Stopped as algo encountered an error");
                 //throw new Exception("Trading Stopped as algo encountered an error. Check log file for details");
                 LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Error, ticks[0].Timestamp.GetValueOrDefault(DateTime.UtcNow) , String.Format(@"Error occurred! Trading has stopped. \r\n {0}", ex.Message), "OnNext");
@@ -1337,7 +1340,7 @@ namespace Algorithms.Algorithms
             catch (Exception ex)
             {
                 _stopTrade = true;
-                Logger.LogWrite(ex.StackTrace);
+                Logger.LogWrite(String.Format("{0}, {1}", ex.Message, ex.StackTrace));
                 Logger.LogWrite("Closing Application");
                 LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Error, currentTime, String.Format(@"Error occurred! Trading has stopped. \r\n {0}", ex.Message), "ModifyOrder");
                 Thread.Sleep(100);

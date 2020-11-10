@@ -14,8 +14,8 @@ using Algorithms.Utilities.Views;
 using Global.Web;
 using GlobalCore;
 using System.Threading;
-
-// For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
+using Microsoft.Extensions.Caching.Memory;
+using Algos.Utilities.Views;
 
 namespace RSIManagerService.Controllers
 {
@@ -23,13 +23,14 @@ namespace RSIManagerService.Controllers
     [ApiController]
     public class RSICrossController : ControllerBase
     {
+        private const string key = "ACTIVE_RSICROSS_OBJECTS";
         IConfiguration configuration;
         ZMQClient zmqClient;
-        List<OptionSellOnRSICross> activeAlgoObjects;
-        public RSICrossController()
+        private IMemoryCache _cache;
+
+        public RSICrossController(IMemoryCache cache)
         {
-            activeAlgoObjects = new List<OptionSellOnRSICross>();
-            // GetActiveAlgos();
+            this._cache = cache;
         }
 
         [HttpGet]
@@ -53,7 +54,7 @@ namespace RSIManagerService.Controllers
         public async Task<IEnumerable<ActiveAlgosView>> GetActiveAlgos()
         {
             DataLogic dl = new DataLogic();
-            DataSet ds = dl.GetActiveAlgos(AlgoIndex.MomentumTrade_Option);
+            DataSet ds = dl.GetActiveAlgos(AlgoIndex.SellOnRSICross);
 
             List<ActiveAlgosView> activeAlgos = new List<ActiveAlgosView>();
 
@@ -65,14 +66,15 @@ namespace RSIManagerService.Controllers
             {
                 ActiveAlgosView algosView = new ActiveAlgosView();
 
-                OptionMomentumInput algoInput = new OptionMomentumInput
+                OptionSellOnRSICrossInput algoInput = new OptionSellOnRSICrossInput
                 {
                     Expiry = Convert.ToDateTime(drAlgo["Expiry"]),
                     CTF = Convert.ToInt32(drAlgo["CandleTimeFrame_Mins"]),
-                    Quantity = Convert.ToInt32(drAlgo["InitialQtyInLotSize"]),
-                    Token = Convert.ToUInt32(drAlgo["BToken"]),
-                    PS = Convert.ToBoolean(DBNull.Value != drAlgo["PositionSizing"] ? drAlgo["PositionSizing"] : false),
-                    MLPT = Convert.ToDecimal(DBNull.Value != drAlgo["MaxLossPerTrade"] ? drAlgo["MaxLossPerTrade"] : 0),
+                    Qty = Convert.ToInt32(drAlgo["InitialQtyInLotSize"]),
+                    BToken = Convert.ToUInt32(drAlgo["BToken"]),
+                    MinDFBI = Convert.ToInt32(DBNull.Value != drAlgo["Arg5"] ? drAlgo["Arg5"] : 0),
+                    MaxDFBI = Convert.ToInt32(DBNull.Value != drAlgo["Arg4"] ? drAlgo["Arg4"] : 0),
+                    RMX = Convert.ToDecimal(DBNull.Value != drAlgo["Arg2"] ? drAlgo["Arg2"] : 0),
                 };
                 algosView.aid = Convert.ToInt32(drAlgo["AlgoId"]);
                 algosView.an = Convert.ToString((AlgoIndex)algosView.aid);
@@ -92,19 +94,19 @@ namespace RSIManagerService.Controllers
                     orders.Add(o);
                 }
 
-                var slmOrders = orders.Where(o => o.Status == Constants.ORDER_STATUS_TRIGGER_PENDING && o.OrderType == Constants.ORDER_TYPE_SLM);
-                var completedOrders = orders.Where(o => o.Status == Constants.ORDER_STATUS_COMPLETE);
+                var lastExecutedOrders = orders.Where(o => o.Status.ToUpper() == Constants.ORDER_STATUS_COMPLETE
+                && o.OrderType.ToUpper() != Constants.ORDER_TYPE_SLM
+                && (o.Tag == null || o.Tag.ToUpper() != "NW")).OrderByDescending(x => x.OrderTimestamp);
 
-                var pendingOrders = slmOrders.Where(x => !completedOrders.Any(c => c.OrderId == x.OrderId));
+                var lastOrder = lastExecutedOrders.FirstOrDefault();
 
-                if (pendingOrders != null && pendingOrders.Count() > 0)
+                if (lastOrder != null && lastOrder.TransactionType.ToLower() == "sell")
                 {
-                    algoInput.ActiveOrder = pendingOrders.FirstOrDefault();
-                    algosView.Orders.Add(ViewUtility.GetOrderView(pendingOrders.FirstOrDefault()));
-                    if (algoInput.ActiveOrder != null)
-                    {
-                        Trade(algoInput, algosView.ains);
-                    }
+                    algosView.Orders.Add(ViewUtility.GetOrderView(lastOrder));
+                    algoInput.ActiveOrder = lastOrder;
+
+                    Trade(algoInput, algosView.ains);
+
                     activeAlgos.Add(algosView);
                 }
             }
@@ -113,36 +115,35 @@ namespace RSIManagerService.Controllers
 
 
         [HttpPost]
-        public async Task<ActiveAlgosView> Trade([FromBody] OptionMomentumInput optionMomentumInput, int algoInstance = 0)
+        public async Task<ActiveAlgosView> Trade([FromBody] OptionSellOnRSICrossInput algoInput, int algoInstance = 0)
         {
-            uint instrumentToken = optionMomentumInput.Token;
+            uint instrumentToken = algoInput.BToken;
             DateTime endDateTime = DateTime.Now;
-            TimeSpan candleTimeSpan = TimeSpan.FromMinutes(optionMomentumInput.CTF);
+            TimeSpan candleTimeSpan = TimeSpan.FromMinutes(algoInput.CTF);
 
-            DateTime? expiry = optionMomentumInput.Expiry; // Convert.ToDateTime("2020-10-01");
+            DateTime? expiry = algoInput.Expiry; // Convert.ToDateTime("2020-10-01");
             //decimal strikePriceRange = 1;
-            int optionQuantity = optionMomentumInput.Quantity;
+            int optionQuantity = algoInput.Qty;
 
 #if local
-            endDateTime = Convert.ToDateTime("2020-10-16 12:21:00");
+            endDateTime = Convert.ToDateTime("2020-10-15 09:15:00");
 #endif
 
             ///FOR ALL STOCKS FUTURE , PASS INSTRUMENTTOKEN AS ZERO. FOR CE/PE ON BNF/NF SEND THE INDEX TOKEN AS INSTRUMENTTOKEN
             OptionSellOnRSICross sellOnRSICross =
                 new OptionSellOnRSICross(candleTimeSpan, instrumentToken, endDateTime, expiry,
-                optionQuantity, algoInstance);
+                optionQuantity, algoInput.MaxDFBI, algoInput.MinDFBI, algoInput.RMX, algoInstance);
 
-            Order activeOrder = optionMomentumInput.ActiveOrder;
-            if (activeOrder != null)
-            {
-                sellOnRSICross.LoadActiveOrders(activeOrder);
-            }
-
+            sellOnRSICross.LoadActiveOrders(algoInput.ActiveOrder);
             sellOnRSICross.OnOptionUniverseChange += ExpiryTrade_OnOptionUniverseChange;
-            //sellOnRSICross.OnTradeEntry +=
-            //sellOnRSICross.OnTradeExit += 
+            sellOnRSICross.OnTradeEntry += SellOnRSICross_OnTradeEntry;
+            sellOnRSICross.OnTradeExit += SellOnRSICross_OnTradeExit;
+
+            List<OptionSellOnRSICross> activeAlgoObjects = null;
+            activeAlgoObjects = _cache.TryGetValue(key, out activeAlgoObjects)? activeAlgoObjects : new List<OptionSellOnRSICross>();
 
             activeAlgoObjects.Add(sellOnRSICross);
+            _cache.Set(key, activeAlgoObjects);
 
 
             Task task = Task.Run(() => NMQClientSubscription(sellOnRSICross, instrumentToken));
@@ -150,15 +151,27 @@ namespace RSIManagerService.Controllers
             //await task;
             return new ActiveAlgosView
             {
-                aid = Convert.ToInt32(AlgoIndex.MomentumTrade_Option),
-                an = Convert.ToString((AlgoIndex)AlgoIndex.MomentumTrade_Option),
+                aid = Convert.ToInt32(AlgoIndex.SellOnRSICross),
+                an = Convert.ToString((AlgoIndex)AlgoIndex.SellOnRSICross),
                 ains = sellOnRSICross.AlgoInstance,
                 algodate = endDateTime.ToString("yyyy-MM-dd"),
                 binstrument = instrumentToken.ToString(),
                 expiry = expiry.HasValue ? expiry.Value.ToString("yyyy-MM-dd") : "",
                 lotsize = optionQuantity,
-                mins = optionMomentumInput.CTF
+                mins = algoInput.CTF
             };
+        }
+
+        private void SellOnRSICross_OnTradeExit(Order st)
+        {
+            OrderCore.PublishOrder(st);
+            Thread.Sleep(100);
+        }
+
+        private void SellOnRSICross_OnTradeEntry(Order st)
+        {
+            OrderCore.PublishOrder(st);
+            Thread.Sleep(100);
         }
 
         private async Task NMQClientSubscription(OptionSellOnRSICross sellOnRSICross, uint token)
@@ -168,6 +181,27 @@ namespace RSIManagerService.Controllers
 
             await zmqClient.Subscribe(sellOnRSICross);
         }
+       
+        
+        [HttpPut("{ain}")]
+        public bool Put(int ain, [FromBody] int start)
+        {
+            List<OptionSellOnRSICross> activeAlgoObjects;
+            if (!_cache.TryGetValue(key, out activeAlgoObjects))
+            {
+                activeAlgoObjects = new List<OptionSellOnRSICross>();
+            }
+
+            OptionSellOnRSICross algoObject = activeAlgoObjects.FirstOrDefault(x => x.AlgoInstance == ain);
+            if (algoObject != null)
+            {
+                algoObject.StopTrade(!Convert.ToBoolean(start));
+            }
+            _cache.Set(key, activeAlgoObjects);
+
+            return true;
+        }
+
         // GET: api/<RSIStrangleController>
         //[HttpGet]
         //public void Get()
@@ -175,29 +209,29 @@ namespace RSIManagerService.Controllers
         //    StartService();
         //}
 
-//        [HttpGet("startservice")]
-//        public void StartService()
-//        {
-//            //BNF PE/ CE
-//            uint instrumentToken = 260105;
-//            DateTime endDateTime = DateTime.Now;
-//            TimeSpan candleTimeSpan = new TimeSpan(1, 15, 0);
+        //        [HttpGet("startservice")]
+        //        public void StartService()
+        //        {
+        //            //BNF PE/ CE
+        //            uint instrumentToken = 260105;
+        //            DateTime endDateTime = DateTime.Now;
+        //            TimeSpan candleTimeSpan = new TimeSpan(1, 15, 0);
 
-//            DateTime? expiry = Convert.ToDateTime("2020-10-29");
-//            //decimal strikePriceRange = 1;
+        //            DateTime? expiry = Convert.ToDateTime("2020-10-29");
+        //            //decimal strikePriceRange = 1;
 
-//#if local
-//            endDateTime = Convert.ToDateTime("2020-10-29 09:15:00");
-//#endif
-//            OptionSellOnRSICross expiryTrade = new OptionSellOnRSICross(candleTimeSpan, instrumentToken, endDateTime, expiry);
-//            expiryTrade.OnOptionUniverseChange += ExpiryTrade_OnOptionUniverseChange;
+        //#if local
+        //            endDateTime = Convert.ToDateTime("2020-10-29 09:15:00");
+        //#endif
+        //            OptionSellOnRSICross expiryTrade = new OptionSellOnRSICross(candleTimeSpan, instrumentToken, endDateTime, expiry);
+        //            expiryTrade.OnOptionUniverseChange += ExpiryTrade_OnOptionUniverseChange;
 
-//            List<uint> tokens = new List<uint>();
-//            tokens.Add(instrumentToken);
-//            zmqClient = new ZMQClient();
-//            zmqClient.AddSubscriber(tokens);
-//            zmqClient.Subscribe(expiryTrade);
-//        }
+        //            List<uint> tokens = new List<uint>();
+        //            tokens.Add(instrumentToken);
+        //            zmqClient = new ZMQClient();
+        //            zmqClient.AddSubscriber(tokens);
+        //            zmqClient.Subscribe(expiryTrade);
+        //        }
 
         private void ExpiryTrade_OnOptionUniverseChange(OptionSellOnRSICross source)
         {
@@ -211,35 +245,37 @@ namespace RSIManagerService.Controllers
 
             }
         }
+
+
         [HttpGet("healthy")]
         public Task<int> Health()
         {
             return Task.FromResult((int)AlgoIndex.SellOnRSICross);
         }
 
-        // GET api/<RSICrossController>/5
-        [HttpGet("{id}")]
-        public string Get(int id)
-        {
-            return "value";
-        }
+        //// GET api/<RSICrossController>/5
+        //[HttpGet("{id}")]
+        //public string Get(int id)
+        //{
+        //    return "value";
+        //}
 
-        // POST api/<RSICrossController>
-        [HttpPost]
-        public void Post([FromBody] string value)
-        {
-        }
+        //// POST api/<RSICrossController>
+        //[HttpPost]
+        //public void Post([FromBody] string value)
+        //{
+        //}
 
-        // PUT api/<RSICrossController>/5
-        [HttpPut("{id}")]
-        public void Put(int id, [FromBody] string value)
-        {
-        }
+        //// PUT api/<RSICrossController>/5
+        //[HttpPut("{id}")]
+        //public void Put(int id, [FromBody] string value)
+        //{
+        //}
 
-        // DELETE api/<RSICrossController>/5
-        [HttpDelete("{id}")]
-        public void Delete(int id)
-        {
-        }
+        //// DELETE api/<RSICrossController>/5
+        //[HttpDelete("{id}")]
+        //public void Delete(int id)
+        //{
+        //}
     }
 }

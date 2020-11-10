@@ -33,6 +33,7 @@
     <Compile Remove="Algorithms\Managed Strangle\ExpiryTrade.cs" />
     <Compile Remove="Algorithms\Managed Strangle\ExpiryTrade_StrangleValue - OI Volume.cs" />
     <Compile Remove="Algorithms\Managed Strangle\ExpiryTrade_StrangleValue - WIP TradedStrangle.cs" />
+    <Compile Remove="Algorithms\Managed Strangle\ExpiryTrade_StrangleValueWithRSI.cs" />
     <Compile Remove="Algorithms\Managed Strangle\FrequentBuySellWithNodemovementBothSide - Copy.cs" />
     <Compile Remove="Algorithms\Managed Strangle\FrequentBuySellWithNodemovementBothSide - last async.cs" />
     <Compile Remove="Algorithms\Managed Strangle\ManageBox.cs" />

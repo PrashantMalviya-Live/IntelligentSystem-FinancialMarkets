@@ -113,7 +113,7 @@ namespace MarketView.Controllers
             catch (Exception ex)
             {
                 Logger.LogWrite("Issue with starting market data service");
-                Logger.LogWrite(ex.StackTrace);
+                Logger.LogWrite(String.Format("{0}, {1}", ex.Message, ex.StackTrace));
             }
         }
         public static void StopService(string serviceName, int timeoutMilliseconds)
@@ -129,7 +129,7 @@ namespace MarketView.Controllers
             catch (Exception ex)
             {
                 Logger.LogWrite("Issue with stopping market data service");
-                Logger.LogWrite(ex.StackTrace);
+                Logger.LogWrite(String.Format("{0}, {1}", ex.Message, ex.StackTrace));
             }
         }
         public class ServiceActionParams

@@ -27,7 +27,7 @@ namespace MarketView.Controllers
             }
             catch (Exception ex)
             {
-                Logger.LogWrite(ex.StackTrace);
+                Logger.LogWrite(String.Format("{0}, {1}", ex.Message, ex.StackTrace));
                 return StatusCode(500);
             }
         }

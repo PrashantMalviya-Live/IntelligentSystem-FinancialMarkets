@@ -10,6 +10,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.AspNetCore.Http;
+
 //using GrpcLoggerService;
 namespace RSIManagerService
 {
@@ -25,8 +27,9 @@ namespace RSIManagerService
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-           // services.AddGrpc();
+            services.AddGrpc();
             services.AddControllers();
+            services.AddMemoryCache();
 
             //services.AddSingleton<ILoggerService, LoggerService>();
             //services.AddSingleton<IOrderService, OrderService>();
@@ -40,7 +43,7 @@ namespace RSIManagerService
                 app.UseDeveloperExceptionPage();
             }
 
-            app.UseHttpsRedirection();
+            //app.UseHttpsRedirection();
 
             app.UseRouting();
 

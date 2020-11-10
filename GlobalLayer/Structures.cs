@@ -43,6 +43,7 @@ namespace GlobalLayer
         SellOnRSICross = 18,
         [Display(Name = "Strangle With RSI")]
         StrangleWithRSI = 19,
+        MomentumBuyWithRSI = 20,
         KiteConnect = 1001
     }
     public enum MarketOpenRange
@@ -147,9 +148,9 @@ namespace GlobalLayer
         public UInt32 InstrumentToken { get; set; }
         public DateTime? Timestamp { get; set; }
     }
-        /// <summary>
-        /// Tick data structure
-        /// </summary>
+    /// <summary>
+    /// Tick data structure
+    /// </summary>
     [Serializable]
     public class Tick
     {
@@ -1206,7 +1207,7 @@ namespace GlobalLayer
         //public decimal LTP { get; set; }
 
         //public decimal IntrinsicValue { get; set; }
-        public  decimal OI { get; set; }
+        public decimal OI { get; set; }
         public decimal DeltaOI { get; set; }
         public decimal IV { get; set; }
         public decimal Delta { get; set; }
@@ -2510,7 +2511,7 @@ namespace GlobalLayer
             NetPutQtyInTrade = 0;
             //callMatix = new Decimal[10, 100];
             //putMatix = new Decimal[10, 100];
-            OptionMatrix = new Decimal[2][, ];
+            OptionMatrix = new Decimal[2][,];
         }
         public int ID { get; set; }
         public SortedList<Decimal, Instrument> CallUniverse { get; set; }
@@ -2548,6 +2549,10 @@ namespace GlobalLayer
 
         public int MinDistanceFromBInstrument { get; set; }
 
+        public double MaxDelta { get; set; }
+
+        public double InitialDelta { get; set; }
+
         public decimal MinPremiumToTrade { get; set; }
 
         //public Decimal[,] callMatix { get; set; }
@@ -2557,17 +2562,17 @@ namespace GlobalLayer
 
         public void AddMatrixRow(Decimal[,] data, InstrumentType callPutIndex)
         {
-            Decimal[,] tempMatrix = OptionMatrix[ (int)callPutIndex];
+            Decimal[,] tempMatrix = OptionMatrix[(int)callPutIndex];
 
-            Decimal[,] newMatrix = new decimal[tempMatrix.GetLength(0)+1, tempMatrix.GetLength(1)];
+            Decimal[,] newMatrix = new decimal[tempMatrix.GetLength(0) + 1, tempMatrix.GetLength(1)];
 
-            Array.Copy(tempMatrix, newMatrix, tempMatrix.Length-1);
+            Array.Copy(tempMatrix, newMatrix, tempMatrix.Length - 1);
             Array.Copy(data, 0, newMatrix, tempMatrix.Length, data.Length - 1);
             OptionMatrix[(int)callPutIndex] = newMatrix;
         }
     }
 
-    
+
     /// <summary>
     /// Depicts each strangle position entered. This could involve mutiple calls or puts
     /// Trades are listed in Buy/Sell Trades
@@ -2588,7 +2593,7 @@ namespace GlobalLayer
 
         public List<Instrument> Options { get; set; }
         //public List<Instrument> Put { get; set; }
-        
+
         [DefaultValue(0)]
         public decimal BookedPnL { get; set; }
 
@@ -2663,9 +2668,9 @@ namespace GlobalLayer
         public Instrument Option { get; set; }
         public ShortTrade BuyTrade { get; set; }
         public ShortTrade SellTrade { get; set; }
-        
+
         [DefaultValue(PositionStatus.NotTraded)]
-        public PositionStatus TradingStatus { get; set;}
+        public PositionStatus TradingStatus { get; set; }
     }
 
     public class CriticalLevels
@@ -2691,7 +2696,7 @@ namespace GlobalLayer
         public CriticalLevels Levels { get; set; }
         public Order SLOrder { get; set; }
     }
-    
+
     /// <summary>
     /// Every order may have refernce to original order, and an SL order.
     /// The SL order could be shared.
@@ -2711,7 +2716,23 @@ namespace GlobalLayer
         public OrderLinkedListNode PrevOrderNode { get; set; }
         public OrderLinkedListNode NextOrderNode { get; set; }
     }
+    public class StrangleOrderLinkedList
+    {
+        public OrderLinkedList CallOrderLinkedList { get; set; }
+        public OrderLinkedList PutOrderLinkedList { get; set; }
+    }
 
+    public class OrderTrio
+    {
+        public Instrument Option { get; set; }
+        public Order Order { get; set; }
+        public decimal EntryRSI { get; set; }
+        public DateTime EntryTradeTime { get; set; }
+        public Order SLOrder { get; set; }
+        public decimal StopLoss { get; set; }
+        public Order TPOrder { get; set; }
+        public decimal TargetProfit { get; set; }
+    }
 
     /// <summary>
     /// ShortTrade structure

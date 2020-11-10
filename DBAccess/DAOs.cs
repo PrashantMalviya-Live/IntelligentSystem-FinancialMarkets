@@ -88,7 +88,8 @@ namespace DataAccess
             int initialQtyInLotsSize, int maxQtyInLotSize = 0, int stepQtyInLotSize = 0, decimal upperLimit = 0, 
             decimal upperLimitPercent = 0, decimal lowerLimit = 0, decimal lowerLimitPercent = 0, 
             float stopLossPoints = 0, int optionType = 0, int optionIndex = 0, float candleTimeFrameInMins = 5, 
-            CandleType candleType = CandleType.Time )
+            CandleType candleType = CandleType.Time, decimal arg1 = 0, decimal arg2 = 0,
+            decimal arg3 = 0, decimal arg4 = 0, decimal arg5 = 0, bool positionSizing = false, decimal maxLossPerTrade = 0)
         {
             SqlConnection sqlConnection = new SqlConnection(Utility.GetConnectionString());
             SqlCommand insertCMD = new SqlCommand("CreateAlgoInstance", sqlConnection)
@@ -113,6 +114,15 @@ namespace DataAccess
             insertCMD.Parameters.AddWithValue("@OptionIndex", optionIndex);
             insertCMD.Parameters.AddWithValue("@CandleTimeFrame_Mins", candleTimeFrameInMins);
             insertCMD.Parameters.AddWithValue("@CandleType", (int) candleType);
+
+            insertCMD.Parameters.AddWithValue("@Arg1", arg1);
+            insertCMD.Parameters.AddWithValue("@Arg2", arg2);
+            insertCMD.Parameters.AddWithValue("@Arg3", arg3);
+            insertCMD.Parameters.AddWithValue("@Arg4", arg4);
+            insertCMD.Parameters.AddWithValue("@Arg5", arg5);
+            insertCMD.Parameters.AddWithValue("@PositionSizing", positionSizing);
+            insertCMD.Parameters.AddWithValue("@MaxLossPerTrade", maxLossPerTrade);
+
             insertCMD.Parameters.Add("@AlgoInstance", SqlDbType.Int).Direction = ParameterDirection.Output;
 
             try
@@ -200,6 +210,33 @@ namespace DataAccess
 
             return dsInstrument;
         }
+        public DataSet GetInstrument(DateTime expiry, uint bInstrumentToken, decimal strike, string instrumentType)
+        {
+            SqlConnection sqlConnection = new SqlConnection(Utility.GetConnectionString());
+
+            SqlCommand selectCMD = new SqlCommand("FindInstrument", sqlConnection)
+            {
+                CommandTimeout = 30,
+                CommandType = CommandType.StoredProcedure
+            };
+            
+            selectCMD.Parameters.AddWithValue("@BToken", Convert.ToInt64(bInstrumentToken));
+            selectCMD.Parameters.AddWithValue("@Expiry", expiry);
+            selectCMD.Parameters.AddWithValue("@Strike", strike);
+            selectCMD.Parameters.AddWithValue("@InstrumentType", instrumentType);
+
+            SqlDataAdapter daInstrument = new SqlDataAdapter()
+            {
+                SelectCommand = selectCMD
+            };
+
+            sqlConnection.Open();
+            DataSet dsInstrument = new DataSet();
+            daInstrument.Fill(dsInstrument);
+            sqlConnection.Close();
+
+            return dsInstrument;
+        }
         public DataSet GetOrders(AlgoIndex algoindex, int orderid = 0)
         {
             SqlConnection sqlConnection = new SqlConnection(Utility.GetConnectionString());
@@ -259,7 +296,8 @@ namespace DataAccess
         }
 
 
-        public DataSet LoadCloseByOptions(DateTime? expiry, uint baseInstrumentToken, decimal baseInstrumentPrice = 0)
+        public DataSet LoadCloseByOptions(DateTime? expiry, uint baseInstrumentToken, decimal baseInstrumentPrice = 0, 
+            decimal maxDistanceFromBInstrument= 500)
         {
             SqlConnection sqlConnection = new SqlConnection(Utility.GetConnectionString());
 
@@ -270,7 +308,8 @@ namespace DataAccess
             };
             selectCMD.Parameters.AddWithValue("@ExpiryDate", expiry.Value);
             selectCMD.Parameters.AddWithValue("@BaseInstrumentToken", (Int64)baseInstrumentToken);
-            selectCMD.Parameters.AddWithValue("@BaseInstrumentPrice", (decimal)baseInstrumentPrice);
+            selectCMD.Parameters.AddWithValue("@BaseInstrumentPrice", baseInstrumentPrice);
+            selectCMD.Parameters.AddWithValue("@MaxDistanceFromBInstrument", maxDistanceFromBInstrument);
 
             SqlDataAdapter daInstruments = new SqlDataAdapter()
             {
@@ -312,11 +351,13 @@ namespace DataAccess
             return dsTokenVolume;
         }
 
-        public DataSet GetHistoricalCandlePrices(int numberofCandles, DateTime endDateTime, string tokenList, TimeSpan timeFrame)
+        public DataSet GetHistoricalCandlePrices(int numberofCandles, DateTime endDateTime, string tokenList, TimeSpan timeFrame, bool isBaseInstrument = false)
         {
             SqlConnection sqlConnection = new SqlConnection(Utility.GetConnectionString());
 
-            SqlCommand selectCMD = new SqlCommand("GetCandleClosePrices", sqlConnection)
+            string storedProc = isBaseInstrument ? "GetCandleClosePricesForBInstrument" : "GetCandleClosePrices";
+
+            SqlCommand selectCMD = new SqlCommand(storedProc, sqlConnection)
             {
                 CommandTimeout = 6000,
                 CommandType = CommandType.StoredProcedure
@@ -517,7 +558,8 @@ namespace DataAccess
 
             return dsInstruments;
         }
-
+        
+        
         public int SaveCandle(object Arg, decimal closePrice,  DateTime CloseTime, decimal? closeVolume, int? downTicks,
                 decimal? highPrice, DateTime highTime, decimal? highVolume, uint instrumentToken,
                 decimal?  lowPrice, DateTime lowTime, decimal? lowVolume, 
@@ -690,7 +732,7 @@ namespace DataAccess
             updateCMD.Parameters.AddWithValue("@ExchangeTimestamp", (DateTime)order.ExchangeTimestamp.Value);
             updateCMD.Parameters.AddWithValue("@FilledQuantity", order.FilledQuantity);
             updateCMD.Parameters.AddWithValue("@InstrumentToken", (Int64)order.InstrumentToken);
-            updateCMD.Parameters.AddWithValue("@OrderTimestamp", order.OrderTimestamp);
+            updateCMD.Parameters.AddWithValue("@OrderTimestamp", order.OrderTimestamp.HasValue? order.OrderTimestamp:DateTime.Now);
             updateCMD.Parameters.AddWithValue("@OrderType", order.OrderType);
             updateCMD.Parameters.AddWithValue("@Price", order.Price);
             updateCMD.Parameters.AddWithValue("@ParentOrderId", order.ParentOrderId);
@@ -920,21 +962,22 @@ namespace DataAccess
                 SelectCommand = selectCMD
             };
 
-            string backlog;
+            decimal lastPrice;
 
             sqlConnection.Open();
-            backlog = (string)selectCMD.ExecuteScalar();
+            lastPrice = (decimal)selectCMD.ExecuteScalar();
             sqlConnection.Close();
 
-            DepthItem[][] price = GetTickDataFromBacklog(backlog);
+            return lastPrice;
+            //DepthItem[][] price = GetTickDataFromBacklog(backlog);
 
-            DepthItem[] bids = price[0];
-            DepthItem[] Offers = price[1];
+            //DepthItem[] bids = price[0];
+            //DepthItem[] Offers = price[1];
 
-            decimal offerPrice = Offers[2].Price != 0 ? Offers[2].Price : Offers[1].Price != 0 ? Offers[1].Price : Offers[0].Price;
-            decimal bidPrice = bids[2].Price != 0 ? bids[2].Price : bids[1].Price != 0 ? bids[1].Price : bids[0].Price;
+            //decimal offerPrice = Offers[2].Price != 0 ? Offers[2].Price : Offers[1].Price != 0 ? Offers[1].Price : Offers[0].Price;
+            //decimal bidPrice = bids[2].Price != 0 ? bids[2].Price : bids[1].Price != 0 ? bids[1].Price : bids[0].Price;
 
-            return buyOrder ? offerPrice : bidPrice;
+            //return buyOrder ? offerPrice : bidPrice;
         }
         private DepthItem[][] GetTickDataFromBacklog(string backlogData)
         {
@@ -1845,10 +1888,13 @@ namespace DataAccess
             return dtInstruments;
         }
 
-      
+
 
         private DataTable ConvertObjectToDataTable(Queue<Tick> liveTicks, bool shortenedTick = false)
         {
+            uint NIFTY_TOKEN = 256265;
+            uint BANK_NIFTY_TOKEN = 260105;
+
             DataTable dtTicks = new DataTable("Ticks");
             dtTicks.Columns.Add("InstrumentToken", typeof(Int64));
             dtTicks.Columns.Add("LastPrice", typeof(Decimal));
@@ -1882,6 +1928,11 @@ namespace DataAccess
                 drTick["Volume"] = tick.Volume;
                 drTick["OI"] = tick.OI;
 
+                if (tick.InstrumentToken == NIFTY_TOKEN || tick.InstrumentToken == BANK_NIFTY_TOKEN)
+                {
+                    tick.LastTradeTime = tick.Timestamp;
+                }
+
                 if (tick.LastTradeTime != null)
                 {
                     drTick["LastTradeTime"] = tick.LastTradeTime;
@@ -1899,7 +1950,9 @@ namespace DataAccess
                     drTick["TimeStamp"] = DBNull.Value;
                 }
 
-                if(!shortenedTick)
+
+
+                if (!shortenedTick)
                 {
                     //DATA STOPPED TO REDUCE DB SPACE. THIS CAN BE RE ENABLED LATER.
                     drTick["LastQuantity"] = tick.LastQuantity;

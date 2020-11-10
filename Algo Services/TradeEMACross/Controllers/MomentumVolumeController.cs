@@ -205,17 +205,17 @@ namespace TradeEMACross.Controllers
             //DataLogic dl = new DataLogic();
             //dl.LoadTokens();
 
-            try
-            {
-                Utility.LoadTokens();
+            //try
+            //{
+            //    Utility.LoadTokens();
 
                 return Ok(StatusCode(200));
-            }
-            catch (Exception ex)
-            {
-                Logger.LogWrite(ex.StackTrace);
-                return StatusCode(500);
-            }
+            //}
+            //catch (Exception ex)
+            //{
+            //    Logger.LogWrite(String.Format("{0}, {1}", ex.Message, ex.StackTrace));
+            //    return StatusCode(500);
+            //}
 
         }
         private async Task NMQClientSubscription(OptionVolumeRateEMAThreshold volumeThreshold, uint token)

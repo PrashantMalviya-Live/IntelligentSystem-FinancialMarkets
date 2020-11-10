@@ -1,186 +1,456 @@
 
-10/19/2020 7:58:36 AM : Starting Market Data Service
+11/8/2020 9:21:27 AM : User logged In
 
-10/19/2020 7:58:36 AM : Market Data Service Started
+11/8/2020 10:27:59 AM : User logged In
 
-10/19/2020 8:12:40 AM : Starting Market Data Service
+11/8/2020 10:28:51 AM : User logged In
 
-10/19/2020 8:12:40 AM : Market Data Service Started
+11/8/2020 10:54:30 AM : Starting Market Data Service
 
-10/19/2020 9:12:15 AM : User logged In
+11/8/2020 10:54:30 AM : Market Data Service Started
 
-10/19/2020 9:12:56 AM : Starting Market Data Service
+11/8/2020 10:59:49 AM : User logged In
 
-10/19/2020 9:12:57 AM : User logged In
+11/8/2020 10:59:52 AM : User logged In
 
-10/19/2020 9:12:57 AM : Connected ticker
+11/8/2020 11:05:39 AM : User logged In
 
-10/19/2020 9:12:58 AM : Market Data Service Started
+11/8/2020 11:05:53 AM : User logged In
 
-10/19/2020 6:44:19 PM : User logged In
+11/8/2020 11:42:22 AM : Invalid column name 'BackLogs'.
 
-10/19/2020 7:12:12 PM : User logged In
+11/8/2020 11:42:22 AM :    at System.Data.SqlClient.SqlConnection.OnError(SqlException exception, Boolean breakConnection, Action`1 wrapCloseInAction)
+   at System.Data.SqlClient.SqlInternalConnection.OnError(SqlException exception, Boolean breakConnection, Action`1 wrapCloseInAction)
+   at System.Data.SqlClient.TdsParser.ThrowExceptionAndWarning(TdsParserStateObject stateObj, Boolean callerHasConnectionLock, Boolean asyncClose)
+   at System.Data.SqlClient.TdsParser.TryRun(RunBehavior runBehavior, SqlCommand cmdHandler, SqlDataReader dataStream, BulkCopySimpleResultSet bulkCopyHandler, TdsParserStateObject stateObj, Boolean& dataReady)
+   at System.Data.SqlClient.SqlDataReader.TryConsumeMetaData()
+   at System.Data.SqlClient.SqlDataReader.get_MetaData()
+   at System.Data.SqlClient.SqlCommand.FinishExecuteReader(SqlDataReader ds, RunBehavior runBehavior, String resetOptionsString)
+   at System.Data.SqlClient.SqlCommand.RunExecuteReaderTds(CommandBehavior cmdBehavior, RunBehavior runBehavior, Boolean returnStream, Boolean async, Int32 timeout, Task& task, Boolean asyncWrite, SqlDataReader ds)
+   at System.Data.SqlClient.SqlCommand.RunExecuteReader(CommandBehavior cmdBehavior, RunBehavior runBehavior, Boolean returnStream, TaskCompletionSource`1 completion, Int32 timeout, Task& task, Boolean asyncWrite, String method)
+   at System.Data.SqlClient.SqlCommand.RunExecuteReader(CommandBehavior cmdBehavior, RunBehavior runBehavior, Boolean returnStream, String method)
+   at System.Data.SqlClient.SqlCommand.ExecuteScalar()
+   at DataAccess.MarketDAO.RetrieveLastPrice(UInt32 token, Nullable`1 time, Boolean buyOrder) in D:\Prashant\IntelligentSoftware\2020\DBAccess\DAOs.cs:line 964
+   at Algorithms.Utilities.DataLogic.RetrieveLastPrice(UInt32 token, Nullable`1 time, Boolean buyOrder) in D:\Prashant\IntelligentSoftware\2020\Algos\Utilities\DataLogic.cs:line 420
+   at Algorithms.Utilities.MarketOrders.PlaceOrder(Int32 algoInstance, String tradingSymbol, String instrumenttype, Decimal instrument_currentPrice, UInt32 instrument_Token, Boolean buyOrder, Int32 quantity, AlgoIndex algoIndex, Nullable`1 tickTime, String orderType, String Tag) in D:\Prashant\IntelligentSoftware\2020\Algos\Utilities\MarketOrders.cs:line 80
+   at Algos.TLogics.OptionSellOnRSICross.PlaceTrailingOrder(Instrument option, Instrument newInstrument, Decimal lastPrice, DateTime currentTime, OrderTrio orderTrio) in D:\Prashant\IntelligentSoftware\2020\Algos\Algorithms\Managed Strangle\OptionSellOnRSICross.cs:line 430
 
-10/19/2020 7:15:59 PM : User logged In
+11/8/2020 11:42:22 AM : Trading Stopped
 
-10/19/2020 7:20:26 PM : User logged In
+11/8/2020 12:38:40 PM : User logged In
 
-10/19/2020 7:24:00 PM : User logged In
+11/8/2020 5:55:24 PM : Starting Market Data Service
 
-10/19/2020 9:12:23 PM : User logged In
+11/8/2020 5:55:24 PM : Market Data Service Started
 
-10/19/2020 9:23:00 PM : User logged In
+11/8/2020 6:03:19 PM : User logged In
 
-10/19/2020 9:25:28 PM : Starting Market Data Service
+11/8/2020 6:04:58 PM : Nullable object must have a value.   at System.Nullable`1.get_Value()
+   at Algorithms.Algorithms.OptionBuyingWithRSI.MonitorCandles(Tick tick) in D:\Prashant\IntelligentSoftware\2020\Algos\Algorithms\Momentum\Volume Trend\OptionBuyingWithRSI.cs:line 316
 
-10/19/2020 9:25:28 PM : User logged In
+11/8/2020 6:04:58 PM : Trading Stopped as algo encountered an error
 
-10/19/2020 9:25:29 PM : Connected ticker
+11/8/2020 6:05:06 PM : Nullable object must have a value.   at System.Nullable`1.get_Value()
+   at Algorithms.Algorithms.OptionBuyingWithRSI.ActiveTradeIntraday(Tick tick) in D:\Prashant\IntelligentSoftware\2020\Algos\Algorithms\Momentum\Volume Trend\OptionBuyingWithRSI.cs:line 205
 
-10/19/2020 9:25:29 PM : Market Data Service Started
+11/8/2020 6:05:06 PM : Trading Stopped as algo encountered an error
 
-10/19/2020 9:29:47 PM : Starting Market Data Service
+11/8/2020 6:05:44 PM : Nullable object must have a value.   at System.Nullable`1.get_Value()
+   at Algorithms.Algorithms.OptionBuyingWithRSI.MonitorCandles(Tick tick) in D:\Prashant\IntelligentSoftware\2020\Algos\Algorithms\Momentum\Volume Trend\OptionBuyingWithRSI.cs:line 316
 
-10/19/2020 9:29:48 PM : User logged In
+11/8/2020 6:05:44 PM : Trading Stopped as algo encountered an error
 
-10/19/2020 9:29:48 PM : Connected ticker
+11/8/2020 6:06:05 PM : Nullable object must have a value.   at System.Nullable`1.get_Value()
+   at Algorithms.Algorithms.OptionBuyingWithRSI.ActiveTradeIntraday(Tick tick) in D:\Prashant\IntelligentSoftware\2020\Algos\Algorithms\Momentum\Volume Trend\OptionBuyingWithRSI.cs:line 205
 
-10/19/2020 9:29:49 PM : Market Data Service Started
+11/8/2020 6:06:05 PM : Trading Stopped as algo encountered an error
 
-10/19/2020 9:32:07 PM : Starting Market Data Service
+11/9/2020 8:57:11 AM : User logged In
 
-10/19/2020 9:32:07 PM : User logged In
+11/9/2020 8:58:40 AM : Starting Market Data Service
 
-10/19/2020 9:32:08 PM : Connected ticker
+11/9/2020 8:58:41 AM : User logged In
 
-10/19/2020 9:32:08 PM : Market Data Service Started
+11/9/2020 8:58:42 AM : Connected ticker
 
-10/19/2020 9:33:03 PM : Starting Market Data Service
+11/9/2020 8:58:42 AM : Market Data Service Started
 
-10/19/2020 9:33:04 PM : User logged In
+11/9/2020 8:59:11 AM : User logged In
 
-10/19/2020 9:33:04 PM : Connected ticker
+11/9/2020 9:00:33 AM : User logged In
 
-10/19/2020 9:33:05 PM : Market Data Service Started
+11/9/2020 9:01:01 AM : User logged In
 
-10/19/2020 9:33:29 PM : User logged In
+11/9/2020 9:15:29 AM : Reconnecting Ticker
 
-10/19/2020 9:36:21 PM : Starting Market Data Service
+11/9/2020 9:15:29 AM : Error: Lost ticker connection.
 
-10/19/2020 9:36:22 PM : Market Data Service Started
+11/9/2020 9:15:30 AM : Connected ticker
 
-10/19/2020 9:39:42 PM : User logged In
+11/9/2020 9:45:02 AM :    at System.Collections.Generic.Dictionary`2.get_Item(TKey key)
+   at Algorithms.Algorithms.OptionSellingWithRSI.TradeEntry(UInt32 token, DateTime currentTime, Decimal lastPrice) in D:\Prashant\IntelligentSoftware\2020\Algos\Algorithms\Managed Strangle\OptionSellingWithRSI.cs:line 659
 
-10/19/2020 10:04:54 PM :    at Algorithms.Algorithms.OptionVolumeRateEMAThreshold.LoadHistoricalEMAs(DateTime currentTime) in D:\Prashant\IntelligentSoftware\2020\Algos\Algorithms\Momentum\Volume Trend\VolumeThreshold - Rate EMA - Option Intraday.cs:line 327
+11/9/2020 9:45:02 AM : Closing Application
 
-10/19/2020 10:04:54 PM : Trading Stopped as algo encountered an error
+11/9/2020 9:50:24 AM : User logged In
 
-10/19/2020 10:09:48 PM : Starting Market Data Service
+11/9/2020 9:53:00 AM : User logged In
 
-10/19/2020 10:09:48 PM : Market Data Service Started
+11/9/2020 9:53:20 AM : User logged In
 
-10/19/2020 10:10:00 PM : User logged In
+11/9/2020 10:15:01 AM :    at System.Collections.Generic.Dictionary`2.get_Item(TKey key)
+   at Algorithms.Algorithms.OptionSellingWithRSI.TradeEntry(UInt32 token, DateTime currentTime, Decimal lastPrice) in D:\Prashant\IntelligentSoftware\2020\Algos\Algorithms\Managed Strangle\OptionSellingWithRSI.cs:line 659
 
-10/19/2020 10:17:49 PM : Starting Market Data Service
+11/9/2020 10:15:01 AM : Closing Application
 
-10/19/2020 10:17:49 PM : Market Data Service Started
+11/9/2020 10:20:15 AM : User logged In
 
-10/19/2020 10:20:11 PM : Starting Market Data Service
+11/9/2020 10:20:36 AM : User logged In
 
-10/19/2020 10:20:12 PM : Market Data Service Started
+11/9/2020 10:43:57 AM : User logged In
 
-10/19/2020 10:21:06 PM : User logged In
+11/9/2020 11:48:42 AM : Reconnecting Ticker
 
-10/19/2020 10:36:18 PM : Starting Market Data Service
+11/9/2020 11:48:42 AM : Error: Lost ticker connection.
 
-10/19/2020 10:36:18 PM : Market Data Service Started
+11/9/2020 11:48:48 AM : Reconnecting Ticker
 
-10/19/2020 10:37:12 PM : User logged In
+11/9/2020 11:48:53 AM : Error: Error while connecting. Message: Unable to connect to the remote server
 
-10/19/2020 11:22:19 PM : Starting Market Data Service
+11/9/2020 11:48:53 AM : Error: Error while connecting. Message: No such host is known.
 
-10/19/2020 11:22:20 PM : Market Data Service Started
+11/9/2020 11:48:53 AM : Error: Error while connecting. Message: No such host is known.
 
-10/19/2020 11:24:07 PM : Starting Market Data Service
+11/9/2020 11:48:53 AM : Error: Error while connecting. Message: No such host is known.
 
-10/19/2020 11:24:08 PM : Market Data Service Started
+11/9/2020 11:49:14 AM : Reconnecting Ticker
 
-10/19/2020 11:27:01 PM : User logged In
+11/9/2020 11:49:14 AM : Error: Error while connecting. Message: Unable to connect to the remote server
 
-10/19/2020 11:38:29 PM : Starting Market Data Service
+11/9/2020 11:49:14 AM : Error: Error while connecting. Message: No such host is known.
 
-10/19/2020 11:38:29 PM : Market Data Service Started
+11/9/2020 11:49:14 AM : Error: Error while connecting. Message: No such host is known.
 
-10/19/2020 11:39:07 PM : User logged In
+11/9/2020 11:49:55 AM : Reconnecting Ticker
 
-10/20/2020 8:49:42 AM : User logged In
+11/9/2020 11:49:55 AM : Error: Error while connecting. Message: Unable to connect to the remote server
 
-10/20/2020 8:50:10 AM : User logged In
+11/9/2020 11:49:55 AM : Error: Error while connecting. Message: No such host is known.
 
-10/20/2020 8:50:24 AM : Starting Market Data Service
+11/9/2020 11:49:55 AM : Error: Error while connecting. Message: No such host is known.
 
-10/20/2020 8:50:24 AM : User logged In
+11/9/2020 11:50:56 AM : Reconnecting Ticker
 
-10/20/2020 8:50:24 AM : Connected ticker
+11/9/2020 11:50:57 AM : Connected ticker
 
-10/20/2020 8:50:25 AM : Market Data Service Started
+11/9/2020 11:51:12 AM : Reconnecting Ticker
 
-10/20/2020 8:58:44 AM : Reconnecting Ticker
+11/9/2020 11:51:12 AM : Error: Lost ticker connection.
 
-10/20/2020 8:58:44 AM : Error: Lost ticker connection.
+11/9/2020 11:51:13 AM : Connected ticker
 
-10/20/2020 8:58:46 AM : Connected ticker
+11/9/2020 11:53:26 AM : Reconnecting Ticker
 
-10/20/2020 9:03:44 AM : Reconnecting Ticker
+11/9/2020 11:53:26 AM : Error: Lost ticker connection.
 
-10/20/2020 9:03:44 AM : Error: Lost ticker connection.
+11/9/2020 11:53:27 AM : Connected ticker
 
-10/20/2020 9:03:46 AM : Connected ticker
+11/9/2020 11:56:50 AM : Reconnecting Ticker
 
-10/20/2020 9:04:20 AM : Reconnecting Ticker
+11/9/2020 11:56:50 AM : Error: Lost ticker connection.
 
-10/20/2020 9:04:20 AM : Error: Lost ticker connection.
+11/9/2020 11:56:51 AM : Connected ticker
 
-10/20/2020 9:04:22 AM : Connected ticker
+11/9/2020 11:57:45 AM : Reconnecting Ticker
 
-10/20/2020 9:12:56 AM : Reconnecting Ticker
+11/9/2020 11:57:45 AM : Error: Lost ticker connection.
 
-10/20/2020 9:12:56 AM : Error: Lost ticker connection.
+11/9/2020 11:57:46 AM : Connected ticker
 
-10/20/2020 9:12:57 AM : Connected ticker
+11/9/2020 11:59:59 AM : Reconnecting Ticker
 
-10/21/2020 8:49:22 AM : User logged In
+11/9/2020 11:59:59 AM : Error: Lost ticker connection.
 
-10/21/2020 8:49:35 AM : User logged In
+11/9/2020 12:00:00 PM : Connected ticker
 
-10/21/2020 8:51:46 AM : Starting Market Data Service
+11/9/2020 12:01:08 PM : Reconnecting Ticker
 
-10/21/2020 8:51:47 AM : User logged In
+11/9/2020 12:01:08 PM : Error: Lost ticker connection.
 
-10/21/2020 8:51:47 AM : Connected ticker
+11/9/2020 12:01:09 PM : Connected ticker
 
-10/21/2020 8:51:48 AM : Market Data Service Started
+11/9/2020 12:02:49 PM : Reconnecting Ticker
 
-10/21/2020 9:00:18 AM : Reconnecting Ticker
+11/9/2020 12:02:49 PM : Error: Lost ticker connection.
 
-10/21/2020 9:00:18 AM : Error: Lost ticker connection.
+11/9/2020 12:02:50 PM : Connected ticker
 
-10/21/2020 9:00:20 AM : Connected ticker
+11/9/2020 12:25:33 PM : Reconnecting Ticker
 
-10/21/2020 9:05:19 AM : Reconnecting Ticker
+11/9/2020 12:25:33 PM : Error: Lost ticker connection.
 
-10/21/2020 9:05:19 AM : Error: Lost ticker connection.
+11/9/2020 12:25:39 PM : Reconnecting Ticker
 
-10/21/2020 9:05:20 AM : Connected ticker
+11/9/2020 12:25:39 PM : Error: Error while connecting. Message: Unable to connect to the remote server
 
-10/21/2020 9:08:09 AM : Reconnecting Ticker
+11/9/2020 12:25:39 PM : Error: Error while connecting. Message: No such host is known.
 
-10/21/2020 9:08:09 AM : Error: Lost ticker connection.
+11/9/2020 12:25:39 PM : Error: Error while connecting. Message: No such host is known.
 
-10/21/2020 9:08:10 AM : Connected ticker
+11/9/2020 12:25:45 PM : Error: Error while connecting. Message: Unable to connect to the remote server
 
-10/21/2020 3:34:03 PM : Reconnecting Ticker
+11/9/2020 12:25:45 PM : Error: Error while connecting. Message: No such host is known.
 
-10/21/2020 3:34:03 PM : Error: Lost ticker connection.
+11/9/2020 12:25:45 PM : Error: Error while connecting. Message: No such host is known.
 
-10/21/2020 3:34:05 PM : Connected ticker
+11/9/2020 12:26:05 PM : Reconnecting Ticker
+
+11/9/2020 12:26:06 PM : Connected ticker
+
+11/9/2020 12:26:11 PM : Reconnecting Ticker
+
+11/9/2020 12:26:11 PM : Error: Lost ticker connection.
+
+11/9/2020 12:26:11 PM : Error: Error while connecting. Message: Unable to connect to the remote server
+
+11/9/2020 12:26:11 PM : Error: Error while connecting. Message: No such host is known.
+
+11/9/2020 12:26:11 PM : Error: Error while connecting. Message: No such host is known.
+
+11/9/2020 12:26:22 PM : Reconnecting Ticker
+
+11/9/2020 12:26:23 PM : Connected ticker
+
+11/9/2020 1:35:09 PM : User logged In
+
+11/9/2020 1:35:36 PM : User logged In
+
+11/9/2020 1:36:25 PM : User logged In
+
+11/9/2020 1:39:14 PM : User logged In
+
+11/9/2020 1:41:03 PM : User logged In
+
+11/9/2020 1:42:19 PM : User logged In
+
+11/9/2020 1:43:20 PM : User logged In
+
+11/9/2020 1:50:41 PM : Reconnecting Ticker
+
+11/9/2020 1:50:41 PM : Error: Lost ticker connection.
+
+11/9/2020 1:50:42 PM : Connected ticker
+
+11/9/2020 2:07:53 PM : Reconnecting Ticker
+
+11/9/2020 2:07:53 PM : Error: Lost ticker connection.
+
+11/9/2020 2:07:59 PM : Reconnecting Ticker
+
+11/9/2020 2:08:05 PM : Error: Error while connecting. Message: Unable to connect to the remote server
+
+11/9/2020 2:08:05 PM : Error: Error while connecting. Message: No such host is known.
+
+11/9/2020 2:08:05 PM : Error: Error while connecting. Message: No such host is known.
+
+11/9/2020 2:08:05 PM : Error: Error while connecting. Message: No such host is known.
+
+11/9/2020 2:08:05 PM : Error: Error while connecting. Message: No such host is known.
+
+11/9/2020 2:08:25 PM : Reconnecting Ticker
+
+11/9/2020 2:08:26 PM : Error: Error while connecting. Message: Unable to connect to the remote server
+
+11/9/2020 2:08:26 PM : Error: Error while connecting. Message: No such host is known.
+
+11/9/2020 2:08:26 PM : Error: Error while connecting. Message: No such host is known.
+
+11/9/2020 2:09:06 PM : Reconnecting Ticker
+
+11/9/2020 2:09:07 PM : Error: Error while connecting. Message: Unable to connect to the remote server
+
+11/9/2020 2:09:07 PM : Error: Error while connecting. Message: No such host is known.
+
+11/9/2020 2:09:07 PM : Error: Error while connecting. Message: No such host is known.
+
+11/9/2020 2:10:08 PM : Reconnecting Ticker
+
+11/9/2020 2:10:08 PM : Error: Error while connecting. Message: Unable to connect to the remote server
+
+11/9/2020 2:10:08 PM : Error: Error while connecting. Message: No such host is known.
+
+11/9/2020 2:10:08 PM : Error: Error while connecting. Message: No such host is known.
+
+11/9/2020 2:11:09 PM : Reconnecting Ticker
+
+11/9/2020 2:11:09 PM : Connected ticker
+
+11/9/2020 2:23:31 PM : User logged In
+
+11/9/2020 2:23:43 PM : User logged In
+
+11/9/2020 2:24:52 PM : User logged In
+
+11/9/2020 3:31:37 PM : Reconnecting Ticker
+
+11/9/2020 3:31:37 PM : Error: Lost ticker connection.
+
+11/9/2020 3:31:39 PM : Connected ticker
+
+11/9/2020 5:57:04 PM : Starting Market Data Service
+
+11/9/2020 5:57:05 PM : Market Data Service Started
+
+11/9/2020 6:06:16 PM : User logged In
+
+11/9/2020 6:13:15 PM : User logged In
+
+11/9/2020 6:24:19 PM : User logged In
+
+11/9/2020 7:07:02 PM : User logged In
+
+11/9/2020 7:09:12 PM : User logged In
+
+11/9/2020 7:17:55 PM : Timeout expired.  The timeout period elapsed prior to completion of the operation or the server is not responding.   at System.Data.SqlClient.SqlConnection.OnError(SqlException exception, Boolean breakConnection, Action`1 wrapCloseInAction)
+   at System.Data.SqlClient.SqlInternalConnection.OnError(SqlException exception, Boolean breakConnection, Action`1 wrapCloseInAction)
+   at System.Data.SqlClient.TdsParser.ThrowExceptionAndWarning(TdsParserStateObject stateObj, Boolean callerHasConnectionLock, Boolean asyncClose)
+   at System.Data.SqlClient.TdsParser.TryRun(RunBehavior runBehavior, SqlCommand cmdHandler, SqlDataReader dataStream, BulkCopySimpleResultSet bulkCopyHandler, TdsParserStateObject stateObj, Boolean& dataReady)
+   at System.Data.SqlClient.SqlDataReader.TryConsumeMetaData()
+   at System.Data.SqlClient.SqlDataReader.get_MetaData()
+   at System.Data.SqlClient.SqlCommand.FinishExecuteReader(SqlDataReader ds, RunBehavior runBehavior, String resetOptionsString)
+   at System.Data.SqlClient.SqlCommand.RunExecuteReaderTds(CommandBehavior cmdBehavior, RunBehavior runBehavior, Boolean returnStream, Boolean async, Int32 timeout, Task& task, Boolean asyncWrite, SqlDataReader ds)
+   at System.Data.SqlClient.SqlCommand.RunExecuteReader(CommandBehavior cmdBehavior, RunBehavior runBehavior, Boolean returnStream, TaskCompletionSource`1 completion, Int32 timeout, Task& task, Boolean asyncWrite, String method)
+   at System.Data.SqlClient.SqlCommand.RunExecuteReader(CommandBehavior cmdBehavior, RunBehavior runBehavior, Boolean returnStream, String method)
+   at System.Data.SqlClient.SqlCommand.ExecuteReader(CommandBehavior behavior)
+   at System.Data.SqlClient.SqlCommand.ExecuteDbDataReader(CommandBehavior behavior)
+   at System.Data.Common.DbCommand.System.Data.IDbCommand.ExecuteReader(CommandBehavior behavior)
+   at System.Data.Common.DbDataAdapter.FillInternal(DataSet dataset, DataTable[] datatables, Int32 startRecord, Int32 maxRecords, String srcTable, IDbCommand command, CommandBehavior behavior)
+   at System.Data.Common.DbDataAdapter.Fill(DataSet dataSet, Int32 startRecord, Int32 maxRecords, String srcTable, IDbCommand command, CommandBehavior behavior)
+   at System.Data.Common.DbDataAdapter.Fill(DataSet dataSet)
+   at DataAccess.MarketDAO.LoadCloseByOptions(Nullable`1 expiry, UInt32 baseInstrumentToken, Decimal baseInstrumentPrice) in D:\Prashant\IntelligentSoftware\2020\DBAccess\DAOs.cs:line 319
+   at Algorithms.Utilities.DataLogic.LoadCloseByOptions(Nullable`1 expiry, UInt32 baseInstrumentToken, Decimal baseInstrumentPrice) in D:\Prashant\IntelligentSoftware\2020\Algos\Utilities\DataLogic.cs:line 182
+   at Algorithms.Algorithms.OptionBuyingWithRSI.LoadOptionsToTrade(DateTime currentTime) in D:\Prashant\IntelligentSoftware\2020\Algos\Algorithms\Momentum\Volume Trend\OptionBuyingWithRSI.cs:line 838
+
+11/9/2020 7:17:55 PM : Closing Application
+
+11/9/2020 10:30:57 PM : Issue with starting market data service
+
+11/9/2020 10:30:57 PM :    at System.ServiceProcess.ServiceController.GetServiceHandle(Int32 desiredAccess)
+   at System.ServiceProcess.ServiceController.Start(String[] args)
+   at System.ServiceProcess.ServiceController.Start()
+   at MarketView.Controllers.WSController.StartService(String serviceName, Int32 timeoutMilliseconds) in D:\Prashant\IntelligentSoftware\2020\Algo Services\MarketView\Controllers\WSController.cs:line 110
+
+11/9/2020 10:32:36 PM : User logged In
+
+11/9/2020 10:48:15 PM : User logged In
+
+11/9/2020 10:56:42 PM : Starting Market Data Service
+
+11/9/2020 10:56:42 PM : Market Data Service Started
+
+11/9/2020 11:43:51 PM : User logged In
+
+11/10/2020 12:35:22 AM : User logged In
+
+11/10/2020 12:37:41 AM : Starting Market Data Service
+
+11/10/2020 12:37:42 AM : Market Data Service Started
+
+11/10/2020 12:40:11 AM : User logged In
+
+11/10/2020 8:59:21 AM : User logged In
+
+11/10/2020 8:59:48 AM : Starting Market Data Service
+
+11/10/2020 8:59:48 AM : User logged In
+
+11/10/2020 8:59:49 AM : Connected ticker
+
+11/10/2020 8:59:50 AM : Market Data Service Started
+
+11/10/2020 9:01:46 AM : User logged In
+
+11/10/2020 9:02:08 AM : User logged In
+
+11/10/2020 9:03:01 AM : User logged In
+
+11/10/2020 9:05:23 AM : User logged In
+
+11/10/2020 9:15:15 AM : One or more errors occurred. (Couldn't find that `order_id`.)   at System.Threading.Tasks.Task.ThrowIfExceptional(Boolean includeTaskCanceledExceptions)
+   at System.Threading.Tasks.Task`1.GetResultCore(Boolean waitCompletionNotification)
+   at Algorithms.Utilities.MarketOrders.PlaceOrder(Int32 algoInstance, String tradingSymbol, String instrumenttype, Decimal instrument_currentPrice, UInt32 instrument_Token, Boolean buyOrder, Int32 quantity, AlgoIndex algoIndex, Nullable`1 tickTime, String orderType, String Tag) in D:\Prashant\IntelligentSoftware\2020\Algos\Utilities\MarketOrders.cs:line 65
+   at Algorithms.Algorithms.OptionBuyingWithRSI.TradeEntry(UInt32 token, Decimal lastPrice, DateTime currentTime) in D:\Prashant\IntelligentSoftware\2020\Algos\Algorithms\Momentum\Volume Trend\OptionBuyingWithRSI.cs:line 653
+
+11/10/2020 9:15:16 AM : Trading stopped
+
+11/10/2020 9:39:36 AM : User logged In
+
+11/10/2020 9:54:27 AM : One or more errors occurred. (The operation has timed out.)   at System.Threading.Tasks.Task.ThrowIfExceptional(Boolean includeTaskCanceledExceptions)
+   at System.Threading.Tasks.Task`1.GetResultCore(Boolean waitCompletionNotification)
+   at Algorithms.Utilities.MarketOrders.PlaceOrder(Int32 algoInstance, String tradingSymbol, String instrumenttype, Decimal instrument_currentPrice, UInt32 instrument_Token, Boolean buyOrder, Int32 quantity, AlgoIndex algoIndex, Nullable`1 tickTime, String orderType, String Tag) in D:\Prashant\IntelligentSoftware\2020\Algos\Utilities\MarketOrders.cs:line 65
+   at Algorithms.Algorithms.OptionBuyingWithRSI.TradeEntry(UInt32 token, Decimal lastPrice, DateTime currentTime) in D:\Prashant\IntelligentSoftware\2020\Algos\Algorithms\Momentum\Volume Trend\OptionBuyingWithRSI.cs:line 668
+
+11/10/2020 9:54:27 AM : Trading stopped
+
+11/10/2020 9:55:58 AM : User logged In
+
+11/10/2020 10:11:05 AM : order did not execute properly. Waited for 10 minutes
+
+11/10/2020 10:30:02 AM :    at System.Collections.Generic.Dictionary`2.get_Item(TKey key)
+   at Algos.TLogics.OptionSellOnRSICross.CandleManger_TimeCandleFinished(Object sender, Candle e) in D:\Prashant\IntelligentSoftware\2020\Algos\Algorithms\Managed Strangle\OptionSellOnRSICross.cs:line 932
+
+11/10/2020 10:30:02 AM : Closing Application
+
+11/10/2020 12:30:17 PM : User logged In
+
+11/10/2020 12:30:28 PM : User logged In
+
+11/10/2020 12:31:27 PM : User logged In
+
+11/10/2020 12:31:43 PM : User logged In
+
+11/10/2020 12:32:18 PM : User logged In
+
+11/10/2020 2:15:02 PM : The given key '12225794' was not present in the dictionary.,    at System.Collections.Generic.Dictionary`2.get_Item(TKey key)
+   at Algos.TLogics.OptionSellOnRSICross.CandleManger_TimeCandleFinished(Object sender, Candle e) in D:\Prashant\IntelligentSoftware\2020\Algos\Algorithms\Managed Strangle\OptionSellOnRSICross.cs:line 932
+
+11/10/2020 2:15:02 PM : Closing Application
+
+11/10/2020 2:42:36 PM : Reconnecting Ticker
+
+11/10/2020 2:42:36 PM : Error: Lost ticker connection.
+
+11/10/2020 2:42:36 PM : Connected ticker
+
+11/10/2020 2:44:33 PM : User logged In
+
+11/10/2020 2:44:37 PM : User logged In
+
+11/10/2020 2:45:10 PM : User logged In
+
+11/10/2020 2:45:13 PM : User logged In
+
+11/10/2020 2:45:27 PM : Reconnecting Ticker
+
+11/10/2020 2:45:27 PM : Error: Lost ticker connection.
+
+11/10/2020 2:45:27 PM : Connected ticker
+
+11/10/2020 2:45:31 PM : Order Rejected
+
+11/10/2020 2:53:14 PM : User logged In
+
+11/10/2020 2:53:23 PM : User logged In
+
+11/10/2020 2:53:50 PM : User logged In
+
+11/10/2020 2:53:55 PM : User logged In
+
+11/10/2020 2:54:36 PM : User logged In
+
+11/10/2020 3:03:52 PM : One or more errors occurred. (The operation has timed out.)   at System.Threading.Tasks.Task.ThrowIfExceptional(Boolean includeTaskCanceledExceptions)
+   at System.Threading.Tasks.Task`1.GetResultCore(Boolean waitCompletionNotification)
+   at Algorithms.Utilities.MarketOrders.PlaceOrder(Int32 algoInstance, String tradingSymbol, String instrumenttype, Decimal instrument_currentPrice, UInt32 instrument_Token, Boolean buyOrder, Int32 quantity, AlgoIndex algoIndex, Nullable`1 tickTime, String orderType, String Tag) in D:\Prashant\IntelligentSoftware\2020\Algos\Utilities\MarketOrders.cs:line 65
+   at Algorithms.Algorithms.OptionBuyingWithRSI.TradeEntry(UInt32 token, Decimal lastPrice, DateTime currentTime) in D:\Prashant\IntelligentSoftware\2020\Algos\Algorithms\Momentum\Volume Trend\OptionBuyingWithRSI.cs:line 670
+
+11/10/2020 3:03:52 PM : Trading stopped
