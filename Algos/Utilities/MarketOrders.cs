@@ -27,13 +27,13 @@ namespace Algorithms.Utilities
         /// <param name="orderType"></param>
         /// <returns></returns>
         public static Order PlaceOrder(int algoInstance, string tradingSymbol, string instrumenttype, decimal instrument_currentPrice, uint instrument_Token,
-            bool buyOrder, int quantity, AlgoIndex algoIndex, DateTime? tickTime = null, string orderType = Constants.ORDER_TYPE_MARKET, string Tag = null)
+            bool buyOrder, int quantity, AlgoIndex algoIndex, DateTime? tickTime = null, string orderType = Constants.ORDER_TYPE_MARKET, string Tag = null, string product = Constants.PRODUCT_MIS)
         {
             decimal currentPrice = instrument_currentPrice;
 
 #if market
             Dictionary<string, dynamic> orderStatus = null;
-            string product = algoIndex == AlgoIndex.ExpiryTrade ? Constants.PRODUCT_MIS : Constants.PRODUCT_NRML;
+           // string product = algoIndex == AlgoIndex.ExpiryTrade ? Constants.PRODUCT_MIS : Constants.PRODUCT_NRML;
             if (orderType == Constants.ORDER_TYPE_SLM)
             {
                 orderStatus = ZObjects.kite.PlaceOrder(Constants.EXCHANGE_NFO, tradingSymbol.TrimEnd(),
@@ -60,10 +60,10 @@ namespace Algorithms.Utilities
 
             if (orderStatus != null && orderStatus["data"]["order_id"] != null)
             {
-                //order = new Order(orderStatus["data"]);
-                string orderId = orderStatus["data"]["order_id"];
-                order = GetOrder(orderId, algoInstance, algoIndex, orderType == Constants.ORDER_TYPE_SLM? Constants.ORDER_STATUS_TRIGGER_PENDING: Constants.ORDER_STATUS_COMPLETE).Result;
-
+                    //order = new Order(orderStatus["data"]);
+                    string orderId = orderStatus["data"]["order_id"];
+                    order = GetOrder(orderId, algoInstance, algoIndex,
+                        orderType == Constants.ORDER_TYPE_SLM ? Constants.ORDER_STATUS_TRIGGER_PENDING : orderType == Constants.ORDER_TYPE_LIMIT ? Constants.ORDER_STATUS_OPEN : Constants.ORDER_STATUS_COMPLETE);
 
                 //orderTimestamp = Utils.StringToDate(orderStatus["data"]["order_timestamp"]);
             }
@@ -166,7 +166,7 @@ namespace Algorithms.Utilities
                 {
                     //order = new Order(orderStatus["data"]);
                     //string orderId = orderStatus["data"]["order_id"];
-                    order = GetOrder(orderId, algoInstance, algoIndex, Constants.ORDER_STATUS_TRIGGER_PENDING).Result;
+                    order = GetOrder(orderId, algoInstance, algoIndex, Constants.ORDER_STATUS_TRIGGER_PENDING);
 
                     //orderId = orderStatus["data"]["order_id"];
                     //orderTimestamp = Utils.StringToDate(orderStatus["data"]["order_timestamp"]);
@@ -221,6 +221,47 @@ namespace Algorithms.Utilities
             }
             return order;
         }
+        /// <summary>
+        /// Modify existing order. This is used to change the order product type
+        /// </summary>
+        /// <param name="instrument_tradingsymbol"></param>
+        /// <param name="instrumenttype"></param>
+        /// <param name="instrument_currentPrice"></param>
+        /// <param name="instrument_Token"></param>
+        /// <param name="buyOrder"></param>
+        /// <param name="quantity"></param>
+        /// <param name="tickTime"></param>
+        /// <returns></returns>
+        public async static Task<Order> ModifyOrder(int algoInstance, AlgoIndex algoIndex, Order order, string product, DateTime currentTime)
+        {
+            string orderId = order.OrderId;
+            try
+            {
+#if market
+                Dictionary<string, dynamic> orderStatus;
+                orderStatus = ZObjects.kite.ModifyOrder(OrderId: orderId, Product: product);
+                
+                if (orderStatus != null && orderStatus["data"]["order_id"] != null)
+                {
+                    order = GetOrder(orderId, algoInstance, algoIndex, Constants.ORDER_STATUS_TRIGGER_PENDING);
+                }
+                else
+                {
+                    LoggerCore.PublishLog(algoInstance, algoIndex, LogLevel.Error, currentTime, 
+                        string.Format("Modify Order status null for order id:{0}", orderId), "ModifyOrder");
+                }
+
+#elif local
+                order.Product = Constants.PRODUCT_MIS;
+#endif
+                UpdateOrderDetails(algoInstance, algoIndex, order);
+            }
+            catch (Exception ex)
+            {
+                LoggerCore.PublishLog(algoInstance, algoIndex, LogLevel.Error, currentTime, "Order modification failed. Trade will continue.", "ModifyOrder");
+            }
+            return order;
+        }
 
         /// <summary>
         /// Modify existing order. This is used to change the SL of existing order
@@ -243,7 +284,7 @@ namespace Algorithms.Utilities
                     orderStatus = ZObjects.kite.CancelOrder(orderId);
                 if (orderStatus != null && orderStatus["data"]["order_id"] != null)
                 {
-                    order = GetOrder(orderId, algoInstance, algoIndex, Constants.ORDER_STATUS_CANCELLED).Result;
+                    order = GetOrder(orderId, algoInstance, algoIndex, Constants.ORDER_STATUS_CANCELLED);
                 }
 #endif
 #if local
@@ -261,46 +302,60 @@ namespace Algorithms.Utilities
         }
 
 
-        public async static Task<Order> GetOrder(string orderId, int algoInstance, AlgoIndex algoIndex, string status) // bool slOrder = false)
+        public static Order GetOrder(string orderId, int algoInstance, AlgoIndex algoIndex, string status) // bool slOrder = false)
         {
             Order oh = null;
             int counter = 0;
 
             while (true)
             {
-                System.Threading.Thread.Sleep(200);
-                List<Order> orderInfo = ZObjects.kite.GetOrderHistory(orderId);
+                try
+                {
+                    System.Threading.Thread.Sleep(400);
 
-                oh = orderInfo[orderInfo.Count - 1];
+                    List<Order> orderInfo = ZObjects.kite.GetOrderHistory(orderId);
 
-                if (oh.Status == status)
-                {
-                    //order.AveragePrice = oh.AveragePrice;
-                    break;
+
+                    oh = orderInfo[orderInfo.Count - 1];
+
+                    if (oh.Status == status)
+                    {
+                        //order.AveragePrice = oh.AveragePrice;
+                        break;
+                    }
+                    if (oh.Status == Constants.ORDER_STATUS_COMPLETE)
+                    {
+                        //order.AveragePrice = oh.AveragePrice;
+                        break;
+                    }
+                    //else if (oh.Status == Constants.ORDER_STATUS_TRIGGER_PENDING)
+                    //{
+                    //    //order.TriggerPrice = oh.TriggerPrice;
+                    //    break;
+                    //}
+                    //else 
+                    else if (oh.Status == Constants.ORDER_STATUS_REJECTED)
+                    {
+                        //_stopTrade = true;
+                        Logger.LogWrite("Order Rejected");
+                        LoggerCore.PublishLog(algoInstance, algoIndex, LogLevel.Error, oh.OrderTimestamp.GetValueOrDefault(DateTime.UtcNow), "Order Rejected", "GetOrder");
+                        break;
+                        //throw new Exception("order did not execute properly");
+                    }
+                    if (counter > 150)
+                    {
+                        //_stopTrade = true;
+                        Logger.LogWrite("order did not execute properly. Waited for 1 minutes");
+                        LoggerCore.PublishLog(algoInstance, algoIndex, LogLevel.Error, oh.OrderTimestamp.GetValueOrDefault(DateTime.UtcNow), "Order did not go through. Waited for 10 minutes", "GetOrder");
+                        break;
+                        //throw new Exception("order did not execute properly. Waited for 10 minutes");
+                    }
+                    counter++;
                 }
-                //else if (oh.Status == Constants.ORDER_STATUS_TRIGGER_PENDING)
-                //{
-                //    //order.TriggerPrice = oh.TriggerPrice;
-                //    break;
-                //}
-                //else 
-                else if (oh.Status == Constants.ORDER_STATUS_REJECTED)
+                catch (Exception ex)
                 {
-                    //_stopTrade = true;
-                    Logger.LogWrite("Order Rejected");
-                    LoggerCore.PublishLog(algoInstance, algoIndex, LogLevel.Error, oh.OrderTimestamp.GetValueOrDefault(DateTime.UtcNow), "Order Rejected", "GetOrder");
-                    break;
-                    //throw new Exception("order did not execute properly");
+                    Logger.LogWrite(ex.Message);
                 }
-                if (counter > 3000)
-                {
-                    //_stopTrade = true;
-                    Logger.LogWrite("order did not execute properly. Waited for 10 minutes");
-                    LoggerCore.PublishLog(algoInstance, algoIndex, LogLevel.Error, oh.OrderTimestamp.GetValueOrDefault(DateTime.UtcNow), "Order did not go through. Waited for 10 minutes", "GetOrder");
-                    break;
-                    //throw new Exception("order did not execute properly. Waited for 10 minutes");
-                }
-                counter++;
             }
             oh.AlgoInstance = algoInstance;
             oh.AlgoIndex = Convert.ToInt32(algoIndex);

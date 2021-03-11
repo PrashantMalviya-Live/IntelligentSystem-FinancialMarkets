@@ -156,3 +156,73 @@ export namespace PublishStatus {
   }
 }
 
+export class CData extends jspb.Message {
+  getAlgoid(): string;
+  setAlgoid(value: string): void;
+
+  getAlgoInstance(): number;
+  setAlgoInstance(value: number): void;
+
+  hasT(): boolean;
+  clearT(): void;
+  getT(): google_protobuf_timestamp_pb.Timestamp | undefined;
+  setT(value?: google_protobuf_timestamp_pb.Timestamp): void;
+
+  getInstrumenttoken(): number;
+  setInstrumenttoken(value: number): void;
+
+  getD(): number;
+  setD(value: number): void;
+
+  getXlabel(): string;
+  setXlabel(value: string): void;
+
+  getYlabel(): string;
+  setYlabel(value: string): void;
+
+  getArg(): string;
+  setArg(value: string): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): CData.AsObject;
+  static toObject(includeInstance: boolean, msg: CData): CData.AsObject;
+  static extensions: {[key: number]: jspb.ExtensionFieldInfo<jspb.Message>};
+  static extensionsBinary: {[key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>};
+  static serializeBinaryToWriter(message: CData, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): CData;
+  static deserializeBinaryFromReader(message: CData, reader: jspb.BinaryReader): CData;
+}
+
+export namespace CData {
+  export type AsObject = {
+    algoid: string,
+    algoInstance: number,
+    t?: google_protobuf_timestamp_pb.Timestamp.AsObject,
+    instrumenttoken: number,
+    d: number,
+    xlabel: string,
+    ylabel: string,
+    arg: string,
+  }
+}
+
+export class CStatus extends jspb.Message {
+  getStatus(): boolean;
+  setStatus(value: boolean): void;
+
+  serializeBinary(): Uint8Array;
+  toObject(includeInstance?: boolean): CStatus.AsObject;
+  static toObject(includeInstance: boolean, msg: CStatus): CStatus.AsObject;
+  static extensions: {[key: number]: jspb.ExtensionFieldInfo<jspb.Message>};
+  static extensionsBinary: {[key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>};
+  static serializeBinaryToWriter(message: CStatus, writer: jspb.BinaryWriter): void;
+  static deserializeBinary(bytes: Uint8Array): CStatus;
+  static deserializeBinaryFromReader(message: CStatus, reader: jspb.BinaryReader): CStatus;
+}
+
+export namespace CStatus {
+  export type AsObject = {
+    status: boolean,
+  }
+}
+

@@ -22,14 +22,15 @@ namespace Algorithms.Utilities
             decimal upperLimitPercent = 0, decimal lowerLimit = 0, decimal lowerLimitPercent = 0,
             float stopLossPoints = 0, int optionType = 0, float candleTimeFrameInMins = 5,
             CandleType candleType = CandleType.Time, int optionIndex = 0, decimal Arg1 = 0, decimal Arg2 = 0,
-            decimal Arg3 = 0, decimal Arg4 = 0, decimal Arg5 = 0, bool positionSizing = false, decimal maxLossPerTrade = 0)
+            decimal Arg3 = 0, decimal Arg4 = 0, decimal Arg5 = 0, decimal Arg6 = 0, decimal Arg7 = 0, decimal Arg8 = 0, 
+            bool positionSizing = false, decimal maxLossPerTrade = 0)
         {
             MarketDAO dao = new MarketDAO();
             return dao.GenerateAlgoInstance(algoIndex, bToken, timeStamp, expiry,
             initialQtyInLotsSize, maxQtyInLotSize, stepQtyInLotSize, upperLimit,
             upperLimitPercent, lowerLimit, lowerLimitPercent,
             stopLossPoints, optionType, 0, candleTimeFrameInMins, candleType, 
-            Arg1, Arg2, Arg3, Arg4, Arg5, positionSizing, maxLossPerTrade);
+            Arg1, Arg2, Arg3, Arg4, Arg5, Arg6, Arg7, Arg8, positionSizing, maxLossPerTrade);
         }
 
         public static void LoadTokens()

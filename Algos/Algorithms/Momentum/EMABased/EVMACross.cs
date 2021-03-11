@@ -87,7 +87,7 @@ namespace Algorithms.Algorithms.Momentum
 
             DateTime currentDatetime = DateTime.Now; // Convert.ToDateTime("2019-12-26 10:30:00"); //DateTime.Now //TODO: To be updated
             CandleSeries candleSeries = new CandleSeries();
-            TypeCandles[(int)CandleType.Time] = candleSeries.LoadCandles(Math.Max(sEMA, fEma), CandleType.Time, currentDatetime, _instrumentToken, timeFrame);
+            TypeCandles[(int)CandleType.Time] = candleSeries.LoadCandles(Math.Max(sEMA, fEma), CandleType.Time, currentDatetime, _instrumentToken.ToString(), timeFrame);
 
             foreach (var typeCandle in TypeCandles)
             {

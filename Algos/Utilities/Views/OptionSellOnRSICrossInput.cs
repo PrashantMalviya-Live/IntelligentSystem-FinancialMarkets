@@ -38,7 +38,7 @@ namespace Algos.Utilities.Views
         /// <summary>
         /// RSI band margin for exit
         /// </summary>
-        public decimal RMX { get; set; } = 10;
+        public decimal RMX { get; set; } = 5;
         public Order ActiveOrder { get; set; } = null;
     }
 }

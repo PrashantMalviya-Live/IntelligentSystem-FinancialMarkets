@@ -88,7 +88,7 @@ namespace Algos.TLogics
 
             DateTime currentDatetime = DateTime.Now; // Convert.ToDateTime("2019-12-26 10:30:00"); //DateTime.Now //TODO: To be updated
             CandleSeries candleSeries = new CandleSeries();
-            TypeCandles[(int)CandleType.Time] = candleSeries.LoadCandles(Math.Max(sEMA, fEma), CandleType.Time, currentDatetime, _instrumentToken, timeFrame);
+            TypeCandles[(int)CandleType.Time] = candleSeries.LoadCandles(Math.Max(sEMA, fEma), CandleType.Time, currentDatetime, _instrumentToken.ToString(), timeFrame);
 
             foreach (var typeCandle in TypeCandles)
             {
@@ -200,8 +200,8 @@ namespace Algos.TLogics
             {
 
                 TypeCandles[(int)CandleType.Time].AddRange(candleManger.StreamingTimeFrameCandle(ticks[0], _instrumentToken, timeFrame, true)); // TODO: USING LOCAL VERSION RIGHT NOW
-                                                                                                                                                            //TypeCandles[(int)CandleType.Volume] = candleManger.StreamingVolumeCandle(validTicks.ToArray(), _instrumentToken, 10000); // TODO: USING LOCAL VERSION RIGHT NOW
-                                                                                                                                                            //TypeCandles[(int)CandleType.Money] = candleManger.StreamingMoneyCandle(validTicks.ToArray(), _instrumentToken, 32000000); // TODO: USING LOCAL VERSION RIGHT NOW
+                //TypeCandles[(int)CandleType.Volume] = candleManger.StreamingVolumeCandle(validTicks.ToArray(), _instrumentToken, 10000); // TODO: USING LOCAL VERSION RIGHT NOW
+                //TypeCandles[(int)CandleType.Money] = candleManger.StreamingMoneyCandle(validTicks.ToArray(), _instrumentToken, 32000000); // TODO: USING LOCAL VERSION RIGHT NOW
 
                 var ftema = shortEMA[(int)CandleType.Time].Process(TypeCandles[(int)CandleType.Time].Last().ClosePrice, isFinal: false);
                 var stema = longEMA[(int)CandleType.Time].Process(TypeCandles[(int)CandleType.Time].Last().ClosePrice, isFinal: false);

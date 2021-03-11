@@ -1,4 +1,5 @@
-﻿using System;
+﻿using GlobalLayer;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -46,10 +47,21 @@ namespace Algos.Utilities.Views
         /// </summary>
         public decimal TP { get; set; }
 
-        ///// <summary>
-        ///// Stop Loss
-        ///// </summary>
-        //public decimal SL { get; set; }
+        /// <summary>
+        /// Target Profit
+        /// </summary>
+        public decimal SL { get; set; }
+
+        /// <summary>
+        /// Lower level for CE buy
+        /// </summary>
+        public decimal CELL { get; set; }
+
+        /// <summary>
+        /// Upper level for PE buy
+        /// </summary>
+        public decimal PEUL { get; set; }
+
 
         /// <summary>
         /// RSI Upper Limit for Exit
@@ -61,5 +73,29 @@ namespace Algos.Utilities.Views
         /// </summary>
         public decimal RLLE { get; set; }
 
+        /// <summary>
+        /// Option Buy at Cross
+        /// </summary>
+        public bool EAC { get; set; }
+
+        /// <summary>
+        /// Entry Decisive Candle High Low
+        /// </summary>
+        public decimal eDCHL { get; set; }
+
+        /// <summary>
+        /// Exit Decisive Candle High Low
+        /// </summary>
+        public decimal xDCHL { get; set; }
+
+        /// <summary>
+        /// Future contract
+        /// </summary>
+        public bool Fut { get; set; }
+
+        public Order CallOrder { get; set; } = null;
+        public Order PutOrder { get; set; } = null;
+
+        public Order Order { get; set; } = null;
     }
 }

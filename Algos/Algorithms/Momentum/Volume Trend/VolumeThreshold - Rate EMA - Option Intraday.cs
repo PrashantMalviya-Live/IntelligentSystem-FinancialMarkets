@@ -167,7 +167,7 @@ namespace Algorithms.Algorithms
             orderList.FirstOrderNode = orderNode;
 
             DataLogic dl = new DataLogic();
-            orderList.Option = dl.GetInstrument(activeOrder.InstrumentToken);
+            orderList.Option = dl.GetInstrument(activeOrder.Tradingsymbol);
 
             ActiveOptions.Add(orderList.Option);
         }
@@ -883,7 +883,7 @@ namespace Algorithms.Algorithms
                             
                             //DONOT PUT NEWEXIT ORDER . CHECK FOR LIMIT HIT IN ZERODHA
                             //Check if sl order to executed
-                            order = MarketOrders.GetOrder(order.OrderId, _algoInstance, algoIndex, Constants.ORDER_STATUS_COMPLETE).Result;
+                            order = MarketOrders.GetOrder(order.OrderId, _algoInstance, algoIndex, Constants.ORDER_STATUS_COMPLETE);
 #elif local
 
                             order.AveragePrice = tick.LastPrice;
@@ -942,7 +942,7 @@ namespace Algorithms.Algorithms
                             
                             //DONOT PUT NEWEXIT ORDER . CHECK FOR SL HIT IN ZERODHA
                             //Check if sl order to executed
-                            order = MarketOrders.GetOrder(order.OrderId, _algoInstance, algoIndex, Constants.ORDER_STATUS_COMPLETE).Result;
+                            order = MarketOrders.GetOrder(order.OrderId, _algoInstance, algoIndex, Constants.ORDER_STATUS_COMPLETE);
 #elif local
 
                             order.AveragePrice = tick.LastPrice;

@@ -852,7 +852,7 @@ namespace Algorithms.Algorithms
         private void UpdateOrder(Order completedOrder, Order orderTobeCancelled, decimal lastPrice, DateTime currentTime)
         {
 #if market
-            completedOrder = MarketOrders.GetOrder(completedOrder.OrderId, _algoInstance, algoIndex, Constants.ORDER_STATUS_COMPLETE).Result;
+            completedOrder = MarketOrders.GetOrder(completedOrder.OrderId, _algoInstance, algoIndex, Constants.ORDER_STATUS_COMPLETE);
 #elif local
             completedOrder.AveragePrice = lastPrice;
             completedOrder.Price = lastPrice;

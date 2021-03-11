@@ -1,7 +1,7 @@
 using System;
 using System.Reflection;
 using Algorithms.Utils;
-
+using GlobalLayer;
 namespace Algorithms.Indicators
 {
 
@@ -108,25 +108,25 @@ namespace Algorithms.Indicators
 			return typeof(IIndicatorValue).IsAssignableFrom(typeof(T)) ? (T)Convert.ChangeType(value, typeof(T)):value.GetValue<T>();
 		}
 
-		///// <summary>
-		///// To renew the indicator with candle closing price <see cref="Candle.ClosePrice"/>.
-		///// </summary>
-		///// <param name="indicator">Indicator.</param>
-		///// <param name="candle">Candle.</param>
-		///// <returns>The new value of the indicator.</returns>
-		//public static IIndicatorValue Process(this IIndicator indicator, Candle candle)
-		//{
-		//	return indicator.Process(new CandleIndicatorValue(indicator, candle));
-		//}
+        /// <summary>
+        /// To renew the indicator with candle closing price <see cref="Candle.ClosePrice"/>.
+        /// </summary>
+        /// <param name="indicator">Indicator.</param>
+        /// <param name="candle">Candle.</param>
+        /// <returns>The new value of the indicator.</returns>
+        public static IIndicatorValue Process(this IIndicator indicator, Candle candle)
+        {
+            return indicator.Process(new CandleIndicatorValue(indicator, candle));
+        }
 
-		/// <summary>
-		/// To renew the indicator with numeric value.
-		/// </summary>
-		/// <param name="indicator">Indicator.</param>
-		/// <param name="value">Numeric value.</param>
-		/// <param name="isFinal">Is the value final (the indicator finally forms its value and will not be changed in this point of time anymore). Default is <see langword="true" />.</param>
-		/// <returns>The new value of the indicator.</returns>
-		public static IIndicatorValue Process(this IIndicator indicator, decimal value, bool isFinal = true)
+        /// <summary>
+        /// To renew the indicator with numeric value.
+        /// </summary>
+        /// <param name="indicator">Indicator.</param>
+        /// <param name="value">Numeric value.</param>
+        /// <param name="isFinal">Is the value final (the indicator finally forms its value and will not be changed in this point of time anymore). Default is <see langword="true" />.</param>
+        /// <returns>The new value of the indicator.</returns>
+        public static IIndicatorValue Process(this IIndicator indicator, decimal value, bool isFinal = true)
 		{
 			return indicator.Process(new DecimalIndicatorValue(indicator, value) { IsFinal = isFinal });
 		}

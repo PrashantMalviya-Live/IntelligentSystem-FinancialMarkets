@@ -115,49 +115,8 @@ namespace LocalDBData
                                             }
                                             else
                                             {
-                                                //byte[] b = TickDataSchema.ParseTickBytes(ticks.ToArray());
-
-                                                //DO NOT STOREDATA TO DB IN TEST MODEL
-                                                //Storage storage = new Storage(false);
-                                                //storage.Store(ticks.ToArray());
-
                                                 zmqServer.PublishAllTicks(ticks, shortenedTick:true);
-                                                Thread.Sleep(100);
-                                                //zmqServer.PublishAllTicks(b);
-
-
-                                                //IgniteConnector.StreamData(ticks.ToArray());
-                                                // IgniteMessanger.SendIgniteMessage(ticks.ToArray());
-                                                // IgniteConnector.InsertMarketData(ticks.ToArray());
-                                                //Publisher tickPublisher = new Publisher();
-                                                //tickPublisher.publish(ticks);
-                                                //Thread.Sleep(10);
-
-                                                //foreach (var observer in observers)
-                                                //    observer.OnNext(ticks);
-                                                //counter++;
-
-                                                //tickProducer.Publish(ticks);
-                                                //foreach (Tick t in ticks)
-                                                //{
-                                                //    uint iToken = t.InstrumentToken;
-                                                //    if (!instrumentPartitions.ContainsKey(iToken))
-                                                //        instrumentPartitions.Add(iToken, new TopicPartition(Constants.TOPIC_NAME, new Partition(partitionCount++)));
-
-                                                //    tickProducer.KProducer.BeginProduce
-                                                //       (
-                                                //           instrumentPartitions[iToken],
-                                                //            new Message<uint, byte[]>
-                                                //            { 
-                                                //                Key = iToken,
-                                                //                Value =  TickDataSchema.ParseTickBytes (new Tick[] { t }), //Data.Skip(8).ToArray(), //bytes for count, length and instrument token skipped. 
-                                                //                Timestamp = Timestamp.Default
-                                                //            }
-                                                //        );
-                                                //}
-                                                //tickProducer.KProducer.Flush(TimeSpan.FromSeconds(10));
-
-
+                                                Thread.Sleep(20);
 
                                                 ticks.Clear();
                                                 ticks.Add(tick);

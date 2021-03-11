@@ -114,7 +114,10 @@ namespace KiteConnect
                         // send data to process
                         OnData?.Invoke(buffer, offset, t.Result.MessageType.ToString());
                         // Again try to receive data
-                        _ws.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None).ContinueWith(callback);
+                        if (_ws != null)
+                        {
+                            _ws.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None).ContinueWith(callback);
+                        }
                     }catch(Exception e)
                     {
                         if(IsConnected())
@@ -123,9 +126,11 @@ namespace KiteConnect
                             OnError?.Invoke("Lost ticker connection.");
                     }
                 };
-
-                // To start the receive loop in the beginning
-                _ws.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None).ContinueWith(callback);
+                if (_ws != null)
+                {
+                    // To start the receive loop in the beginning
+                    _ws.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None).ContinueWith(callback);
+                }
             }
             catch (Exception e)
             {

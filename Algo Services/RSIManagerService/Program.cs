@@ -34,7 +34,7 @@ namespace RSIManagerService
 
             var host = WebHost.CreateDefaultBuilder(args)
                 .UseContentRoot(pathToContentRoot)
-                .UseUrls(GlobalLayer.APIPORT.RSICross)
+                .UseUrls(GlobalLayer.APIPORT.SellOnRSI)
                 .UseConfiguration(config)
                 .UseStartup<Startup>()
                 .Build();

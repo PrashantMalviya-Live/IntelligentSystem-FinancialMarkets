@@ -11,6 +11,7 @@
     "target": "http://localhost:8081",
     "secure": false
   },
+
   "/api/login/*": {
     "target": "http://localhost:8087",
     "secure": false
@@ -24,7 +25,15 @@
     "secure": false
   },
   "/api/rsicross/*": {
+    "target": "http://localhost:8090",
+    "secure": false
+  },
+  "/api/premiumcross/*": {
     "target": "http://localhost:8089",
+    "secure": false
+  },
+  "/api/ivtrade/*": {
+    "target": "http://localhost:8081",
     "secure": false
   },
   "/api/expirystrangle/*": {
@@ -33,6 +42,26 @@
   },
   "/api/rsistrangle/*": {
     "target": "http://localhost:8089",
+    "secure": false
+  },
+  "/api/straddle/*": {
+    "target": "http://localhost:8090",
+    "secure": false
+  },
+  "/api/referencestraddle/*": {
+    "target": "http://localhost:8090",
+    "secure": false
+  },
+  "/api/momentumstraddle/*": {
+    "target": "http://localhost:8090",
+    "secure": false
+  },
+  "/api/emacross/*": {
+    "target": "http://localhost:8081",
+    "secure": false
+  },
+  "/api/candles/*": {
+    "target": "http://localhost:8081",
     "secure": false
   }
 }

@@ -16,7 +16,14 @@ export enum AlgoControllers {
   rsicross,
   expirystrangle,
   rsistrangle,
-  rsitrade
+  rsitrade,
+  emacrossvolume,
+  straddle,
+  referencestraddle,
+  premiumcross,
+  momentumstraddle,
+  ivtrade,
+  chart
 }
 export class RunningAlgos {
   public _algoCtrl: string;

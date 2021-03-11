@@ -1,7 +1,7 @@
 // package: logging
 // file: src/app/protos/log.proto
 
-import * as src_app_protos_log_pb from "../generated/log_pb";
+import * as src_app_protos_log_pb from "src/app/generated/log_pb";
 import {grpc} from "@improbable-eng/grpc-web";
 
 type LoggerLog = {
@@ -30,6 +30,20 @@ type OrderAlerterPublish = {
 export class OrderAlerter {
   static readonly serviceName: string;
   static readonly Publish: OrderAlerterPublish;
+}
+
+type CharterDrawChart = {
+  readonly methodName: string;
+  readonly service: typeof Charter;
+  readonly requestStream: true;
+  readonly responseStream: true;
+  readonly requestType: typeof src_app_protos_log_pb.CStatus;
+  readonly responseType: typeof src_app_protos_log_pb.CData;
+};
+
+export class Charter {
+  static readonly serviceName: string;
+  static readonly DrawChart: CharterDrawChart;
 }
 
 export type ServiceError = { message: string, code: number; metadata: grpc.Metadata }
@@ -72,5 +86,12 @@ export class OrderAlerterClient {
 
   constructor(serviceHost: string, options?: grpc.RpcOptions);
   publish(metadata?: grpc.Metadata): BidirectionalStream<src_app_protos_log_pb.PublishStatus, src_app_protos_log_pb.OrderMessage>;
+}
+
+export class CharterClient {
+  readonly serviceHost: string;
+
+  constructor(serviceHost: string, options?: grpc.RpcOptions);
+  drawChart(metadata?: grpc.Metadata): BidirectionalStream<src_app_protos_log_pb.CStatus, src_app_protos_log_pb.CData>;
 }
 

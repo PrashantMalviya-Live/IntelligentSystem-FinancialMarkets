@@ -55,3 +55,29 @@ message OrderMessage {
 message PublishStatus {
   bool status = 1;
 }
+
+
+// The logging service definition.
+service Charter {
+  rpc DrawChart (CData) returns (CStatus);
+}
+
+
+// The response message containing the log messages
+message CData {
+	string algoId = 1;
+	int32 algo_instance = 2;  
+	//time
+	google.protobuf.Timestamp t = 3;
+	uint32 instrumentToken = 4;
+	//data to plot
+	double d = 5;
+	string xlabel = 6;
+	string ylabel = 7;
+	string arg = 8;
+}
+
+// The response message containing the log messages
+message CStatus {
+  bool status = 1;
+}

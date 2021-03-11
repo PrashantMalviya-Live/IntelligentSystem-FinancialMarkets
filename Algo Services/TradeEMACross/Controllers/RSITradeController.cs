@@ -22,7 +22,9 @@ namespace TradeEMACross.Controllers
     [ApiController]
     public class RSITradeController : ControllerBase
     {
-        private const string key = "ACTIVE_RSIBUYSTRANGLE_OBJECTS";
+        private const string okey = "ACTIVE_RSIBUYSTRANGLE_OPTIONS";
+        private const string fkey = "ACTIVE_RSIBUYSTRANGLE_FUTURES";
+
         IConfiguration configuration;
         ZMQClient zmqClient;
         private IMemoryCache _cache;
@@ -77,6 +79,8 @@ namespace TradeEMACross.Controllers
                     EMA = Convert.ToInt32(DBNull.Value != drAlgo["Arg1"] ? drAlgo["Arg1"] : 0),
                     //PS = Convert.ToBoolean(DBNull.Value != drAlgo["PositionSizing"] ? drAlgo["PositionSizing"] : false),
                     TP = Convert.ToDecimal(DBNull.Value != drAlgo["Arg2"] ? drAlgo["Arg2"] : 0),
+                    CELL = Convert.ToDecimal(DBNull.Value != drAlgo["Arg3"] ? drAlgo["Arg3"] : 0),
+                    PEUL = Convert.ToDecimal(DBNull.Value != drAlgo["Arg6"] ? drAlgo["Arg6"] : 0)
                 };
                 algosView.aid = Convert.ToInt32(drAlgo["AlgoId"]);
                 algosView.an = Convert.ToString((AlgoIndex)algosView.aid);
@@ -96,10 +100,44 @@ namespace TradeEMACross.Controllers
                     orders.Add(o);
                 }
 
-                var slmOrders = orders.Where(o => o.Status == Constants.ORDER_STATUS_TRIGGER_PENDING && o.OrderType == Constants.ORDER_TYPE_SLM);
-                var completedOrders = orders.Where(o => o.Status == Constants.ORDER_STATUS_COMPLETE);
+                //var slmOrders = orders.Where(o => o.Status == Constants.ORDER_STATUS_TRIGGER_PENDING && o.OrderType == Constants.ORDER_TYPE_SLM);
+                //var completedOrders = orders.Where(o => o.Status == Constants.ORDER_STATUS_COMPLETE);
 
-                var pendingOrders = slmOrders.Where(x => !completedOrders.Any(c => c.OrderId == x.OrderId));
+                //var pendingOrders = slmOrders.Where(x => !completedOrders.Any(c => c.OrderId == x.OrderId));
+
+                DateTime? lastCallOrderTime = orders.Where(x=>x.Tradingsymbol.TakeLast(2).First().ToString().ToLower() == "c").Max(x => x.OrderTimestamp);
+                DateTime? lastPutOrderTime = orders.Where(x => x.Tradingsymbol.TakeLast(2).First().ToString().ToLower() == "p").Max(x => x.OrderTimestamp);
+                DateTime? lastFutOrderTime = orders.Where(x => x.Tradingsymbol.TakeLast(3).First().ToString().ToLower() == "f").Max(x => x.OrderTimestamp);
+
+                var lastCallOrder = orders.Where(x => x.OrderTimestamp == lastCallOrderTime && x.Tradingsymbol.TakeLast(2).First().ToString().ToLower() == "c").FirstOrDefault();
+                var lastPutOrder = orders.Where(x => x.OrderTimestamp == lastPutOrderTime && x.Tradingsymbol.TakeLast(2).First().ToString().ToLower() == "p").FirstOrDefault();
+                var lastFutOrder = orders.Where(x => x.OrderTimestamp == lastFutOrderTime && x.Tradingsymbol.TakeLast(3).First().ToString().ToLower() == "f").FirstOrDefault();
+
+                bool ordersPending = false;
+                if(lastCallOrder != null && lastCallOrder.TransactionType.Trim(' ').ToLower() == "buy")
+                {
+                    ordersPending = true;
+                    algosView.Orders.Add(ViewUtility.GetOrderView(lastCallOrder));
+                    algoInput.Order = lastCallOrder;
+                }
+                if (lastPutOrder != null && lastPutOrder.TransactionType.Trim(' ').ToLower() == "buy")
+                {
+                    ordersPending = true;
+                    algosView.Orders.Add(ViewUtility.GetOrderView(lastPutOrder));
+                    algoInput.Order = lastPutOrder;
+                }
+                if (lastFutOrder != null)
+                {
+                    ordersPending = true;
+                    algosView.Orders.Add(ViewUtility.GetOrderView(lastFutOrder));
+                    algoInput.Order = lastFutOrder;
+                }
+                if (ordersPending)
+                {
+                    Trade(algoInput, algosView.ains);
+                    activeAlgos.Add(algosView);
+                }
+                //activeAlgos.Add(algosView);
 
                 //if (pendingOrders != null && pendingOrders.Count() > 0)
                 //{
@@ -129,36 +167,76 @@ namespace TradeEMACross.Controllers
 #if local
             endDateTime = Convert.ToDateTime("2020-11-09 09:15:00");
 #endif
-
+            decimal minDistanceFromBaseInstrument = 10;
             ///FOR ALL STOCKS FUTURE , PASS INSTRUMENTTOKEN AS ZERO. FOR CE/PE ON BNF/NF SEND THE INDEX TOKEN AS INSTRUMENTTOKEN
-            OptionBuyingWithRSI optionBuywithRSI =
-                new OptionBuyingWithRSI(endDateTime, candleTimeSpan, instrumentToken, expiry,
-                optionQuantity, optionBuywithRSIInput.MinDFBI, optionBuywithRSIInput.MaxDFBI, 
-                optionBuywithRSIInput.RLLE, optionBuywithRSIInput.RULX, targetProfit: optionBuywithRSIInput.TP, 
-                optionBuywithRSIInput.EMA, algoInstance,  false, 0);
-
-            optionBuywithRSI.OnOptionUniverseChange += OptionBuywithRSI_OnOptionUniverseChange;
-            optionBuywithRSI.OnTradeEntry += OptionSellwithRSI_OnTradeEntry;
-            optionBuywithRSI.OnTradeExit += OptionSellwithRSI_OnTradeExit;
-
-            List<OptionBuyingWithRSI> activeAlgoObjects = _cache.Get<List<OptionBuyingWithRSI>>(key);
-
-            if (activeAlgoObjects == null)
+            if (optionBuywithRSIInput.Fut)
             {
-                activeAlgoObjects = new List<OptionBuyingWithRSI>();
+                FutureBuyWithRSICandle futureBuywithRSI =
+                 new FutureBuyWithRSICandle(endDateTime, candleTimeSpan, instrumentToken, expiry,
+                 optionQuantity, minDistanceFromBaseInstrument, optionBuywithRSIInput.MaxDFBI,
+                 optionBuywithRSIInput.RLLE, optionBuywithRSIInput.RULX, optionBuywithRSIInput.CELL,
+                 optionBuywithRSIInput.PEUL, targetProfit: optionBuywithRSIInput.TP,
+                 optionBuywithRSIInput.EMA, optionBuywithRSIInput.eDCHL, optionBuywithRSIInput.xDCHL, 
+                 algoInstance, optionBuywithRSIInput.EAC, false, 0);
+
+                algoInstance = futureBuywithRSI.AlgoInstance;
+                //futureBuywithRSI.LoadActiveOrders(optionBuywithRSIInput.CallOrder, optionBuywithRSIInput.PutOrder);
+                futureBuywithRSI.LoadActiveOrders(optionBuywithRSIInput.Order);
+
+                futureBuywithRSI.OnOptionUniverseChange += FutureBuywithRSI_OnOptionUniverseChange;
+                futureBuywithRSI.OnTradeEntry += OptionSellwithRSI_OnTradeEntry;
+                futureBuywithRSI.OnTradeExit += OptionSellwithRSI_OnTradeExit;
+
+                List<FutureBuyWithRSICandle> activeAlgoObjects = _cache.Get<List<FutureBuyWithRSICandle>>(fkey);
+
+                if (activeAlgoObjects == null)
+                {
+                    activeAlgoObjects = new List<FutureBuyWithRSICandle>();
+                }
+                activeAlgoObjects.Add(futureBuywithRSI);
+                _cache.Set(fkey, activeAlgoObjects);
+
+
+                Task task = Task.Run(() => NMQClientSubscription(futureBuywithRSI, instrumentToken));
             }
-            activeAlgoObjects.Add(optionBuywithRSI);
-            _cache.Set(key, activeAlgoObjects);
+            else
+            {
+                OptionBuyWithRSICandle optionBuywithRSI =
+                    new OptionBuyWithRSICandle(endDateTime, candleTimeSpan, instrumentToken, expiry,
+                    optionQuantity, minDistanceFromBaseInstrument, optionBuywithRSIInput.MaxDFBI,
+                    optionBuywithRSIInput.RLLE, optionBuywithRSIInput.RULX, optionBuywithRSIInput.CELL,
+                    optionBuywithRSIInput.PEUL, targetProfit: optionBuywithRSIInput.TP, stopLoss: optionBuywithRSIInput.SL,
+                    optionBuywithRSIInput.EMA, optionBuywithRSIInput.eDCHL, optionBuywithRSIInput.xDCHL, 
+                    algoInstance, optionBuywithRSIInput.EAC, false, 0);
+
+                algoInstance = optionBuywithRSI.AlgoInstance;
+
+                //optionBuywithRSI.LoadActiveOrders(optionBuywithRSIInput.CallOrder, optionBuywithRSIInput.PutOrder);
+                optionBuywithRSI.LoadActiveOrders(optionBuywithRSIInput.Order);
+
+                optionBuywithRSI.OnOptionUniverseChange += OptionBuywithRSI_OnOptionUniverseChange;
+                optionBuywithRSI.OnTradeEntry += OptionSellwithRSI_OnTradeEntry;
+                optionBuywithRSI.OnTradeExit += OptionSellwithRSI_OnTradeExit;
+
+                List<OptionBuyWithRSICandle> activeAlgoObjects = _cache.Get<List<OptionBuyWithRSICandle>>(okey);
+
+                if (activeAlgoObjects == null)
+                {
+                    activeAlgoObjects = new List<OptionBuyWithRSICandle>();
+                }
+                activeAlgoObjects.Add(optionBuywithRSI);
+                _cache.Set(okey, activeAlgoObjects);
 
 
-            Task task = Task.Run(() => NMQClientSubscription(optionBuywithRSI, instrumentToken));
+                Task task = Task.Run(() => NMQClientSubscription(optionBuywithRSI, instrumentToken));
 
+            }
             //await task;
             return new ActiveAlgosView
             {
                 aid = Convert.ToInt32(AlgoIndex.MomentumBuyWithRSI),
                 an = Convert.ToString((AlgoIndex)AlgoIndex.MomentumBuyWithRSI),
-                ains = optionBuywithRSI.AlgoInstance,
+                ains = algoInstance,
                 algodate = endDateTime.ToString("yyyy-MM-dd"),
                 binstrument = instrumentToken.ToString(),
                 expiry = expiry.ToString("yyyy-MM-dd"),
@@ -182,7 +260,14 @@ namespace TradeEMACross.Controllers
             Thread.Sleep(100);
         }
 
-        private async Task NMQClientSubscription(OptionBuyingWithRSI buyWithRSI, uint token)
+        private async Task NMQClientSubscription(OptionBuyWithRSICandle buyWithRSI, uint token)
+        {
+            zmqClient = new ZMQClient();
+            zmqClient.AddSubscriber(new List<uint>() { token });
+
+            await zmqClient.Subscribe(buyWithRSI);
+        }
+        private async Task NMQClientSubscription(FutureBuyWithRSICandle buyWithRSI, uint token)
         {
             zmqClient = new ZMQClient();
             zmqClient.AddSubscriber(new List<uint>() { token });
@@ -190,7 +275,7 @@ namespace TradeEMACross.Controllers
             await zmqClient.Subscribe(buyWithRSI);
         }
 
-        private void OptionBuywithRSI_OnOptionUniverseChange(OptionBuyingWithRSI source)
+        private void OptionBuywithRSI_OnOptionUniverseChange(OptionBuyWithRSICandle source)
         {
             try
             {
@@ -199,7 +284,17 @@ namespace TradeEMACross.Controllers
             catch (Exception ex)
             {
                 throw ex;
-
+            }
+        }
+        private void FutureBuywithRSI_OnOptionUniverseChange(FutureBuyWithRSICandle source)
+        {
+            try
+            {
+                zmqClient.AddSubscriber(source.SubscriptionTokens);
+            }
+            catch (Exception ex)
+            {
+                throw ex;
             }
         }
         [HttpGet("healthy")]
@@ -210,19 +305,30 @@ namespace TradeEMACross.Controllers
         [HttpPut("{ain}")]
         public bool Put(int ain, [FromBody] int start)
         {
-            List<OptionBuyingWithRSI> activeAlgoObjects;
-            if (!_cache.TryGetValue(key, out activeAlgoObjects))
-            {
-                activeAlgoObjects = new List<OptionBuyingWithRSI>();
-            }
+            List<FutureBuyWithRSICandle> activeAlgoFutures;
 
-            OptionBuyingWithRSI algoObject = activeAlgoObjects.FirstOrDefault(x => x.AlgoInstance == ain);
-            if (algoObject != null)
+            if (_cache.TryGetValue(fkey, out activeAlgoFutures))
             {
-                algoObject.StopTrade(!Convert.ToBoolean(start));
+                FutureBuyWithRSICandle algoObject = activeAlgoFutures.FirstOrDefault(x => x.AlgoInstance == ain);
+                if (algoObject != null)
+                {
+                    algoObject.StopTrade(!Convert.ToBoolean(start));
+                }
+                _cache.Set(fkey, activeAlgoFutures);
             }
-            _cache.Set(key, activeAlgoObjects);
-
+            else
+            {
+                List<OptionBuyWithRSICandle> activeAlgoOptions;
+                if (_cache.TryGetValue(okey, out activeAlgoOptions))
+                {
+                    OptionBuyWithRSICandle algoObject = activeAlgoOptions.FirstOrDefault(x => x.AlgoInstance == ain);
+                    if (algoObject != null)
+                    {
+                        algoObject.StopTrade(!Convert.ToBoolean(start));
+                    }
+                    _cache.Set(okey, activeAlgoOptions);
+                }
+            }
             return true;
         }
 

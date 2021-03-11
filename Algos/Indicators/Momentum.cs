@@ -1,15 +1,15 @@
-﻿using System.ComponentModel;
-using System.Linq;
-
+﻿using System;
+using System.ComponentModel;
 namespace Algorithms.Indicators
-{
+{ 
+
 	/// <summary>
 	/// Momentum.
 	/// </summary>
 	/// <remarks>
 	/// Momentum Simple = C - C-n Where C- closing price of previous period. Where C-n - closing price N periods ago.
 	/// </remarks>
-	[DisplayName("Momentum")]
+[DisplayName("Momentum")]
 	public class Momentum : LengthIndicator<decimal>
 	{
 		/// <summary>
@@ -31,7 +31,7 @@ namespace Algorithms.Indicators
 			if (input.IsFinal)
 			{
 				Buffer.Add(newValue);
-
+				
 				if ((Buffer.Count - 1) > Length)
 					Buffer.RemoveAt(0);
 			}

@@ -23,7 +23,7 @@ namespace Algorithms.Indicators
 			_gain = new SmoothedMovingAverage();
 			_loss = new SmoothedMovingAverage();
 
-			Length = 15;
+			Length = 14;
 		}
 
 		/// <inheritdoc />

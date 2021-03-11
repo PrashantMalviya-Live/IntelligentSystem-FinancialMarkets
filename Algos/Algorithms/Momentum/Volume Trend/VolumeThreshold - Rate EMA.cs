@@ -117,7 +117,7 @@ namespace Algorithms.Algorithms
             ///TODO: Consider sending instrumenttoken in a list, and avoid loop while calling stored procedure
             foreach (uint token in  tokensToSubscribe )//tokenVolume.Keys)
             {
-                List<Candle> historicalCandles = candleSeries.LoadCandles(Math.Max(LONG_EMA, CANDLE_COUNT), CandleType.Time, ydayEndTime, token, _candleTimeSpan);
+                List<Candle> historicalCandles = candleSeries.LoadCandles(Math.Max(LONG_EMA, CANDLE_COUNT), CandleType.Time, ydayEndTime, token.ToString(), _candleTimeSpan);
                 
                 TimeCandles.Add(token, historicalCandles);
 

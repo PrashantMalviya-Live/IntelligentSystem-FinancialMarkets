@@ -44,6 +44,11 @@ namespace GlobalLayer
         [Display(Name = "Strangle With RSI")]
         StrangleWithRSI = 19,
         MomentumBuyWithRSI = 20,
+        MomentumBuyWithStraddle = 21,
+        PremiumCross = 22,
+        OptionBuyWithStraddle = 23,
+        ManageReferenceStraddle = 24,
+        IVSpreadTrade = 25,
         KiteConnect = 1001
     }
     public enum MarketOpenRange
@@ -58,7 +63,8 @@ namespace GlobalLayer
         Long = 0,
         Short = 1,
         Hold = 2,
-        DoNotTrade = 3
+        DoNotTrade = 3,
+        Open = 4
     }
     public enum CurrentPostion
     {
@@ -383,21 +389,21 @@ namespace GlobalLayer
             LowTime = Convert.ToDateTime(candleRow["lowTime"]);
             LowVolume = Convert.ToDecimal(candleRow["lowVolume"]);
 
-            List<CandlePriceLevel> candlePriceLevels = new List<CandlePriceLevel>();
-            foreach (DataRow drPriceLevel in candleRow.GetChildRows("Candle_PriceLevel"))
-            {
-                CandlePriceLevel candlePriceLevel = new CandlePriceLevel(Convert.ToDecimal(drPriceLevel["Price"]));
+            //List<CandlePriceLevel> candlePriceLevels = new List<CandlePriceLevel>();
+            //foreach (DataRow drPriceLevel in candleRow.GetChildRows("Candle_PriceLevel"))
+            //{
+            //    CandlePriceLevel candlePriceLevel = new CandlePriceLevel(Convert.ToDecimal(drPriceLevel["Price"]));
 
-                candlePriceLevel.BuyCount = Convert.ToInt32(drPriceLevel["BuyCount"]);
-                candlePriceLevel.BuyVolume = Convert.ToInt32(drPriceLevel["BuyVolume"]);
-                candlePriceLevel.SellCount = Convert.ToInt32(drPriceLevel["SellCount"]);
-                candlePriceLevel.SellVolume = Convert.ToInt32(drPriceLevel["SellVolume"]);
-                candlePriceLevel.TotalVolume = Convert.ToInt32(drPriceLevel["TotalVolume"]);
-                candlePriceLevel.CandleType = (CandleType)Convert.ToInt32(drPriceLevel["CandleType"]);
-                candlePriceLevels.Add(candlePriceLevel);
-            }
+            //    candlePriceLevel.BuyCount = Convert.ToInt32(drPriceLevel["BuyCount"]);
+            //    candlePriceLevel.BuyVolume = Convert.ToInt32(drPriceLevel["BuyVolume"]);
+            //    candlePriceLevel.SellCount = Convert.ToInt32(drPriceLevel["SellCount"]);
+            //    candlePriceLevel.SellVolume = Convert.ToInt32(drPriceLevel["SellVolume"]);
+            //    candlePriceLevel.TotalVolume = Convert.ToInt32(drPriceLevel["TotalVolume"]);
+            //    candlePriceLevel.CandleType = (CandleType)Convert.ToInt32(drPriceLevel["CandleType"]);
+            //    candlePriceLevels.Add(candlePriceLevel);
+            //}
 
-            PriceLevels = candlePriceLevels;
+            //PriceLevels = candlePriceLevels;
 
             OpenInterest = Convert.ToUInt32(candleRow["openInterest"]);
             OpenPrice = Convert.ToDecimal(candleRow["openPrice"]);
@@ -1202,14 +1208,14 @@ namespace GlobalLayer
     [Serializable]
     public class Option : Instrument
     {
-        [Key]
+        //[Key]
         //public uint InstrumentToken { get; set; }
         //public decimal LTP { get; set; }
 
         //public decimal IntrinsicValue { get; set; }
         public decimal OI { get; set; }
         public decimal DeltaOI { get; set; }
-        public decimal IV { get; set; }
+        public decimal? IV { get; set; }
         public decimal Delta { get; set; }
         public decimal Vega { get; set; }
         public decimal Gamma { get; set; }
@@ -1464,6 +1470,19 @@ namespace GlobalLayer
         public decimal TriggerPrice { get; set; }
         public string Validity { get; set; }
         public AlgoIndex AlgoIndex { get; set; }
+    }
+
+    public class ChartData
+    { 
+        public UInt32 InstrumentToken { get; set; }
+        public int AlgoInstance { get; set; }
+        public decimal d { get; set; }
+        public string xLabel { get; set; }
+        public string yLabel { get; set; }
+        public int AlgoId { get; set; } = 0;
+        public string Arg { get; set; }
+
+        public DateTime T { get; set; }
     }
 
     /// <summary>
@@ -2347,10 +2366,93 @@ namespace GlobalLayer
             }
         }
     }
+    public class StraddleNode
+    {
+        public decimal Strike { get; set; }
+        public Instrument Call { get; set; }
+        public Instrument Put { get; set; }
+        public int isCallLower { get; set; } = 0; // 1 means yes, -1 means no, 0 means NA
+        public bool Crossed { get; set; } = false;
+        public DateTime? CrossTime { get; set; }
+        public StraddleNode PrevNode { get; set; }
+        public StraddleNode NextNode { get; set; }
+    }
+    public class StraddleLinkedList
+    {
+        public StraddleNode First;
+        public StraddleNode Current;
+
+        public StraddleLinkedList(StraddleNode straddleNode)
+        {
+            //Current = straddleNode;
+            First = straddleNode;
+        }
+        public void InsertNode(StraddleNode straddleNode)
+        {
+            StraddleNode tempNode = First;
+            StraddleNode dummyNode;
+
+            if (straddleNode.Strike < First.Strike)
+            {
+                straddleNode.NextNode = First;
+                First.PrevNode = straddleNode;
+                First = straddleNode;
+            }
+            else
+            {
+                while (tempNode.NextNode != null)
+                {
+                    if (straddleNode.Strike > tempNode.Strike && straddleNode.Strike < tempNode.NextNode.Strike)
+                    {
+                        dummyNode = tempNode.NextNode;
+                        tempNode.NextNode = straddleNode;
+                        straddleNode.PrevNode = tempNode;
+
+                        straddleNode.NextNode = dummyNode;
+                        dummyNode.PrevNode = straddleNode;
+                        break;
+                    }
+                    tempNode = tempNode.NextNode;
+                }
+
+                if(tempNode.NextNode == null && straddleNode.Strike > tempNode.Strike)
+                {
+                    tempNode.NextNode = straddleNode;
+                    straddleNode.PrevNode = tempNode;
+                }
+            }
+        }
+        public StraddleNode FindImmediateNode(decimal strike, bool lowerNode)
+        {
+            StraddleNode tempNode = First;
+            if (lowerNode)
+            {
+                while (tempNode != null)
+                {
+                    if (tempNode.Strike < strike && (tempNode.NextNode == null || tempNode.NextNode.Strike > strike))
+                    {
+                        return tempNode;
+                    }
+                    tempNode = tempNode.NextNode;
+                }
+            }
+            else
+            {
+                while (tempNode != null)
+                {
+                    if (tempNode.Strike > strike && (tempNode.PrevNode == null || tempNode.PrevNode.Strike < strike))
+                    {
+                        return tempNode;
+                    }
+                    tempNode = tempNode.NextNode;
+                }
+            }
+            return null;
+        }
+    }
     public class StrangleInstrumentLinkedList
     {
         public StrangleInstrumentListNode Current { get; set; }
-
         public StrangleInstrumentLinkedList(StrangleInstrumentListNode instrument)
         {
             Current = instrument;
@@ -2730,6 +2832,8 @@ namespace GlobalLayer
         public DateTime EntryTradeTime { get; set; }
         public Order SLOrder { get; set; }
         public decimal StopLoss { get; set; }
+
+        public decimal BaseInstrumentStopLoss { get; set; }
         public Order TPOrder { get; set; }
         public decimal TargetProfit { get; set; }
     }

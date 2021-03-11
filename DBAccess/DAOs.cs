@@ -12,12 +12,81 @@ namespace DataAccess
 {
     public class MarketDAO
     {
+        public OHLC GetPreviousDayRange(uint token, DateTime dateTime)
+        {
+            SqlConnection sqlConnection = new SqlConnection(Utility.GetConnectionString());
+            SqlCommand sqlCMD = new SqlCommand("GetPreviousDayRange", sqlConnection)
+            {
+                CommandTimeout = 3000,
+                CommandType = CommandType.StoredProcedure
+            };
+
+            sqlCMD.Parameters.AddWithValue("@Token", Convert.ToInt64(token));
+            sqlCMD.Parameters.AddWithValue("@DateTime", dateTime);
+
+            SqlDataAdapter daInstruments = new SqlDataAdapter()
+            {
+                SelectCommand = sqlCMD
+            };
+
+            sqlConnection.Open();
+            DataSet dsOHLC = new DataSet();
+            daInstruments.Fill(dsOHLC);
+            sqlConnection.Close();
+
+            DataRow dataRow = dsOHLC.Tables[0].Rows[0];
+
+            OHLC ohlc = new OHLC() { 
+                Open = Convert.ToDecimal(dataRow["Open"]), 
+                High = Convert.ToDecimal(dataRow["High"]), 
+                Low = Convert.ToDecimal(dataRow["Low"]), 
+                Close = Convert.ToDecimal(dataRow["Close"]) };
+
+            return ohlc;
+        }
+        public OHLC GetPriceRange(uint token, DateTime startDateTime, DateTime endDateTime)
+        {
+            SqlConnection sqlConnection = new SqlConnection(Utility.GetConnectionString());
+            SqlCommand sqlCMD = new SqlCommand("GetPriceRange", sqlConnection)
+            {
+                CommandTimeout = 3000,
+                CommandType = CommandType.StoredProcedure
+            };
+
+            sqlCMD.Parameters.AddWithValue("@Token", Convert.ToInt64(token));
+            sqlCMD.Parameters.AddWithValue("@StartDateTime", startDateTime);
+            sqlCMD.Parameters.AddWithValue("@EndDateTime", endDateTime);
+
+            SqlDataAdapter daInstruments = new SqlDataAdapter()
+            {
+                SelectCommand = sqlCMD
+            };
+
+            sqlConnection.Open();
+            DataSet dsOHLC = new DataSet();
+            daInstruments.Fill(dsOHLC);
+            sqlConnection.Close();
+
+            DataRow dataRow = dsOHLC.Tables[0].Rows[0];
+
+            OHLC ohlc = new OHLC()
+            {
+                Open = Convert.ToDecimal(dataRow["Open"]),
+                High = Convert.ToDecimal(dataRow["High"]),
+                Low = Convert.ToDecimal(dataRow["Low"]),
+                Close = Convert.ToDecimal(dataRow["Close"])
+            };
+
+            return ohlc;
+        }
+
+       
         public string GetAccessToken()
         {
             SqlConnection sqlConnection = new SqlConnection(Utility.GetConnectionString());
             SqlCommand sqlCMD = new SqlCommand("GetAccessToken", sqlConnection)
             {
-                CommandTimeout = 30,
+                CommandTimeout = 3000,
                 CommandType = CommandType.StoredProcedure
             };
 
@@ -34,7 +103,7 @@ namespace DataAccess
             SqlConnection sqlConnection = new SqlConnection(Utility.GetConnectionString());
             SqlCommand sqlCMD = new SqlCommand("UpdateUser", sqlConnection)
             {
-                CommandTimeout = 30,
+                CommandTimeout = 3000,
                 CommandType = CommandType.StoredProcedure
             };
 
@@ -68,7 +137,7 @@ namespace DataAccess
             SqlConnection sqlConnection = new SqlConnection(Utility.GetConnectionString());
             SqlCommand selectCMD = new SqlCommand("GetActiveUser", sqlConnection)
             {
-                CommandTimeout = 30,
+                CommandTimeout = 3000,
                 CommandType = CommandType.StoredProcedure
             };
             SqlDataAdapter daInstruments = new SqlDataAdapter()
@@ -89,12 +158,13 @@ namespace DataAccess
             decimal upperLimitPercent = 0, decimal lowerLimit = 0, decimal lowerLimitPercent = 0, 
             float stopLossPoints = 0, int optionType = 0, int optionIndex = 0, float candleTimeFrameInMins = 5, 
             CandleType candleType = CandleType.Time, decimal arg1 = 0, decimal arg2 = 0,
-            decimal arg3 = 0, decimal arg4 = 0, decimal arg5 = 0, bool positionSizing = false, decimal maxLossPerTrade = 0)
+            decimal arg3 = 0, decimal arg4 = 0, decimal arg5 = 0, decimal arg6 = 0, decimal arg7 = 0,
+            decimal arg8 = 0, bool positionSizing = false, decimal maxLossPerTrade = 0)
         {
             SqlConnection sqlConnection = new SqlConnection(Utility.GetConnectionString());
             SqlCommand insertCMD = new SqlCommand("CreateAlgoInstance", sqlConnection)
             {
-                CommandTimeout = 30,
+                CommandTimeout = 3000,
                 CommandType = CommandType.StoredProcedure
             };
 
@@ -120,6 +190,9 @@ namespace DataAccess
             insertCMD.Parameters.AddWithValue("@Arg3", arg3);
             insertCMD.Parameters.AddWithValue("@Arg4", arg4);
             insertCMD.Parameters.AddWithValue("@Arg5", arg5);
+            insertCMD.Parameters.AddWithValue("@Arg6", arg6);
+            insertCMD.Parameters.AddWithValue("@Arg7", arg7);
+            insertCMD.Parameters.AddWithValue("@Arg8", arg8);
             insertCMD.Parameters.AddWithValue("@PositionSizing", positionSizing);
             insertCMD.Parameters.AddWithValue("@MaxLossPerTrade", maxLossPerTrade);
 
@@ -148,7 +221,7 @@ namespace DataAccess
 
             SqlCommand selectCMD = new SqlCommand("GetActiveData", sqlConnection)
             {
-                CommandTimeout = 30,
+                CommandTimeout = 3000,
                 CommandType = CommandType.StoredProcedure
             };
             selectCMD.Parameters.AddWithValue("@AlgoIndex", (int)algoIndex);
@@ -171,7 +244,7 @@ namespace DataAccess
 
             SqlCommand selectCMD = new SqlCommand("GetActiveAlgosData", sqlConnection)
             {
-                CommandTimeout = 30,
+                CommandTimeout = 3000,
                 CommandType = CommandType.StoredProcedure
             };
             selectCMD.Parameters.AddWithValue("@AlgoIndex", (int)algoIndex);
@@ -188,16 +261,17 @@ namespace DataAccess
 
             return dsInstruments;
         }
-        public DataSet GetInstrument(uint instrumentToken)
+        public DataSet GetInstrument(uint instrumentToken, DateTime expiry)
         {
             SqlConnection sqlConnection = new SqlConnection(Utility.GetConnectionString());
 
             SqlCommand selectCMD = new SqlCommand("GetInstrument", sqlConnection)
             {
-                CommandTimeout = 30,
+                CommandTimeout = 3000,
                 CommandType = CommandType.StoredProcedure
             };
             selectCMD.Parameters.AddWithValue("@InstrumentToken", Convert.ToInt64(instrumentToken));
+            selectCMD.Parameters.AddWithValue("@Expiry", expiry);
             SqlDataAdapter daInstrument = new SqlDataAdapter()
             {
                 SelectCommand = selectCMD
@@ -210,13 +284,36 @@ namespace DataAccess
 
             return dsInstrument;
         }
+        public DataSet GetInstrument(string tradingSymbol)
+        {
+            SqlConnection sqlConnection = new SqlConnection(Utility.GetConnectionString());
+
+            SqlCommand selectCMD = new SqlCommand("GetInstrumentBySymbol", sqlConnection)
+            {
+                CommandTimeout = 3000,
+                CommandType = CommandType.StoredProcedure
+            };
+            selectCMD.Parameters.AddWithValue("@TradingSymbol", tradingSymbol);
+            SqlDataAdapter daInstrument = new SqlDataAdapter()
+            {
+                SelectCommand = selectCMD
+            };
+
+            sqlConnection.Open();
+            DataSet dsInstrument = new DataSet();
+            daInstrument.Fill(dsInstrument);
+            sqlConnection.Close();
+
+            return dsInstrument;
+        }
+
         public DataSet GetInstrument(DateTime expiry, uint bInstrumentToken, decimal strike, string instrumentType)
         {
             SqlConnection sqlConnection = new SqlConnection(Utility.GetConnectionString());
 
             SqlCommand selectCMD = new SqlCommand("FindInstrument", sqlConnection)
             {
-                CommandTimeout = 30,
+                CommandTimeout = 3000,
                 CommandType = CommandType.StoredProcedure
             };
             
@@ -243,7 +340,7 @@ namespace DataAccess
 
             SqlCommand selectCMD = new SqlCommand("GetOrders", sqlConnection)
             {
-                CommandTimeout = 30,
+                CommandTimeout = 3000,
                 CommandType = CommandType.StoredProcedure
             };
             selectCMD.Parameters.AddWithValue("@AlgoIndex", (int)algoindex);
@@ -269,7 +366,7 @@ namespace DataAccess
 
             SqlCommand selectCMD = new SqlCommand("GetInstruments", sqlConnection)
             {
-                CommandTimeout = 30,
+                CommandTimeout = 3000,
                 CommandType = CommandType.StoredProcedure
             };
             selectCMD.Parameters.AddWithValue("@AlgoIndex", (int)algoIndex);
@@ -295,7 +392,33 @@ namespace DataAccess
             return dsInstruments;
         }
 
+        public DataSet LoadSpreadOptions(DateTime? nearExpiry, DateTime? farExpiry,
+            uint baseInstrumentToken, string strikeList)
+        {
+            SqlConnection sqlConnection = new SqlConnection(Utility.GetConnectionString());
 
+            SqlCommand selectCMD = new SqlCommand("GetSpreadOptions", sqlConnection)
+            {
+                CommandTimeout = 3000,
+                CommandType = CommandType.StoredProcedure
+            };
+            selectCMD.Parameters.AddWithValue("@NearExpiry", nearExpiry.Value);
+            selectCMD.Parameters.AddWithValue("@FarExpiry", farExpiry.Value);
+            selectCMD.Parameters.AddWithValue("@BaseInstrumentToken", (Int64)baseInstrumentToken);
+            selectCMD.Parameters.AddWithValue("@StrikeList", strikeList);
+
+            SqlDataAdapter daInstruments = new SqlDataAdapter()
+            {
+                SelectCommand = selectCMD
+            };
+
+            sqlConnection.Open();
+            DataSet dsInstruments = new DataSet();
+            daInstruments.Fill(dsInstruments);
+            sqlConnection.Close();
+
+            return dsInstruments;
+        }
         public DataSet LoadCloseByOptions(DateTime? expiry, uint baseInstrumentToken, decimal baseInstrumentPrice = 0, 
             decimal maxDistanceFromBInstrument= 500)
         {
@@ -303,13 +426,40 @@ namespace DataAccess
 
             SqlCommand selectCMD = new SqlCommand("GetNearByOptions", sqlConnection)
             {
-                CommandTimeout = 30,
+                CommandTimeout = 3000,
                 CommandType = CommandType.StoredProcedure
             };
             selectCMD.Parameters.AddWithValue("@ExpiryDate", expiry.Value);
             selectCMD.Parameters.AddWithValue("@BaseInstrumentToken", (Int64)baseInstrumentToken);
             selectCMD.Parameters.AddWithValue("@BaseInstrumentPrice", baseInstrumentPrice);
             selectCMD.Parameters.AddWithValue("@MaxDistanceFromBInstrument", maxDistanceFromBInstrument);
+
+            SqlDataAdapter daInstruments = new SqlDataAdapter()
+            {
+                SelectCommand = selectCMD
+            };
+
+            sqlConnection.Open();
+            DataSet dsInstruments = new DataSet();
+            daInstruments.Fill(dsInstruments);
+            sqlConnection.Close();
+
+            return dsInstruments;
+        }
+        public DataSet LoadCloseByExpiryOptions(uint baseInstrumentToken, decimal baseInstrumentPrice,
+            decimal maxDistanceFromBInstrument, DateTime currentDate)
+        {
+            SqlConnection sqlConnection = new SqlConnection(Utility.GetConnectionString());
+
+            SqlCommand selectCMD = new SqlCommand("GetNearByExpiryOptions", sqlConnection)
+            {
+                CommandTimeout = 3000,
+                CommandType = CommandType.StoredProcedure
+            };
+            selectCMD.Parameters.AddWithValue("@BaseInstrumentToken", (Int64)baseInstrumentToken);
+            selectCMD.Parameters.AddWithValue("@BaseInstrumentPrice", baseInstrumentPrice);
+            selectCMD.Parameters.AddWithValue("@MaxDistanceFromBInstrument", maxDistanceFromBInstrument);
+            selectCMD.Parameters.AddWithValue("@CurrentDate", currentDate);
 
             SqlDataAdapter daInstruments = new SqlDataAdapter()
             {
@@ -330,7 +480,7 @@ namespace DataAccess
 
             SqlCommand selectCMD = new SqlCommand("GetHistoricalMaxCandleVolume", sqlConnection)
             {
-                CommandTimeout = 30,
+                CommandTimeout = 3000,
                 CommandType = CommandType.StoredProcedure
             };
             selectCMD.Parameters.AddWithValue("@AlgoIndex", (int)algoIndex);
@@ -351,22 +501,46 @@ namespace DataAccess
             return dsTokenVolume;
         }
 
-        public DataSet GetHistoricalCandlePrices(int numberofCandles, DateTime endDateTime, string tokenList, TimeSpan timeFrame, bool isBaseInstrument = false)
+        public DataSet GetHistoricalCandlePrices(int numberofCandles, DateTime endDateTime, string tokenList, TimeSpan timeFrame, 
+            bool isBaseInstrument = false, CandleType candleType = CandleType.Time, uint vThreshold = 0)
         {
             SqlConnection sqlConnection = new SqlConnection(Utility.GetConnectionString());
+            
 
-            string storedProc = isBaseInstrument ? "GetCandleClosePricesForBInstrument" : "GetCandleClosePrices";
-
-            SqlCommand selectCMD = new SqlCommand(storedProc, sqlConnection)
+            string storedProc;
+            SqlCommand selectCMD = null;
+            if (candleType == CandleType.Time)
             {
-                CommandTimeout = 6000,
-                CommandType = CommandType.StoredProcedure
-            };
-            selectCMD.Parameters.AddWithValue("@NoOfCandles", numberofCandles);
-            selectCMD.Parameters.AddWithValue("@EndTime", endDateTime);
-            selectCMD.Parameters.AddWithValue("@TimeFrame", timeFrame);
-            selectCMD.Parameters.AddWithValue("@InstrumentTokenList", tokenList);
-            selectCMD.Parameters.AddWithValue("@CandleType", (int)CandleType.Time);
+                storedProc = isBaseInstrument ? "GetCandleClosePricesForBInstrument" : "GetCandleClosePrices";
+
+                selectCMD = new SqlCommand(storedProc, sqlConnection)
+                {
+                    CommandTimeout = 6000,
+                    CommandType = CommandType.StoredProcedure
+                };
+
+                selectCMD.Parameters.AddWithValue("@NoOfCandles", numberofCandles);
+                selectCMD.Parameters.AddWithValue("@EndTime", endDateTime);
+                selectCMD.Parameters.AddWithValue("@TimeFrame", timeFrame);
+                selectCMD.Parameters.AddWithValue("@InstrumentTokenList", tokenList);
+                selectCMD.Parameters.AddWithValue("@CandleType", (int)CandleType.Time);
+            }
+            else if (candleType == CandleType.Volume)
+            {
+                storedProc = "GetVCandleClosePrices";
+
+                selectCMD = new SqlCommand(storedProc, sqlConnection)
+                {
+                    CommandTimeout = 6000,
+                    CommandType = CommandType.StoredProcedure
+                };
+
+                selectCMD.Parameters.AddWithValue("@NoOfCandles", numberofCandles);
+                selectCMD.Parameters.AddWithValue("@EndTime", endDateTime);
+                selectCMD.Parameters.AddWithValue("@VThreshold", Convert.ToInt64(vThreshold));
+                selectCMD.Parameters.AddWithValue("@InstrumentToken", Convert.ToInt64(tokenList));
+                selectCMD.Parameters.AddWithValue("@CandleType", (int)CandleType.Volume);
+            }
 
             SqlDataAdapter daTokenVolume = new SqlDataAdapter()
             {
@@ -419,7 +593,7 @@ namespace DataAccess
 
             SqlCommand selectCMD = new SqlCommand("GetLatestTickForInstrument", sqlConnection)
             {
-                CommandTimeout = 30,
+                CommandTimeout = 3000,
                 CommandType = CommandType.StoredProcedure
             };
             selectCMD.Parameters.AddWithValue("@InstrumentToken", (Int64)instrumentToken);
@@ -467,7 +641,7 @@ namespace DataAccess
 
             SqlCommand selectCMD = new SqlCommand("GetInstruments", sqlConnection)
             {
-                CommandTimeout = 30,
+                CommandTimeout = 3000,
                 CommandType = CommandType.StoredProcedure
             };
             selectCMD.Parameters.AddWithValue("@StrikePrices", strikePrices);
@@ -494,7 +668,7 @@ namespace DataAccess
 
             SqlCommand selectCMD = new SqlCommand("GetActiveStrangleData", sqlConnection)
             {
-                CommandTimeout = 30,
+                CommandTimeout = 3000,
                 CommandType = CommandType.StoredProcedure
             };
             selectCMD.Parameters.AddWithValue("@AlgoIndex", (int)algoIndex);
@@ -518,7 +692,7 @@ namespace DataAccess
 
             SqlCommand selectCMD = new SqlCommand("GetActivePivotInstruments", sqlConnection)
             {
-                CommandTimeout = 30,
+                CommandTimeout = 3000,
                 CommandType = CommandType.StoredProcedure
             };
             selectCMD.Parameters.AddWithValue("@AlgoIndex", (int)algoIndex);
@@ -541,7 +715,7 @@ namespace DataAccess
 
             SqlCommand selectCMD = new SqlCommand("TestGetActivePivotInstruments", sqlConnection)
             {
-                CommandTimeout = 30,
+                CommandTimeout = 3000,
                 CommandType = CommandType.StoredProcedure
             };
             selectCMD.Parameters.AddWithValue("@AlgoIndex", (int)algoIndex);
@@ -576,7 +750,7 @@ namespace DataAccess
             SqlConnection sqlConnection = new SqlConnection(Utility.GetConnectionString());
             SqlCommand updateCMD = new SqlCommand("SaveCandle", sqlConnection)
             {
-                CommandTimeout = 30,
+                CommandTimeout = 3000,
                 CommandType = CommandType.StoredProcedure
             };
             
@@ -636,19 +810,19 @@ namespace DataAccess
             return candleID;
 
         }
-        public DataSet LoadCandles(int numberofCandles, CandleType candleType, DateTime endDateTime, uint instrumentToken, TimeSpan timeFrame)
+        public DataSet LoadCandles(int numberofCandles, CandleType candleType, DateTime endDateTime, string instrumentTokenList, TimeSpan timeFrame)
         {
             SqlConnection sqlConnection = new SqlConnection(Utility.GetConnectionString());
 
             SqlCommand selectCMD = new SqlCommand("GetCandles", sqlConnection)
             {
-                CommandTimeout = 30,
+                CommandTimeout = 3000,
                 CommandType = CommandType.StoredProcedure
             };
             selectCMD.Parameters.AddWithValue("@NoOfCandles", numberofCandles);
             selectCMD.Parameters.AddWithValue("@EndTime",  endDateTime);
             selectCMD.Parameters.AddWithValue("@TimeFrame", timeFrame);
-            selectCMD.Parameters.AddWithValue("@InstrumentToken", (Int64) instrumentToken);
+            selectCMD.Parameters.AddWithValue("@InstrumentTokenList", instrumentTokenList);
             selectCMD.Parameters.AddWithValue("@CandleType", (int)candleType);
 
             SqlDataAdapter daCandles = new SqlDataAdapter()
@@ -674,7 +848,7 @@ namespace DataAccess
             SqlConnection sqlConnection = new SqlConnection(Utility.GetConnectionString());
             SqlCommand updateCMD = new SqlCommand("SaveCandlePriceLevels", sqlConnection)
             {
-                CommandTimeout = 30,
+                CommandTimeout = 3000,
                 CommandType = CommandType.StoredProcedure
             };
 
@@ -709,7 +883,7 @@ namespace DataAccess
             SqlConnection sqlConnection = new SqlConnection(Utility.GetConnectionString());
             SqlCommand updateCMD = new SqlCommand("UpdateOrder", sqlConnection)
             {
-                CommandTimeout = 60,
+                CommandTimeout = 3000,
                 CommandType = CommandType.StoredProcedure
             };
 
@@ -728,8 +902,11 @@ namespace DataAccess
             updateCMD.Parameters.AddWithValue("@StrategyID", strategyID);
             updateCMD.Parameters.AddWithValue("@OrderId", order.OrderId);
             updateCMD.Parameters.AddWithValue("@AveragePrice", (decimal)order.AveragePrice);
-            updateCMD.Parameters.AddWithValue("@ExchangeOrderId", (DateTime)order.ExchangeTimestamp.Value);
-            updateCMD.Parameters.AddWithValue("@ExchangeTimestamp", (DateTime)order.ExchangeTimestamp.Value);
+            if (order.ExchangeTimestamp != null)
+            {
+                updateCMD.Parameters.AddWithValue("@ExchangeOrderId", (DateTime)order.ExchangeTimestamp.Value);
+                updateCMD.Parameters.AddWithValue("@ExchangeTimestamp", (DateTime)order.ExchangeTimestamp.Value);
+            }
             updateCMD.Parameters.AddWithValue("@FilledQuantity", order.FilledQuantity);
             updateCMD.Parameters.AddWithValue("@InstrumentToken", (Int64)order.InstrumentToken);
             updateCMD.Parameters.AddWithValue("@OrderTimestamp", order.OrderTimestamp.HasValue? order.OrderTimestamp:DateTime.Now);
@@ -774,7 +951,7 @@ namespace DataAccess
             SqlConnection sqlConnection = new SqlConnection(Utility.GetConnectionString());
             SqlCommand updateCMD = new SqlCommand("UpdateTrade", sqlConnection)
             {
-                CommandTimeout = 30,
+                CommandTimeout = 3000,
                 CommandType = CommandType.StoredProcedure
             };
             //if (strategyID != 0)
@@ -809,13 +986,52 @@ namespace DataAccess
             }
             return netPnL;
         }
+
+        public decimal InsertOptionIV(uint token1, uint token2, decimal _baseInstrumentPrice, decimal? iv1, decimal lastPrice1, DateTime lastTradeTime1,
+         decimal? iv2, decimal lastPrice2, DateTime lastTradeTime2)
+        {
+            decimal netPnL = 0;
+            SqlConnection sqlConnection = new SqlConnection(Utility.GetConnectionString());
+            SqlCommand updateCMD = new SqlCommand("InsertOptionIV", sqlConnection)
+            {
+                CommandTimeout = 3000,
+                CommandType = CommandType.StoredProcedure
+            };
+            updateCMD.Parameters.AddWithValue("@Token1", (Int64)token1);
+            updateCMD.Parameters.AddWithValue("@Token2", (Int64)token2);
+            updateCMD.Parameters.AddWithValue("@BasePrice", (Int64)_baseInstrumentPrice);
+            updateCMD.Parameters.AddWithValue("@LastPrice1", lastPrice1);
+            updateCMD.Parameters.AddWithValue("@LastPrice2", lastPrice2);
+            updateCMD.Parameters.AddWithValue("@IV1", iv1);
+            updateCMD.Parameters.AddWithValue("@IV2", iv2);
+            updateCMD.Parameters.AddWithValue("@LastTradeTime1", lastTradeTime1);
+            updateCMD.Parameters.AddWithValue("@LastTradeTime2", lastTradeTime2);
+
+            try
+            {
+                sqlConnection.Open();
+                updateCMD.ExecuteNonQuery();
+                sqlConnection.Close();
+            }
+            catch (Exception e)
+            {
+                Logger.LogWrite(e.Message);
+            }
+            finally
+            {
+                if (sqlConnection.State == ConnectionState.Open)
+                    sqlConnection.Close();
+            }
+            return netPnL;
+        }
+
         public int StoreBoxData(int boxID, UInt32 firstCallToken, UInt32 secondCallToken, UInt32 firstPutToken, UInt32 secondPutToken,
            decimal firstCallPrice, decimal secondCallPrice, decimal firstPutPrice, decimal secondPutPrice, decimal boxValue)
         {
             SqlConnection sqlConnection = new SqlConnection(Utility.GetConnectionString());
             SqlCommand updateCMD = new SqlCommand("StoreBoxData", sqlConnection)
             {
-                CommandTimeout = 30,
+                CommandTimeout = 3000,
                 CommandType = CommandType.StoredProcedure
             };
             if (boxID != 0)
@@ -861,7 +1077,7 @@ namespace DataAccess
 
             SqlCommand selectCMD = new SqlCommand("GetBoxData", sqlConnection)
             {
-                CommandTimeout = 30,
+                CommandTimeout = 3000,
                 CommandType = CommandType.StoredProcedure
             };
             selectCMD.Parameters.AddWithValue("@BoxId", boxID);
@@ -885,7 +1101,7 @@ namespace DataAccess
 
             SqlCommand selectCMD = new SqlCommand("GetActiveStrangles", sqlConnection)
             {
-                CommandTimeout = 30,
+                CommandTimeout = 3000,
                 CommandType = CommandType.StoredProcedure
             };
             selectCMD.Parameters.AddWithValue("@AlgoIndex", (int) algoIndex);
@@ -910,7 +1126,7 @@ namespace DataAccess
 
             SqlCommand selectCMD = new SqlCommand("GetTicks", sqlConnection)
             {
-                CommandTimeout = 30,
+                CommandTimeout = 3000,
                 CommandType = CommandType.StoredProcedure
             };
            
@@ -1020,7 +1236,7 @@ namespace DataAccess
 
             SqlCommand selectCMD = new SqlCommand("GetNextStrangleNodes", sqlConnection)
             {
-                CommandTimeout = 60,
+                CommandTimeout = 3000,
                 CommandType = CommandType.StoredProcedure
             };
             selectCMD.Parameters.AddWithValue("@BToken", Convert.ToInt64(baseInstrumentToken));
@@ -1080,7 +1296,7 @@ namespace DataAccess
 
             SqlCommand selectCMD = new SqlCommand("GetNextNodes", sqlConnection)
             {
-                CommandTimeout = 60,
+                CommandTimeout = 3000,
                 CommandType = CommandType.StoredProcedure
             };
             selectCMD.Parameters.AddWithValue("@BToken", Convert.ToInt64(baseInstrumentToken));
@@ -1113,7 +1329,7 @@ namespace DataAccess
 
             SqlCommand selectCMD = new SqlCommand("GetOptionExpiries", sqlConnection)
             {
-                CommandTimeout = 30,
+                CommandTimeout = 3000,
                 CommandType = CommandType.StoredProcedure
             };
             selectCMD.Parameters.AddWithValue("@BToken", Convert.ToInt64(baseInstrumentToken));
@@ -1150,7 +1366,7 @@ namespace DataAccess
 
             SqlCommand selectCMD = new SqlCommand("GetOptionsForBase", sqlConnection)
             {
-                CommandTimeout = 30,
+                CommandTimeout = 3000,
                 CommandType = CommandType.StoredProcedure
             };
             selectCMD.Parameters.AddWithValue("@BToken", Convert.ToInt64(baseInstrumentToken));
@@ -1192,7 +1408,7 @@ namespace DataAccess
             SqlConnection sqlConnection = new SqlConnection(Utility.GetConnectionString());
             SqlCommand insertCMD = new SqlCommand("StoreStrangleInstrumentList", sqlConnection)
             {
-                CommandTimeout = 30,
+                CommandTimeout = 3000,
                 CommandType = CommandType.StoredProcedure
             };
 
@@ -1218,7 +1434,7 @@ namespace DataAccess
 
             SqlCommand selectCMD = new SqlCommand("GetInstrumentListToSubscribe", sqlConnection)
             {
-                CommandTimeout = 30,
+                CommandTimeout = 3000,
                 CommandType = CommandType.StoredProcedure
             };
             selectCMD.Parameters.AddWithValue("@NiftyPrice", niftyPrice);
@@ -1252,7 +1468,7 @@ namespace DataAccess
             SqlConnection sqlConnection = new SqlConnection(Utility.GetConnectionString());
             SqlCommand updateCMD = new SqlCommand("StoreStrangleData", sqlConnection)
             {
-                CommandTimeout = 30,
+                CommandTimeout = 3000,
                 CommandType = CommandType.StoredProcedure
             };
 
@@ -1304,7 +1520,7 @@ namespace DataAccess
             SqlConnection sqlConnection = new SqlConnection(Utility.GetConnectionString());
             SqlCommand updateCMD = new SqlCommand("StoreStrategyData", sqlConnection)
             {
-                CommandTimeout = 30,
+                CommandTimeout = 3000,
                 CommandType = CommandType.StoredProcedure
             };
 
@@ -1356,7 +1572,7 @@ namespace DataAccess
             SqlConnection sqlConnection = new SqlConnection(Utility.GetConnectionString());
             SqlCommand updateCMD = new SqlCommand("CreateOptionStrategy", sqlConnection)
             {
-                CommandTimeout = 30,
+                CommandTimeout = 3000,
                 CommandType = CommandType.StoredProcedure
             };
 
@@ -1395,7 +1611,7 @@ namespace DataAccess
             SqlConnection sqlConnection = new SqlConnection(Utility.GetConnectionString());
             SqlCommand updateCMD = new SqlCommand("StoreStrategyData", sqlConnection)
             {
-                CommandTimeout = 30,
+                CommandTimeout = 3000,
                 CommandType = CommandType.StoredProcedure
             };
 
@@ -1451,7 +1667,7 @@ namespace DataAccess
             SqlConnection sqlConnection = new SqlConnection(Utility.GetConnectionString());
             SqlCommand updateCMD = new SqlCommand("StoreStrangleData", sqlConnection)
             {
-                CommandTimeout = 30,
+                CommandTimeout = 3000,
                 CommandType = CommandType.StoredProcedure
             };
 
@@ -1505,7 +1721,7 @@ namespace DataAccess
             SqlConnection sqlConnection = new SqlConnection(Utility.GetConnectionString());
             SqlCommand updateCMD = new SqlCommand("StoreIndexForMainPain", sqlConnection)
             {
-                CommandTimeout = 30,
+                CommandTimeout = 3000,
                 CommandType = CommandType.StoredProcedure
             };
 
@@ -1543,7 +1759,7 @@ namespace DataAccess
             SqlConnection sqlConnection = new SqlConnection(Utility.GetConnectionString());
             SqlCommand updateCMD = new SqlCommand("StorePivotInstruments", sqlConnection)
             {
-                CommandTimeout = 30,
+                CommandTimeout = 3000,
                 CommandType = CommandType.StoredProcedure
             };
 
@@ -1587,7 +1803,7 @@ namespace DataAccess
             SqlConnection sqlConnection = new SqlConnection(Utility.GetConnectionString());
             SqlCommand updateCMD = new SqlCommand("StoreStrangleData", sqlConnection)
             {
-                CommandTimeout = 30,
+                CommandTimeout = 3000,
                 CommandType = CommandType.StoredProcedure
             };
 
@@ -1639,7 +1855,7 @@ namespace DataAccess
             SqlConnection sqlConnection = new SqlConnection(Utility.GetConnectionString());
             SqlCommand updateCMD = new SqlCommand("UpdateStrangle", sqlConnection)
             {
-                CommandTimeout = 30,
+                CommandTimeout = 3000,
                 CommandType = CommandType.StoredProcedure
             };
 
@@ -1673,7 +1889,7 @@ namespace DataAccess
             SqlConnection sqlConnection = new SqlConnection(Utility.GetConnectionString());
             SqlCommand updateCMD = new SqlCommand("UpdateStrangleData", sqlConnection)
             {
-                CommandTimeout = 30,
+                CommandTimeout = 3000,
                 CommandType = CommandType.StoredProcedure
             };
 
@@ -1700,7 +1916,7 @@ namespace DataAccess
             SqlConnection sqlConnection = new SqlConnection(Utility.GetConnectionString());
             SqlCommand updateCMD = new SqlCommand("UpdateOptionData", sqlConnection)
             {
-                CommandTimeout = 30,
+                CommandTimeout = 3000,
                 CommandType = CommandType.StoredProcedure
             };
 
@@ -1730,7 +1946,7 @@ namespace DataAccess
             SqlConnection sqlConnection = new SqlConnection(Utility.GetConnectionString());
             SqlCommand selectCMD = new SqlCommand("GetDailyOHLC", sqlConnection)
             {
-                CommandTimeout = 30,
+                CommandTimeout = 3000,
                 CommandType = CommandType.StoredProcedure
             };
 
@@ -1756,7 +1972,7 @@ namespace DataAccess
             SqlConnection sqlConnection = new SqlConnection(Utility.GetConnectionString());
             SqlCommand insertCMD = new SqlCommand("InsertTicks", sqlConnection)
             {
-                CommandTimeout = 30,
+                CommandTimeout = 3000,
                 CommandType = CommandType.StoredProcedure
             };
 
@@ -1774,7 +1990,7 @@ namespace DataAccess
             SqlConnection sqlConnection = new SqlConnection(Utility.GetConnectionString());
             SqlCommand insertCMD = new SqlCommand("InsertInstruments", sqlConnection)
             {
-                CommandTimeout = 30,
+                CommandTimeout = 3000,
                 CommandType = CommandType.StoredProcedure
             };
 
@@ -1798,7 +2014,7 @@ namespace DataAccess
 
             SqlCommand selectCMD = new SqlCommand("InsertTransaction", sqlConnection)
             {
-                CommandTimeout = 30,
+                CommandTimeout = 3000,
                 CommandType = CommandType.StoredProcedure
             };
 
@@ -1894,6 +2110,7 @@ namespace DataAccess
         {
             uint NIFTY_TOKEN = 256265;
             uint BANK_NIFTY_TOKEN = 260105;
+            uint VIX_TOKEN = 264969;
 
             DataTable dtTicks = new DataTable("Ticks");
             dtTicks.Columns.Add("InstrumentToken", typeof(Int64));
@@ -1928,7 +2145,9 @@ namespace DataAccess
                 drTick["Volume"] = tick.Volume;
                 drTick["OI"] = tick.OI;
 
-                if (tick.InstrumentToken == NIFTY_TOKEN || tick.InstrumentToken == BANK_NIFTY_TOKEN)
+                if (tick.InstrumentToken == NIFTY_TOKEN 
+                    || tick.InstrumentToken == BANK_NIFTY_TOKEN
+                    || tick.InstrumentToken == VIX_TOKEN)
                 {
                     tick.LastTradeTime = tick.Timestamp;
                 }
@@ -2250,7 +2469,7 @@ namespace DataAccess
 
             SqlCommand selectCMD = new SqlCommand("GetLHSSubMenu", sqlConnection)
             {
-                CommandTimeout = 30,
+                CommandTimeout = 3000,
                 CommandType = CommandType.StoredProcedure
             };
 

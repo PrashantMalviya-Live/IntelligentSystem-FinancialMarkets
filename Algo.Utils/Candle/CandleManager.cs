@@ -822,11 +822,11 @@ namespace Algorithms.Utils
         /// <param name="token"></param>
         /// <param name="volumeThreshold"></param>
         /// <returns></returns>
-        public List<Candle> StreamingVolumeCandle(Tick[] ticks, uint token, uint volumeThreshold)
+        public List<Candle> StreamingVolumeCandle(Tick tick, uint token, uint volumeThreshold)
         {
             VolumeCandle previousCandle = null;
-            foreach (Tick tick in ticks)
-            {
+            //foreach (Tick tick in ticks)
+            //{
                 DateTime tickTime = tick.LastTradeTime ?? tick.Timestamp.Value;
                 VolumeCandle volumeCandle = null;
                 decimal volumeTraded = 0;
@@ -861,6 +861,7 @@ namespace Algorithms.Utils
                     volumeCandle = new VolumeCandle()
                     {
                         Volume = volumeTraded,// tick.Volume,
+                        TotalVolume = volumeTraded,
                         InstrumentToken = token,
                         //Volume = volumeThreshold,
                         OpenPrice = tick.LastPrice,
@@ -912,8 +913,9 @@ namespace Algorithms.Utils
                     volumeCandle.CloseVolume = volumeTraded;
                     volumeCandle.State = CandleStates.Inprogress;
                     volumeCandle.Volume += (volumeTraded);
+                volumeCandle.TotalVolume += (volumeTraded);
 
-                    if (tick.LastPrice >= volumeCandle.HighPrice)
+                if (tick.LastPrice >= volumeCandle.HighPrice)
                     {
                         volumeCandle.HighPrice = tick.LastPrice;
                         volumeCandle.HighTime = tickTime;
@@ -943,17 +945,17 @@ namespace Algorithms.Utils
                     volumePrevTicks[token] = tick;
                     //VolumeCandles[token].Add(volumeCandle); TODO: The list should get updated automatically
                 }
-            }
+           // }
             return VolumeCandles[token];
         }
 
-        public List<Candle> StreamingMoneyCandle (Tick[] ticks, uint token, decimal moneySize)
+        public List<Candle> StreamingMoneyCandle (Tick tick, uint token, decimal moneySize)
         {
             try
             {
                 MoneyCandle previousCandle = null;
-                foreach (Tick tick in ticks)
-                {
+                //foreach (Tick tick in ticks)
+                //{
                     DateTime tickTime = tick.LastTradeTime ?? tick.Timestamp.Value;
                     //Tick prevTick;
                     //Calculate money dollar exchanged.
@@ -980,8 +982,8 @@ namespace Algorithms.Utils
                         if (moneyCandle != null)
                         {
                             moneyCandle.State = CandleStates.Finished;
-                            //MoneyCandles[token].Add(moneyCandle); //TODO: the list should get updated autmatically
-
+                        //MoneyCandles[token].Add(moneyCandle); //TODO: the list should get updated autmatically
+                        moneyCandle.TotalVolume = volumeTraded;
                             moneyCandle.CloseTime = tickTime;
                             moneyCandle.TotalTicks = moneyCandle.DownTicks + moneyCandle.UpTicks;
                             previousCandle = moneyCandle;
@@ -1071,13 +1073,14 @@ namespace Algorithms.Utils
                         moneyPrevTicks[token] = tick;
                         //MoneyCandles[token].Add(moneyCandle); TODO: The list should get updated automatically
                     }
-                }
+               // }
             }
             catch (Exception ex)
             {
-
+                Logger.LogWrite(ex.Message + ex.StackTrace);
+                Logger.LogWrite("Trading Stopped as algo encountered an error");
             }
-                return MoneyCandles[token];
+            return MoneyCandles[token];
         }
 
         private void UpdatePriceLevel(List<CandlePriceLevel> priceLevels, decimal price, decimal volume, decimal currentTickPrice)

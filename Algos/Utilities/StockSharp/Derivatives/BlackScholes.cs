@@ -79,20 +79,20 @@ namespace Algorithms.Utilities
 		/// <returns>The price of the underlying asset. If the value is equal to <see langword="null" />, then the value calculation currently is impossible.</returns>
 		public decimal GetAssetPrice(decimal assetPrice)
 		{
-			return assetPrice;// option.LastPrice;
+			return option.BaseInstrumentPrice; // assetPrice;// option.LastPrice;
 		}
 
 		/// <summary>
 		/// Option type.
 		/// </summary>
-		protected InstrumentType OptionType
+		public InstrumentType OptionType
 		{
 			get
 			{
 				return option.InstrumentType.Trim(' ').ToLower() == "ce" ? InstrumentType.CE: InstrumentType.PE;
 			}
 		}
-		protected PutCallFlag OptionTypeFlag
+		public PutCallFlag OptionTypeFlag
 		{
 			get
 			{
@@ -148,7 +148,7 @@ namespace Algorithms.Utilities
 			assetPrice = GetAssetPrice(assetPrice);
 
 			var currentTimeToExp = GetExpirationTimeLine(option.LastTradeTime.Value);
-			var futureTimeToExp = GetExpirationTimeLine(endDateTime.Value);
+			var futureTimeToExp = GetExpirationTimeLine(endDateTime == null? option.LastTradeTime.Value : endDateTime.Value);
 
 			return DerivativesHelper.Premium(OptionType, GetStrike(), assetPrice, RiskFree, Dividend, deviation.Value,
 				futureTimeToExp.Value, D1(deviation.Value, option.BaseInstrumentPrice, currentTimeToExp.Value));
@@ -228,12 +228,14 @@ namespace Algorithms.Utilities
 			decimal? iv = null;
 			try
 			{
-				 iv = TryRound(DerivativesHelper.ImpliedVolatility(premium, deviation => Premium(currentTime, deviation)));
+				iv = TryRound(DerivativesHelper.ImpliedVolatility(premium, deviation => Premium(currentTime, deviation)));
+				option.IV = iv;
+				option.LastPrice = premium;
 			}
 			catch (Exception e)
-            {
+			{
 				throw e;
-            }
+			}
 			return iv;
 		}
 

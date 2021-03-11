@@ -19,6 +19,16 @@ namespace Algorithms.Utilities
             MarketDAO marketDAO = new MarketDAO();
             return marketDAO.UpdateUser(activeUser);
         }
+        public OHLC GetPreviousDayRange(uint token, DateTime dateTime)
+        {
+            MarketDAO marketDAO = new MarketDAO();
+            return marketDAO.GetPreviousDayRange(token, dateTime);
+        }
+        public OHLC GetPriceRange(uint token, DateTime _startDateTime, DateTime _endDateTime)
+        {
+            MarketDAO marketDAO = new MarketDAO();
+            return marketDAO.GetPriceRange(token, _startDateTime, _endDateTime);
+        }
         public User GetActiveUser()
         {
             MarketDAO marketDAO = new MarketDAO();
@@ -116,10 +126,34 @@ namespace Algorithms.Utilities
             }
             return instrument;
         }
-        public Instrument GetInstrument(uint instrumentToken)
+        public Instrument GetInstrument(uint instrumentToken, DateTime expiry)
         {
             MarketDAO marketDAO = new MarketDAO();
-            DataSet dsInstrument = marketDAO.GetInstrument(instrumentToken);
+            DataSet dsInstrument = marketDAO.GetInstrument(instrumentToken, expiry);
+            DataRow data = dsInstrument.Tables[0].Rows[0];
+
+            Instrument instrument = new Instrument();
+            instrument.InstrumentToken = Convert.ToUInt32(data["Instrument_Token"]);
+            instrument.TradingSymbol = Convert.ToString(data["TradingSymbol"]);
+            instrument.Strike = Convert.ToDecimal(data["Strike"]);
+            if (data["Expiry"] != DBNull.Value)
+            {
+                instrument.Expiry = Convert.ToDateTime(data["Expiry"]);
+            }
+            instrument.InstrumentType = Convert.ToString(data["Instrument_Type"]);
+            instrument.LotSize = Convert.ToUInt32(data["Lot_Size"]);
+            instrument.Exchange = Convert.ToString(data["Exchange"]);
+            instrument.Segment = Convert.ToString(data["Segment"]);
+            if (data["BToken"] != DBNull.Value)
+            {
+                instrument.BaseInstrumentToken = Convert.ToUInt32(data["BToken"]);
+            }
+            return instrument;
+        }
+        public Instrument GetInstrument(string tradingSymbol)
+        {
+            MarketDAO marketDAO = new MarketDAO();
+            DataSet dsInstrument = marketDAO.GetInstrument(tradingSymbol);
             DataRow data = dsInstrument.Tables[0].Rows[0];
 
             Instrument instrument = new Instrument();
@@ -176,8 +210,54 @@ namespace Algorithms.Utilities
             }
             return activeInstruments;
         }
-        public SortedList<decimal, Instrument>[] LoadCloseByOptions(DateTime? expiry, 
-            uint baseInstrumentToken, decimal baseInstrumentPrice, decimal maxDistanceFromBInstrument)
+
+        public SortedList<decimal, Option[]> LoadSpreadOptions(DateTime? nearExpiry, DateTime? farExpiry,
+            uint baseInstrumentToken, string strikeList)
+        {
+            MarketDAO marketDAO = new MarketDAO();
+            DataSet dsInstruments = marketDAO.LoadSpreadOptions(nearExpiry, farExpiry, baseInstrumentToken, strikeList);
+
+            List<Option> options = new List<Option>();
+            SortedList<decimal, Option[]> optionList = new SortedList<decimal, Option[]>();
+
+            foreach (DataRow data in dsInstruments.Tables[0].Rows)
+            {
+                Option instrument = new Option();
+                instrument.InstrumentToken = Convert.ToUInt32(data["Instrument_Token"]);
+                instrument.TradingSymbol = Convert.ToString(data["TradingSymbol"]);
+                instrument.Strike = Convert.ToDecimal(data["Strike"]);
+                if (data["Expiry"] != DBNull.Value)
+                {
+                    instrument.Expiry = Convert.ToDateTime(data["Expiry"]) + new TimeSpan(15,30,0);
+                }
+                instrument.InstrumentType = Convert.ToString(data["Instrument_Type"]);
+                instrument.LotSize = Convert.ToUInt32(data["Lot_Size"]);
+                instrument.Exchange = Convert.ToString(data["Exchange"]);
+                instrument.Segment = Convert.ToString(data["Segment"]);
+                if (data["BToken"] != DBNull.Value)
+                {
+                    instrument.BaseInstrumentToken = Convert.ToUInt32(data["BToken"]);
+                }
+                if (instrument.InstrumentType.Trim(' ').ToLower() == "ce")
+                {
+                    if (optionList.ContainsKey(instrument.Strike))
+                    {
+                        optionList[instrument.Strike] = new Option[2] { optionList[instrument.Strike][0], instrument };
+                    }
+                    else
+                    {
+                        optionList.Add(instrument.Strike, new Option[2] { instrument, null });
+                    }
+                }
+
+                //activeInstruments.Add(String.Format("{0}{1}", instrument.InstrumentType, instrument.Strike) , instrument);
+                //options.Add(instrument);
+            }
+            return optionList;
+        }
+
+        public SortedList<decimal, Instrument>[] LoadCloseByOptions(DateTime? expiry,
+        uint baseInstrumentToken, decimal baseInstrumentPrice, decimal maxDistanceFromBInstrument)
         {
             MarketDAO marketDAO = new MarketDAO();
             DataSet dsInstruments = marketDAO.LoadCloseByOptions(expiry, baseInstrumentToken, baseInstrumentPrice,
@@ -207,7 +287,7 @@ namespace Algorithms.Utilities
                 }
 
 
-                if(instrument.InstrumentType.Trim(' ').ToLower() == "ce")
+                if (instrument.InstrumentType.Trim(' ').ToLower() == "ce")
                 {
                     ceList.Add(instrument.Strike, instrument);
                 }
@@ -226,7 +306,57 @@ namespace Algorithms.Utilities
 
             return optionUniverse;
         }
-        
+        public SortedList<decimal, Instrument>[] LoadCloseByExpiryOptions(uint baseInstrumentToken, 
+            decimal baseInstrumentPrice, decimal maxDistanceFromBInstrument, DateTime currentTime)
+        {
+            MarketDAO marketDAO = new MarketDAO();
+            DataSet dsInstruments = marketDAO.LoadCloseByExpiryOptions(baseInstrumentToken, baseInstrumentPrice,
+                maxDistanceFromBInstrument, currentTime);
+
+            List<Instrument> options = new List<Instrument>();
+            SortedList<decimal, Instrument> ceList = new SortedList<decimal, Instrument>();
+            SortedList<decimal, Instrument> peList = new SortedList<decimal, Instrument>();
+
+            foreach (DataRow data in dsInstruments.Tables[0].Rows)
+            {
+                Instrument instrument = new Instrument();
+                instrument.InstrumentToken = Convert.ToUInt32(data["Instrument_Token"]);
+                instrument.TradingSymbol = Convert.ToString(data["TradingSymbol"]);
+                instrument.Strike = Convert.ToDecimal(data["Strike"]);
+                if (data["Expiry"] != DBNull.Value)
+                {
+                    instrument.Expiry = Convert.ToDateTime(data["Expiry"]);
+                }
+                instrument.InstrumentType = Convert.ToString(data["Instrument_Type"]);
+                instrument.LotSize = Convert.ToUInt32(data["Lot_Size"]);
+                instrument.Exchange = Convert.ToString(data["Exchange"]);
+                instrument.Segment = Convert.ToString(data["Segment"]);
+                if (data["BToken"] != DBNull.Value)
+                {
+                    instrument.BaseInstrumentToken = Convert.ToUInt32(data["BToken"]);
+                }
+
+
+                if (instrument.InstrumentType.Trim(' ').ToLower() == "ce")
+                {
+                    ceList.Add(instrument.Strike, instrument);
+                }
+                else if (instrument.InstrumentType.Trim(' ').ToLower() == "pe")
+                {
+                    peList.Add(instrument.Strike, instrument);
+                }
+
+                //activeInstruments.Add(String.Format("{0}{1}", instrument.InstrumentType, instrument.Strike) , instrument);
+                //options.Add(instrument);
+            }
+            //return options;
+            SortedList<decimal, Instrument>[] optionUniverse = new SortedList<decimal, Instrument>[2];
+            optionUniverse[(int)InstrumentType.CE] = ceList;
+            optionUniverse[(int)InstrumentType.PE] = peList;
+
+            return optionUniverse;
+        }
+
         public DataSet LoadHistoricalTokenVolume(AlgoIndex algoIndex, DateTime startTime,
             DateTime endTime, TimeSpan candleTimeSpan, int numberofCandles)
         {
@@ -237,10 +367,12 @@ namespace Algorithms.Utilities
             return ds;
         }
         
-        public Dictionary<uint, List<decimal>> GetHistoricalCandlePrices(int candlesCount, DateTime lastCandleEndTime, string tokenList, TimeSpan _candleTimeSpan, bool isBaseInstrument = false)
+        public Dictionary<uint, List<decimal>> GetHistoricalCandlePrices(int candlesCount, DateTime lastCandleEndTime, string tokenList,
+            TimeSpan _candleTimeSpan, bool isBaseInstrument = false, CandleType candleType = CandleType.Time, uint vThreshold = 0)
         {
             MarketDAO marketDAO = new MarketDAO();
-            DataSet ds = marketDAO.GetHistoricalCandlePrices(candlesCount, lastCandleEndTime, tokenList, _candleTimeSpan, isBaseInstrument);
+            DataSet ds = marketDAO.GetHistoricalCandlePrices(candlesCount, lastCandleEndTime, tokenList, 
+                _candleTimeSpan, isBaseInstrument, candleType, vThreshold);
 
             Dictionary<uint, List<decimal>> tokenPrices = new Dictionary<uint, List<decimal>>();
             foreach(DataRow dr in ds.Tables[0].Rows)
@@ -291,10 +423,10 @@ namespace Algorithms.Utilities
             return tokenPrices;
         }
 
-        public DataSet LoadCandles(int numberofCandles, CandleType candleType, DateTime endDateTime, uint instrumentToken, TimeSpan timeFrame)
+        public DataSet LoadCandles(int numberofCandles, CandleType candleType, DateTime endDateTime, string instrumentTokenList, TimeSpan timeFrame)
         {
             MarketDAO marketDAO = new MarketDAO();
-            DataSet dsCandles = marketDAO.LoadCandles(numberofCandles, candleType, endDateTime, instrumentToken, timeFrame);
+            DataSet dsCandles = marketDAO.LoadCandles(numberofCandles, candleType, endDateTime, instrumentTokenList, timeFrame);
 
             return dsCandles;
 
@@ -428,6 +560,14 @@ namespace Algorithms.Utilities
             return marketDAO.UpdateTrade(strategyID, instrumentToken, trade.AveragePrice, trade.ExchangeTimestamp, 
                 trade.OrderId, trade.Quantity, trade.TransactionType, algoIndex, tradedLot, triggerID);
         }
+
+        public decimal InsertOptionIV(uint token1, uint token2, decimal _baseInstrumentPrice, decimal? iv1, decimal lastPrice1, DateTime lastTradeTime1,
+            decimal? iv2, decimal lastPrice2, DateTime lastTradeTime2)
+        {
+            MarketDAO marketDAO = new MarketDAO();
+            return marketDAO.InsertOptionIV(token1, token2, _baseInstrumentPrice, iv1, lastPrice1, lastTradeTime1, iv2, lastPrice2, lastTradeTime2);
+        }
+
 
         public void UpdateOrder(int algoInstance, Order order, int strategyId = 0)
         {

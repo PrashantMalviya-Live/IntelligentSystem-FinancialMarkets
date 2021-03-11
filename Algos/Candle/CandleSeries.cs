@@ -22,62 +22,80 @@ namespace Algorithms.Candles
 		{
 		}
 
-		public List<Candle> LoadCandles(int numberofCandles, CandleType candleType, DateTime endDateTime, uint instrumentToken, TimeSpan timeFrame)
+		//public List<Candle> LoadCandles(int numberofCandles, CandleType candleType, DateTime endDateTime, string instrumentTokenList, TimeSpan timeFrame)
+		//{
+		//	DataLogic dl = new DataLogic();
+		//	DataSet dsCandles = dl.LoadCandles(numberofCandles, candleType, endDateTime, instrumentTokenList, timeFrame);
+
+		//	List<Candle> candleList = new List<Candle>();
+
+		//	DataRelation strangle_Token_Relation = dsCandles.Relations.Add("Candle_PriceLevel", new DataColumn[] { dsCandles.Tables[0].Columns["ID"], dsCandles.Tables[0].Columns["CandleType"] },
+		//		new DataColumn[] { dsCandles.Tables[1].Columns["CandleId"], dsCandles.Tables[1].Columns["CandleType"] });
+
+		//	foreach (DataRow candleRow in dsCandles.Tables[0].Rows)
+		//	{
+		//		Candle candle = NewCandle(candleType);
+		//		candle.LoadCandle(candleRow);
+				
+		//		//candle.InstrumentToken = Convert.ToUInt32(candleRow["instrumentToken"]);
+		//		//candle.ClosePrice = Convert.ToDecimal(candleRow["closePrice"]);
+		//		//candle.CloseTime = Convert.ToDateTime(candleRow["CloseTime"]);
+		//		//candle.CloseVolume = Convert.ToDecimal(candleRow["closeVolume"]);
+		//		//candle.DownTicks = Convert.ToInt32(candleRow["downTicks"]);
+		//		//candle.HighPrice = Convert.ToDecimal(candleRow["highPrice"]);
+
+		//		//candle.HighTime = Convert.ToDateTime(candleRow["highTime"]);
+		//		//candle.HighVolume = Convert.ToDecimal(candleRow["highVolume"]);
+		//		//candle.LowPrice = Convert.ToDecimal(candleRow["lowPrice"]);
+		//		//candle.LowTime = Convert.ToDateTime(candleRow["lowTime"]);
+		//		//candle.LowVolume = Convert.ToDecimal(candleRow["lowVolume"]);
+
+		//		//List<CandlePriceLevel> candlePriceLevels = new List<CandlePriceLevel>();
+		//		//foreach (DataRow drPriceLevel in candleRow.GetChildRows("Candle_PriceLevel"))
+		//		//{
+		//		//	CandlePriceLevel candlePriceLevel = new CandlePriceLevel(Convert.ToDecimal(drPriceLevel["Price"]));
+
+		//		//	candlePriceLevel.BuyCount = Convert.ToInt32(drPriceLevel["BuyCount"]);
+		//		//	candlePriceLevel.BuyVolume = Convert.ToInt32(drPriceLevel["BuyVolume"]);
+		//		//	candlePriceLevel.SellCount = Convert.ToInt32(drPriceLevel["SellCount"]);
+		//		//	candlePriceLevel.SellVolume = Convert.ToInt32(drPriceLevel["SellVolume"]);
+		//		//	candlePriceLevel.TotalVolume = Convert.ToInt32(drPriceLevel["TotalVolume"]);
+		//		//	candlePriceLevel.CandleType = (CandleType)Convert.ToInt32(drPriceLevel["CandleType"]);
+		//		//	candlePriceLevels.Add(candlePriceLevel);
+		//		//}
+
+		//		//candle.PriceLevels = candlePriceLevels;
+
+		//		//candle.OpenInterest = Convert.ToUInt32(candleRow["openInterest"]);
+		//		//candle.OpenPrice = Convert.ToDecimal(candleRow["openPrice"]);
+		//		//candle.OpenTime = Convert.ToDateTime(candleRow["openTime"]);
+		//		//candle.OpenVolume = Convert.ToDecimal(candleRow["openVolume"]);
+		//		//candle.RelativeVolume = Convert.ToDecimal(candleRow["relativeVolume"]);
+		//		//candle.TotalPrice = Convert.ToDecimal(candleRow["totalPrice"]);
+		//		//candle.TotalTicks = Convert.ToInt32(candleRow["totalTicks"]);
+		//		//candle.TotalVolume = Convert.ToDecimal(candleRow["totalVolume"]);
+		//		//candle.UpTicks = Convert.ToInt32(candleRow["upTicks"]);
+
+		//		//candle.Arg = Convert.ToUInt32(candleRow["Arg"]);
+
+		//		candleList.Add(candle);
+		//	}
+		//	return candleList;
+		//}
+		public List<Candle> LoadCandles(int numberofCandles, CandleType candleType, DateTime endDateTime, string instrumentTokenList, TimeSpan timeFrame)
 		{
 			DataLogic dl = new DataLogic();
-			DataSet dsCandles = dl.LoadCandles(numberofCandles, candleType, endDateTime, instrumentToken, timeFrame);
+			DataSet dsCandles = dl.LoadCandles(numberofCandles, candleType, endDateTime, instrumentTokenList, timeFrame);
 
 			List<Candle> candleList = new List<Candle>();
 
-			DataRelation strangle_Token_Relation = dsCandles.Relations.Add("Candle_PriceLevel", new DataColumn[] { dsCandles.Tables[0].Columns["ID"], dsCandles.Tables[0].Columns["CandleType"] },
-				new DataColumn[] { dsCandles.Tables[1].Columns["CandleId"], dsCandles.Tables[1].Columns["CandleType"] });
+			//DataRelation strangle_Token_Relation = dsCandles.Relations.Add("Candle_PriceLevel", new DataColumn[] { dsCandles.Tables[0].Columns["ID"], dsCandles.Tables[0].Columns["CandleType"] },
+			//	new DataColumn[] { dsCandles.Tables[1].Columns["CandleId"], dsCandles.Tables[1].Columns["CandleType"] });
 
 			foreach (DataRow candleRow in dsCandles.Tables[0].Rows)
 			{
 				Candle candle = NewCandle(candleType);
 				candle.LoadCandle(candleRow);
-				
-				//candle.InstrumentToken = Convert.ToUInt32(candleRow["instrumentToken"]);
-				//candle.ClosePrice = Convert.ToDecimal(candleRow["closePrice"]);
-				//candle.CloseTime = Convert.ToDateTime(candleRow["CloseTime"]);
-				//candle.CloseVolume = Convert.ToDecimal(candleRow["closeVolume"]);
-				//candle.DownTicks = Convert.ToInt32(candleRow["downTicks"]);
-				//candle.HighPrice = Convert.ToDecimal(candleRow["highPrice"]);
-
-				//candle.HighTime = Convert.ToDateTime(candleRow["highTime"]);
-				//candle.HighVolume = Convert.ToDecimal(candleRow["highVolume"]);
-				//candle.LowPrice = Convert.ToDecimal(candleRow["lowPrice"]);
-				//candle.LowTime = Convert.ToDateTime(candleRow["lowTime"]);
-				//candle.LowVolume = Convert.ToDecimal(candleRow["lowVolume"]);
-
-				//List<CandlePriceLevel> candlePriceLevels = new List<CandlePriceLevel>();
-				//foreach (DataRow drPriceLevel in candleRow.GetChildRows("Candle_PriceLevel"))
-				//{
-				//	CandlePriceLevel candlePriceLevel = new CandlePriceLevel(Convert.ToDecimal(drPriceLevel["Price"]));
-
-				//	candlePriceLevel.BuyCount = Convert.ToInt32(drPriceLevel["BuyCount"]);
-				//	candlePriceLevel.BuyVolume = Convert.ToInt32(drPriceLevel["BuyVolume"]);
-				//	candlePriceLevel.SellCount = Convert.ToInt32(drPriceLevel["SellCount"]);
-				//	candlePriceLevel.SellVolume = Convert.ToInt32(drPriceLevel["SellVolume"]);
-				//	candlePriceLevel.TotalVolume = Convert.ToInt32(drPriceLevel["TotalVolume"]);
-				//	candlePriceLevel.CandleType = (CandleType)Convert.ToInt32(drPriceLevel["CandleType"]);
-				//	candlePriceLevels.Add(candlePriceLevel);
-				//}
-
-				//candle.PriceLevels = candlePriceLevels;
-
-				//candle.OpenInterest = Convert.ToUInt32(candleRow["openInterest"]);
-				//candle.OpenPrice = Convert.ToDecimal(candleRow["openPrice"]);
-				//candle.OpenTime = Convert.ToDateTime(candleRow["openTime"]);
-				//candle.OpenVolume = Convert.ToDecimal(candleRow["openVolume"]);
-				//candle.RelativeVolume = Convert.ToDecimal(candleRow["relativeVolume"]);
-				//candle.TotalPrice = Convert.ToDecimal(candleRow["totalPrice"]);
-				//candle.TotalTicks = Convert.ToInt32(candleRow["totalTicks"]);
-				//candle.TotalVolume = Convert.ToDecimal(candleRow["totalVolume"]);
-				//candle.UpTicks = Convert.ToInt32(candleRow["upTicks"]);
-
-				//candle.Arg = Convert.ToUInt32(candleRow["Arg"]);
-
 				candleList.Add(candle);
 			}
 			return candleList;

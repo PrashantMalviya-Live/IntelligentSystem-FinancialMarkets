@@ -127,41 +127,41 @@ namespace Algos.TLogics
             //}
 
 
-            if (ticks[0].InstrumentToken == _instrumentToken)
-            {
-                TypeCandles[(int)CandleType.Time] = candleManger.StreamingTimeFrameCandle(ticks[0], _instrumentToken, timeFrame, true); // TODO: USING LOCAL VERSION RIGHT NOW
+            //if (ticks[0].InstrumentToken == _instrumentToken)
+            //{
+            //    TypeCandles[(int)CandleType.Time] = candleManger.StreamingTimeFrameCandle(ticks[0], _instrumentToken, timeFrame, true); // TODO: USING LOCAL VERSION RIGHT NOW
 
 
-                TypeCandles[(int)CandleType.Volume] = candleManger.StreamingVolumeCandle(ticks, _instrumentToken, 10000); // TODO: USING LOCAL VERSION RIGHT NOW
-                                                                                                                                         //System.IO.File.AppendAllText(@"D:\Prashant\Intelligent Software\2019\MarketData\Log\VolumeCandles.txt", JsonSerializer.Serialize(volumeCandles.LastOrDefault()));
+            //    TypeCandles[(int)CandleType.Volume] = candleManger.StreamingVolumeCandle(ticks, _instrumentToken, 10000); // TODO: USING LOCAL VERSION RIGHT NOW
+            //                                                                                                                             //System.IO.File.AppendAllText(@"D:\Prashant\Intelligent Software\2019\MarketData\Log\VolumeCandles.txt", JsonSerializer.Serialize(volumeCandles.LastOrDefault()));
 
-                TypeCandles[(int)CandleType.Money] = candleManger.StreamingMoneyCandle(ticks, _instrumentToken, 32000000); // TODO: USING LOCAL VERSION RIGHT NOW
-                                                                                                                                          //System.IO.File.AppendAllText(@"D:\Prashant\Intelligent Software\2019\MarketData\Log\MoneyCandles.txt", JsonSerializer.Serialize(moneyCandles.LastOrDefault()));
+            //    TypeCandles[(int)CandleType.Money] = candleManger.StreamingMoneyCandle(ticks, _instrumentToken, 32000000); // TODO: USING LOCAL VERSION RIGHT NOW
+            //                                                                                                                              //System.IO.File.AppendAllText(@"D:\Prashant\Intelligent Software\2019\MarketData\Log\MoneyCandles.txt", JsonSerializer.Serialize(moneyCandles.LastOrDefault()));
 
-                var ftema = tema1.Process(TypeCandles[(int)CandleType.Time].Last().ClosePrice, isFinal: false);
-                var stema = tema2.Process(TypeCandles[(int)CandleType.Time].Last().ClosePrice, isFinal: false);
+            //    var ftema = tema1.Process(TypeCandles[(int)CandleType.Time].Last().ClosePrice, isFinal: false);
+            //    var stema = tema2.Process(TypeCandles[(int)CandleType.Time].Last().ClosePrice, isFinal: false);
 
-                var vfema = vema1.Process(TypeCandles[(int)CandleType.Volume].Last().ClosePrice, isFinal: false);
-                var vsema = vema2.Process(TypeCandles[(int)CandleType.Volume].Last().ClosePrice, isFinal: false);
+            //    var vfema = vema1.Process(TypeCandles[(int)CandleType.Volume].Last().ClosePrice, isFinal: false);
+            //    var vsema = vema2.Process(TypeCandles[(int)CandleType.Volume].Last().ClosePrice, isFinal: false);
 
-                var mfema = mema1.Process(TypeCandles[(int)CandleType.Money].Last().ClosePrice, isFinal: false);
-                var msema = mema2.Process(TypeCandles[(int)CandleType.Money].Last().ClosePrice, isFinal: false);
-                //foreach (Tick tick in validTicks)
-                //{
-                if (ftema.IsFormed && stema.IsFormed)
-                {
-                    temaFormed = true;
-                }
-                if (vfema.IsFormed && vsema.IsFormed)
-                {
-                    vemaFormed = true;
-                }
-                if (mfema.IsFormed && msema.IsFormed)
-                {
-                    memaFormed = true;
-                }
-                //}
-            }
+            //    var mfema = mema1.Process(TypeCandles[(int)CandleType.Money].Last().ClosePrice, isFinal: false);
+            //    var msema = mema2.Process(TypeCandles[(int)CandleType.Money].Last().ClosePrice, isFinal: false);
+            //    //foreach (Tick tick in validTicks)
+            //    //{
+            //    if (ftema.IsFormed && stema.IsFormed)
+            //    {
+            //        temaFormed = true;
+            //    }
+            //    if (vfema.IsFormed && vsema.IsFormed)
+            //    {
+            //        vemaFormed = true;
+            //    }
+            //    if (mfema.IsFormed && msema.IsFormed)
+            //    {
+            //        memaFormed = true;
+            //    }
+            //    //}
+            //}
             return true;
         }
 

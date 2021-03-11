@@ -1,0 +1,763 @@
+<div class="container" style="display:flex;flex-direction:row;flex:0 0 100%">
+  <div class="trade-input" style="width:30%; margin-top:20px">
+    <mat-card>
+
+      <!--<div class="inputvals" style="display:flex;flex-direction:column;margin-top:20px">
+      <h2 style="margin-left:20px">Strangles (short)</h2>
+      <div style="display:flex;justify-content:space-around">
+        <div>
+          <mat-form-field appearance="fill">
+            <mat-label>Base Instrument</mat-label>
+            <mat-select [(ngModel)]="selectedInstrument.instrumentToken" name="inst" (selectionChange)="onSelectInstrument($event)">
+              <mat-option *ngFor="let inst of instrument" [value]="inst.instrumentToken">
+                {{inst.tradingSymbol}}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+        </div>
+        <div>
+          <mat-form-field appearance="fill">
+            <mat-label>Expiry</mat-label>
+            <mat-select (selectionChange)="onSelectExpiry($event)">
+              <mat-option *ngFor="let exp of expiry" [value]="exp">
+                {{exp}}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+        </div>
+      </div>-->
+      <!--<div style="display:none;justify-content:space-around">
+        <mat-form-field appearance="fill">
+          <mat-label>Call</mat-label>
+          <mat-select (selectionChange)="onSelectCall($event)">
+            <mat-option *ngFor="let c of call" [value]="c.tradingSymbol">
+              {{c.strike}}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+        <p><b>Call:&nbsp;</b>{{selectedCallValue}}</p>
+
+        <mat-form-field appearance="fill">
+          <mat-label>Put</mat-label>
+          <mat-select (selectionChange)="onSelectPut($event)">
+            <mat-option *ngFor="let p of put" [value]="p.tradingSymbol">
+              {{p.strike}}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+        <p><b>Put:&nbsp;</b>{{selectedPutValue}}</p>
+      </div>-->
+      <!--</div>-->
+      <div class="algorithms" style="display:flex;flex-direction:column">
+        <h2 style="margin-left:20px">Algorithms</h2>
+        <mat-accordion class="example-headers-align">
+
+          <mat-expansion-panel [dataSource]="_ras" *ngIf="filterbyname('17')"
+                               (opened)="panelOpenState = true" (closed)="panelOpenState = false">
+            <mat-expansion-panel-header>
+              <mat-panel-title>
+                Momentum Trade - Options
+              </mat-panel-title>
+            </mat-expansion-panel-header>
+            <!--<mat-grid-list cols="2" rowHeight="4:1">-->
+            <form [formGroup]="momentumTradeOptionsForm" (ngSubmit)="executeAlgo()">
+              <div style="display:flex;justify-content:space-around">
+                <mat-form-field appearance="fill">
+                  <mat-label>Base Instrument</mat-label>
+                  <mat-select [(ngModel)]="selectedInstrument.instrumentToken" name="inst" (selectionChange)="onSelectInstrument($event, 'momentumvolume')">
+                    <mat-option *ngFor="let inst of instrument" [value]="inst.instrumentToken">
+                      <span class="ast"> {{inst.tradingSymbol}}</span>
+                    </mat-option>
+                  </mat-select>
+                </mat-form-field>
+                <mat-form-field appearance="fill">
+                  <mat-label>Expiry</mat-label>
+                  <mat-select (selectionChange)="onSelectExpiry($event, 'momentumvolume')">
+                    <mat-option *ngFor="let exp of expiry" [value]="exp">
+                      {{exp}}
+                    </mat-option>
+                  </mat-select>
+                </mat-form-field>
+              </div>
+              <div style="display:flex;justify-content:space-around">
+                <mat-form-field appearance="fill"><input type="number" matInput placeholder="Candle Time (in mins)" formControlName="ctf"></mat-form-field>
+                <mat-form-field appearance="fill"><input type="number" matInput placeholder="Quantity (in lots)" formControlName="quantity"></mat-form-field>
+              </div>
+              <div style="display:flex;justify-content:space-around">
+                <mat-checkbox matInput (change)="onPSChange($event)" formControlName="ps">Postion Sizing</mat-checkbox>
+                <mat-form-field appearance="fill">
+                  <input type="number" matInput placeholder="Max Loss Per Trade" formControlName="mlpt">
+                </mat-form-field>
+              </div>
+
+              <!--</mat-grid-list>-->
+              <div class="example-button-row">
+                <button type="submit" mat-raised-button color="primary">Trade</button>
+              </div>
+            </form>
+          </mat-expansion-panel>
+
+          <!--<mat-expansion-panel [dataSource]="_ras" *ngIf="filterbyname('15')"
+                               (opened)="panelOpenState = true" (closed)="panelOpenState = false">
+            <mat-expansion-panel-header>
+              <mat-panel-title>
+                RSI Cross - Options
+              </mat-panel-title>
+            </mat-expansion-panel-header>
+
+            <form [formGroup]="rsiCrossOptionsForm" (ngSubmit)="executeRsiCross()">
+              <div style="display:flex;justify-content:space-around">
+                <mat-form-field appearance="fill">
+                  <mat-label>Base Instrument</mat-label>
+                  <mat-select [(ngModel)]="selectedInstrument.instrumentToken" name="inst" (selectionChange)="onSelectInstrument($event, 'rsicross')">
+                    <mat-option *ngFor="let inst of instrument" [value]="inst.instrumentToken">
+                      <span class="ast"> {{inst.tradingSymbol}}</span>
+                    </mat-option>
+                  </mat-select>
+                </mat-form-field>
+                <mat-form-field appearance="fill">
+                  <mat-label>Expiry</mat-label>
+                  <mat-select (selectionChange)="onSelectExpiry($event, 'rsicross')">
+                    <mat-option *ngFor="let exp of expiry" [value]="exp">
+                      {{exp}}
+                    </mat-option>
+                  </mat-select>
+                </mat-form-field>
+              </div>
+              <div style="display:flex;justify-content:space-around">
+                <mat-form-field appearance="fill"><input type="number" matInput placeholder="Candle Time (in mins)" formControlName="ctf"></mat-form-field>
+                <mat-form-field appearance="fill"><input type="number" matInput placeholder="Quantity (in lots)" formControlName="quantity"></mat-form-field>
+              </div>
+              <div class="example-button-row">
+                <button type="submit" mat-raised-button color="primary">Trade</button>
+              </div>
+            </form>
+
+          </mat-expansion-panel>-->
+
+          <mat-expansion-panel [dataSource]="_ras" *ngIf="filterbyname('19')"
+                               (opened)="panelOpenState = true" (closed)="panelOpenState = false">
+            <mat-expansion-panel-header>
+              <mat-panel-title>
+                Sell with RSI - Options
+              </mat-panel-title>
+            </mat-expansion-panel-header>
+            <form [formGroup]="sellwithRSIOptionsForm" (ngSubmit)="executeSellOnRsiTrade()">
+              <div style="display:flex;justify-content:space-around;">
+                <mat-form-field appearance="fill">
+                  <mat-label>Base Instrument</mat-label>
+                  <mat-select [(ngModel)]="selectedInstrument.instrumentToken" name="inst" (selectionChange)="onSelectInstrument($event, 'rsistrangle')">
+                    <mat-option *ngFor="let inst of instrument" [value]="inst.instrumentToken">
+                      <span class="ast"> {{inst.tradingSymbol}}</span>
+                    </mat-option>
+                  </mat-select>
+                </mat-form-field>
+                <mat-form-field appearance="fill">
+                  <mat-label>Expiry</mat-label>
+                  <mat-select (selectionChange)="onSelectExpiry($event, 'rsistrangle')">
+                    <mat-option *ngFor="let exp of expiry" [value]="exp">
+                      <span class="ast">{{exp}} </span>
+                    </mat-option>
+                  </mat-select>
+                </mat-form-field>
+              </div>
+              <div style="display:flex;justify-content:space-around">
+                <mat-form-field appearance="fill"><input type="number" matInput placeholder="Quantity (lots)" formControlName="qty"></mat-form-field>
+                <mat-form-field appearance="fill"><input type="number" matInput placeholder="Candle Time Frame (in mins)" formControlName="ctf"></mat-form-field>
+              </div>
+              <div style="display:flex;justify-content:space-around">
+                <mat-form-field appearance="fill"><input type="number" matInput placeholder="Lower Entry RSI" formControlName="rlle"></mat-form-field>
+                <mat-form-field appearance="fill"><input type="number" matInput placeholder="Higher Entry RSI" formControlName="rule"></mat-form-field>
+              </div>
+              <div style="display:flex;justify-content:space-around">
+                <mat-form-field appearance="fill"><input type="number" matInput placeholder="RSI Exit margin" formControlName="rmx"></mat-form-field>
+                <mat-form-field appearance="fill"><input type="number" matInput placeholder="RSI for Exit" formControlName="rlx"></mat-form-field>
+              </div>
+              <div style="display:flex;justify-content:space-around">
+                <mat-form-field appearance="fill"><input type="number" matInput placeholder="Min. Distance from Base Instrument" formControlName="mindfbi"></mat-form-field>
+                <mat-form-field appearance="fill"><input type="number" matInput placeholder="Max. Distance from Base Instrument" formControlName="maxdfbi"></mat-form-field>
+              </div>
+              <div style="display:flex;justify-content:space-around">
+                <mat-form-field appearance="fill"><input type="number" matInput placeholder="EMA length" formControlName="ema"></mat-form-field>
+              </div>
+              <!--</mat-grid-list>-->
+              <div class="example-button-row">
+                <button type="submit" mat-raised-button color="primary">Trade</button>
+              </div>
+            </form>
+          </mat-expansion-panel>
+          <mat-expansion-panel [dataSource]="_ras" *ngIf="filterbyname('20')"
+                               (opened)="panelOpenState = true" (closed)="panelOpenState = false">
+            <mat-expansion-panel-header>
+              <mat-panel-title>
+                Momentum Buy with RSI
+              </mat-panel-title>
+            </mat-expansion-panel-header>
+            <form [formGroup]="buywithRSIOptionsForm" (ngSubmit)="executeBuyOnRsiTrade()">
+              <div style="display:flex;justify-content:space-around;">
+                <mat-form-field appearance="fill">
+                  <mat-label>Base Instrument</mat-label>
+                  <mat-select [(ngModel)]="selectedInstrument.instrumentToken" name="inst" (selectionChange)="onSelectInstrument($event, 'rsitrade')">
+                    <mat-option *ngFor="let inst of instrument" [value]="inst.instrumentToken">
+                      <span class="ast"> {{inst.tradingSymbol}}</span>
+                    </mat-option>
+                  </mat-select>
+                </mat-form-field>
+                <mat-form-field appearance="fill">
+                  <mat-label>Expiry</mat-label>
+                  <mat-select (selectionChange)="onSelectExpiry($event, 'rsitrade')">
+                    <mat-option *ngFor="let exp of expiry" [value]="exp">
+                      <span class="ast">{{exp}} </span>
+                    </mat-option>
+                  </mat-select>
+                </mat-form-field>
+              </div>
+              <div style="display:flex;justify-content:space-around">
+                <mat-form-field appearance="fill"><input type="number" matInput placeholder="Quantity (lots)" formControlName="qty"></mat-form-field>
+                <mat-form-field appearance="fill"><input type="number" matInput placeholder="Candle Time Frame (in mins)" formControlName="ctf"></mat-form-field>
+              </div>
+              <div style="display:flex;justify-content:space-around">
+                <mat-form-field appearance="fill"><input type="number" matInput placeholder="Entry Decisive Candle Range" formControlName="edchl"></mat-form-field>
+                <mat-form-field appearance="fill"><input type="number" matInput placeholder="Exit Decisive Candle Range" formControlName="xdchl"></mat-form-field>
+
+              </div>
+              <div style="display:flex;justify-content:space-around">
+                <mat-form-field appearance="fill"><input type="number" matInput placeholder="RSI Lower Limit" formControlName="rlle"></mat-form-field>
+                <mat-form-field appearance="fill"><input type="number" matInput placeholder="RSI Upper Limit" formControlName="rulx"></mat-form-field>
+              </div>
+              <div style="display:flex;justify-content:space-around">
+                <mat-form-field appearance="fill"><input type="number" matInput placeholder="CE Buy Lower Limit" formControlName="cell"></mat-form-field>
+                <mat-form-field appearance="fill"><input type="number" matInput placeholder="PE Buy Upper Limit" formControlName="peul"></mat-form-field>
+              </div>
+              <div style="display:flex;justify-content:space-around">
+                <mat-form-field appearance="fill"><input type="number" matInput placeholder="EMA Length" formControlName="ema"></mat-form-field>
+                <mat-form-field appearance="fill"><input type="number" matInput placeholder="Max. Distance from Base Instrument" formControlName="maxdfbi"></mat-form-field>
+
+              </div>
+              <div style="display:flex;justify-content:space-around">
+                <mat-form-field appearance="fill"><input type="number" matInput placeholder="Target Profit" formControlName="tp"></mat-form-field>
+                <mat-form-field appearance="fill"><input type="number" matInput placeholder="Stop Loss" formControlName="sl"></mat-form-field>
+              </div>
+              <div style="display:flex;justify-content:space-around">
+                <mat-checkbox matInput (change)="onEACChange($event)" formControlName="eac">Entry only at Cross</mat-checkbox>
+                <!--</div>
+                <div style="display:flex;justify-content:space-around">-->
+                <mat-checkbox matInput (change)="onFutChange($event)" formControlName="fut">Futures Contract</mat-checkbox>
+              </div>
+              <!--</mat-grid-list>-->
+              <div class="example-button-row">
+                <button type="submit" mat-raised-button color="primary">Trade</button>
+              </div>
+            </form>
+          </mat-expansion-panel>
+
+          <mat-expansion-panel [dataSource]="_ras" *ngIf="filterbyname('18')"
+                               (opened)="panelOpenState = true" (closed)="panelOpenState = false">
+            <mat-expansion-panel-header>
+              <mat-panel-title>
+                RSI Cross - Options
+              </mat-panel-title>
+            </mat-expansion-panel-header>
+
+            <form [formGroup]="rsiCrossOptionsForm" (ngSubmit)="executeRsiCross()">
+              <div style="display:flex;justify-content:space-around">
+                <mat-form-field appearance="fill">
+                  <mat-label>Base Instrument</mat-label>
+                  <mat-select [(ngModel)]="selectedInstrument.instrumentToken" name="inst" (selectionChange)="onSelectInstrument($event, 'rsicross')">
+                    <mat-option *ngFor="let inst of instrument" [value]="inst.instrumentToken">
+                      <span class="ast"> {{inst.tradingSymbol}}</span>
+                    </mat-option>
+                  </mat-select>
+                </mat-form-field>
+                <mat-form-field appearance="fill">
+                  <mat-label>Expiry</mat-label>
+                  <mat-select (selectionChange)="onSelectExpiry($event, 'rsicross')">
+                    <mat-option *ngFor="let exp of expiry" [value]="exp">
+                      {{exp}}
+                    </mat-option>
+                  </mat-select>
+                </mat-form-field>
+              </div>
+              <div style="display:flex;justify-content:space-around">
+                <mat-form-field appearance="fill"><input type="number" matInput placeholder="Candle Time (in mins)" formControlName="ctf"></mat-form-field>
+                <mat-form-field appearance="fill"><input type="number" matInput placeholder="Quantity (in lots)" formControlName="qty"></mat-form-field>
+              </div>
+              <div style="display:flex;justify-content:space-around">
+                <mat-form-field appearance="fill"><input type="number" matInput placeholder="Min. Distance from Base Instrument" formControlName="mindfbi"></mat-form-field>
+                <mat-form-field appearance="fill"><input type="number" matInput placeholder="Max. Distance from Base Instrument" formControlName="maxdfbi"></mat-form-field>
+              </div>
+              <div class="example-button-row">
+                <button type="submit" mat-raised-button color="primary">Trade</button>
+              </div>
+            </form>
+
+          </mat-expansion-panel>
+          <mat-expansion-panel [dataSource]="_ras" *ngIf="filterbyname('15')"
+                               (opened)="panelOpenState = true" (closed)="panelOpenState = false">
+            <mat-expansion-panel-header>
+              <mat-panel-title>
+                EMA Cross - Options
+              </mat-panel-title>
+            </mat-expansion-panel-header>
+
+            <form [formGroup]="emaCrossOptionsForm" (ngSubmit)="executeEMACross()">
+              <div style="display:flex;justify-content:space-around">
+                <mat-form-field appearance="fill">
+                  <mat-label>Base Instrument</mat-label>
+                  <mat-select [(ngModel)]="selectedInstrument.instrumentToken" name="inst" (selectionChange)="onSelectInstrument($event, 'emacrossvolume')">
+                    <mat-option *ngFor="let inst of instrument" [value]="inst.instrumentToken">
+                      <span class="ast"> {{inst.tradingSymbol}}</span>
+                    </mat-option>
+                  </mat-select>
+                </mat-form-field>
+                <mat-form-field appearance="fill">
+                  <mat-label>Expiry</mat-label>
+                  <mat-select (selectionChange)="onSelectExpiry($event, 'emacrossvolume')">
+                    <mat-option *ngFor="let exp of expiry" [value]="exp">
+                      {{exp}}
+                    </mat-option>
+                  </mat-select>
+                </mat-form-field>
+              </div>
+              <div style="display:flex;justify-content:space-around">
+                <mat-form-field appearance="fill"><input type="number" matInput placeholder="Candle Time (in mins)" formControlName="ctf"></mat-form-field>
+                <mat-form-field appearance="fill"><input type="number" matInput placeholder="Quantity (in lots)" formControlName="qty"></mat-form-field>
+              </div>
+              <div style="display:flex;justify-content:space-around">
+                <mat-form-field appearance="fill"><input type="number" matInput placeholder="Small EMA Length" formControlName="sema"></mat-form-field>
+                <mat-form-field appearance="fill"><input type="number" matInput placeholder="Long EMA Length" formControlName="lema"></mat-form-field>
+              </div>
+              <div style="display:flex;justify-content:space-around">
+                <mat-form-field appearance="fill"><input type="number" matInput placeholder="Target Profit" formControlName="tp"></mat-form-field>
+                <mat-form-field appearance="fill"><input type="number" matInput placeholder="Stop Loss" formControlName="sl"></mat-form-field>
+              </div>
+              <div class="example-button-row">
+                <button type="submit" mat-raised-button color="primary">Trade</button>
+              </div>
+            </form>
+          </mat-expansion-panel>
+          <mat-expansion-panel [dataSource]="_ras" *ngIf="filterbyname('21')"
+                               (opened)="panelOpenState = true" (closed)="panelOpenState = false">
+            <mat-expansion-panel-header>
+              <mat-panel-title>
+                Manage Straddle Sell
+              </mat-panel-title>
+            </mat-expansion-panel-header>
+
+            <form [formGroup]="straddleMomentumOptionsForm" (ngSubmit)="executeStraddleMomentum()">
+              <div style="display:flex;justify-content:space-around">
+                <mat-form-field appearance="fill">
+                  <mat-label>Base Instrument</mat-label>
+                  <mat-select [(ngModel)]="selectedInstrument.instrumentToken" name="inst" (selectionChange)="onSelectInstrument($event, 'straddle')">
+                    <mat-option *ngFor="let inst of instrument" [value]="inst.instrumentToken">
+                      <span class="ast"> {{inst.tradingSymbol}}</span>
+                    </mat-option>
+                  </mat-select>
+                </mat-form-field>
+                <mat-form-field appearance="fill">
+                  <mat-label>Expiry</mat-label>
+                  <mat-select (selectionChange)="onSelectExpiry($event, 'straddle')">
+                    <mat-option *ngFor="let exp of expiry" [value]="exp">
+                      {{exp}}
+                    </mat-option>
+                  </mat-select>
+                </mat-form-field>
+              </div>
+              <div style="display:flex;justify-content:space-around">
+                <mat-form-field appearance="fill"><input type="number" matInput placeholder="Candle Time (in mins)" formControlName="ctf"></mat-form-field>
+                <mat-form-field appearance="fill"><input type="number" matInput placeholder="Quantity (in lots)" formControlName="qty"></mat-form-field>
+              </div>
+              <div style="display:flex;justify-content:space-around">
+                <mat-form-field appearance="fill"><input type="number" matInput placeholder="Shift Threshold Ratio" formControlName="tr"></mat-form-field>
+                <mat-form-field appearance="fill"><input type="number" matInput placeholder="Stop Loss" formControlName="sl"></mat-form-field>
+              </div>
+              <!--<div style="display:flex;justify-content:space-around">
+                <mat-form-field appearance="fill"><input type="number" matInput placeholder="Straddle Shift" formControlName="ss"></mat-form-field>
+              </div>-->
+              <div style="display:flex;justify-content:space-around">
+                <mat-checkbox matInput (change)="onSSChange($event)" formControlName="ss">Straddle Shift</mat-checkbox>
+              </div>
+
+              <div class="example-button-row">
+                <button type="submit" mat-raised-button color="primary">Trade</button>
+              </div>
+            </form>
+          </mat-expansion-panel>
+          <mat-expansion-panel [dataSource]="_ras" *ngIf="filterbyname('24')"
+                               (opened)="panelOpenState = true" (closed)="panelOpenState = false">
+            <mat-expansion-panel-header>
+              <mat-panel-title>
+                Manage Initial Straddle
+              </mat-panel-title>
+            </mat-expansion-panel-header>
+
+            <form [formGroup]="straddleMomentumOptionsForm" (ngSubmit)="executeInitialStraddle()">
+              <div style="display:flex;justify-content:space-around">
+                <mat-form-field appearance="fill">
+                  <mat-label>Base Instrument</mat-label>
+                  <mat-select [(ngModel)]="selectedInstrument.instrumentToken" name="inst" (selectionChange)="onSelectInstrument($event, 'referencestraddle')">
+                    <mat-option *ngFor="let inst of instrument" [value]="inst.instrumentToken">
+                      <span class="ast"> {{inst.tradingSymbol}}</span>
+                    </mat-option>
+                  </mat-select>
+                </mat-form-field>
+                <mat-form-field appearance="fill">
+                  <mat-label>Expiry</mat-label>
+                  <mat-select (selectionChange)="onSelectExpiry($event, 'referencestraddle')">
+                    <mat-option *ngFor="let exp of expiry" [value]="exp">
+                      {{exp}}
+                    </mat-option>
+                  </mat-select>
+                </mat-form-field>
+              </div>
+              <div style="display:flex;justify-content:space-around">
+                <mat-form-field appearance="fill"><input type="number" matInput placeholder="Candle Time (in mins)" formControlName="ctf"></mat-form-field>
+                <mat-form-field appearance="fill"><input type="number" matInput placeholder="Quantity (in lots)" formControlName="qty"></mat-form-field>
+              </div>
+              <div style="display:flex;justify-content:space-around">
+                <mat-form-field appearance="fill"><input type="number" matInput placeholder="Shift Threshold Ratio" formControlName="tr"></mat-form-field>
+                <mat-form-field appearance="fill"><input type="number" matInput placeholder="Stop Loss" formControlName="sl"></mat-form-field>
+              </div>
+              <!--<div style="display:flex;justify-content:space-around">
+                <mat-form-field appearance="fill"><input type="number" matInput placeholder="Straddle Shift" formControlName="ss"></mat-form-field>
+              </div>-->
+              <!--<div style="display:flex;justify-content:space-around">
+                <mat-checkbox matInput (change)="onSSChange($event)" formControlName="ss">Straddle Shift</mat-checkbox>
+              </div>-->
+
+              <div class="example-button-row">
+                <button type="submit" mat-raised-button color="primary">Trade</button>
+              </div>
+            </form>
+          </mat-expansion-panel>
+          <mat-expansion-panel [dataSource]="_ras" *ngIf="filterbyname('23')"
+                               (opened)="panelOpenState = true" (closed)="panelOpenState = false">
+            <mat-expansion-panel-header>
+              <mat-panel-title>
+                Buy Option with Straddle
+              </mat-panel-title>
+            </mat-expansion-panel-header>
+
+            <form [formGroup]="straddleMomentumOptionsForm" (ngSubmit)="executeOptionBuyWithStraddle()">
+              <div style="display:flex;justify-content:space-around">
+                <mat-form-field appearance="fill">
+                  <mat-label>Base Instrument</mat-label>
+                  <mat-select [(ngModel)]="selectedInstrument.instrumentToken" name="inst" (selectionChange)="onSelectInstrument($event, 'momentumstraddle')">
+                    <mat-option *ngFor="let inst of instrument" [value]="inst.instrumentToken">
+                      <span class="ast"> {{inst.tradingSymbol}}</span>
+                    </mat-option>
+                  </mat-select>
+                </mat-form-field>
+                <mat-form-field appearance="fill">
+                  <mat-label>Expiry</mat-label>
+                  <mat-select (selectionChange)="onSelectExpiry($event, 'momentumstraddle')">
+                    <mat-option *ngFor="let exp of expiry" [value]="exp">
+                      {{exp}}
+                    </mat-option>
+                  </mat-select>
+                </mat-form-field>
+              </div>
+              <div style="display:flex;justify-content:space-around">
+                <mat-form-field appearance="fill"><input type="number" matInput placeholder="Candle Time (in mins)" formControlName="ctf"></mat-form-field>
+                <mat-form-field appearance="fill"><input type="number" matInput placeholder="Quantity (in lots)" formControlName="qty"></mat-form-field>
+              </div>
+              <div style="display:flex;justify-content:space-around">
+                <mat-form-field appearance="fill"><input type="number" matInput placeholder="Target Profit" formControlName="tp"></mat-form-field>
+                <mat-form-field appearance="fill"><input type="number" matInput placeholder="Stop Loss" formControlName="sl"></mat-form-field>
+              </div>
+              <!--<div style="display:flex;justify-content:space-around">
+                <mat-form-field appearance="fill"><input type="number" matInput placeholder="Straddle Shift" formControlName="ss"></mat-form-field>
+              </div>-->
+              <div style="display:flex;justify-content:space-around">
+                <mat-checkbox matInput (change)="onSSChange($event)" formControlName="ss">Straddle Shift</mat-checkbox>
+              </div>
+
+              <div class="example-button-row">
+                <button type="submit" mat-raised-button color="primary">Trade</button>
+              </div>
+            </form>
+          </mat-expansion-panel>
+          <mat-expansion-panel [dataSource]="_ras" *ngIf="filterbyname('25')"
+                               (opened)="panelOpenState = true" (closed)="panelOpenState = false">
+            <mat-expansion-panel-header>
+              <mat-panel-title>
+                IV Spread
+              </mat-panel-title>
+            </mat-expansion-panel-header>
+
+            <form [formGroup]="ivSpreadForm" (ngSubmit)="executeIVSpread()">
+              <div style="display:flex;justify-content:space-around">
+                <mat-form-field appearance="fill">
+                  <mat-label>Base Instrument</mat-label>
+                  <mat-select [(ngModel)]="selectedInstrument.instrumentToken" name="inst" (selectionChange)="onSelectInstrument($event, 'ivtrade')">
+                    <mat-option *ngFor="let inst of instrument" [value]="inst.instrumentToken">
+                      <span class="ast"> {{inst.tradingSymbol}}</span>
+                    </mat-option>
+                  </mat-select>
+                </mat-form-field>
+              </div>
+              <div style="display:flex;justify-content:space-around">
+                <mat-form-field appearance="fill">
+                  <mat-label>Expiry</mat-label>
+                  <mat-select (selectionChange)="onSelectExpiries($event, 'ivtrade', 1)">
+                    <mat-option *ngFor="let exp of expiry" [value]="exp">
+                      {{exp}}
+                    </mat-option>
+                  </mat-select>
+                </mat-form-field>
+
+                <mat-form-field appearance="fill">
+                  <mat-label>Expiry2</mat-label>
+                  <mat-select (selectionChange)="onSelectExpiries($event, 'ivtrade', 2)">
+                    <mat-option *ngFor="let exp of expiry" [value]="exp">
+                      {{exp}}
+                    </mat-option>
+                  </mat-select>
+                </mat-form-field>
+              </div>
+
+              <div style="display:flex;justify-content:space-around">
+                <mat-form-field appearance="fill"><input type="number" matInput placeholder="Quantity (in lots)" formControlName="qty"></mat-form-field>
+                <mat-form-field appearance="fill"><input type="number" matInput placeholder="Target Profit" formControlName="tp"></mat-form-field>
+              </div>
+
+              <div class="example-button-row">
+                <button type="submit" mat-raised-button color="primary">Trade</button>
+              </div>
+            </form>
+          </mat-expansion-panel>
+          <mat-expansion-panel [dataSource]="_ras" *ngIf="filterbyname('22')"
+                               (opened)="panelOpenState = true" (closed)="panelOpenState = false">
+            <mat-expansion-panel-header>
+              <mat-panel-title>
+                Option Buy On Premium Cross
+              </mat-panel-title>
+            </mat-expansion-panel-header>
+
+            <form [formGroup]="premiumCrossForm" (ngSubmit)="executePremiumCross()">
+              <div style="display:flex;justify-content:space-around">
+                <mat-form-field appearance="fill">
+                  <mat-label>Base Instrument</mat-label>
+                  <mat-select [(ngModel)]="selectedInstrument.instrumentToken" name="inst" (selectionChange)="onSelectInstrument($event, 'premiumcross')">
+                    <mat-option *ngFor="let inst of instrument" [value]="inst.instrumentToken">
+                      <span class="ast"> {{inst.tradingSymbol}}</span>
+                    </mat-option>
+                  </mat-select>
+                </mat-form-field>
+                <mat-form-field appearance="fill">
+                  <mat-label>Expiry</mat-label>
+                  <mat-select (selectionChange)="onSelectExpiry($event, 'premiumcross')">
+                    <mat-option *ngFor="let exp of expiry" [value]="exp">
+                      {{exp}}
+                    </mat-option>
+                  </mat-select>
+                </mat-form-field>
+              </div>
+              <div style="display:flex;justify-content:space-around">
+                <mat-form-field appearance="fill"><input type="number" matInput placeholder="Quantity (in lots)" formControlName="qty"></mat-form-field>
+                <mat-form-field appearance="fill"><input type="number" matInput placeholder="Target Profit" formControlName="tp"></mat-form-field>
+              </div>
+
+              <div class="example-button-row">
+                <button type="submit" mat-raised-button color="primary">Trade</button>
+              </div>
+            </form>
+          </mat-expansion-panel>
+
+          <!--<mat-expansion-panel [dataSource]="_ras" *ngIf="filterbyname('26')"
+                               (opened)="panelOpenState = true" (closed)="panelOpenState = false">
+            <mat-expansion-panel-header>
+              <mat-panel-title>
+                Chart - Strangle
+              </mat-panel-title>
+            </mat-expansion-panel-header>
+
+            <form [formGroup]="strangleChartForm" (ngSubmit)="executeStrangleChart()">
+              <div style="display:flex;justify-content:space-around">
+                <mat-form-field appearance="fill">
+                  <mat-label>Base Instrument</mat-label>
+                  <mat-select [(ngModel)]="selectedInstrument.instrumentToken" name="inst" (selectionChange)="onSelectInstrument($event, 'chart')">
+                    <mat-option *ngFor="let inst of instrument" [value]="inst.instrumentToken">
+                      <span class="ast"> {{inst.tradingSymbol}}</span>
+                    </mat-option>
+                  </mat-select>
+                </mat-form-field>
+              </div>
+              <div style="display:flex;justify-content:space-around">
+                <mat-form-field appearance="fill">
+                  <mat-label>Expiry</mat-label>
+                  <mat-select (selectionChange)="onSelectExpiries($event, 'chart', 1)">
+                    <mat-option *ngFor="let exp of expiry" [value]="exp">
+                      {{exp}}
+                    </mat-option>
+                  </mat-select>
+                </mat-form-field>
+                <mat-form-field appearance="fill"><input type="text" matInput placeholder="CE/PE" formControlName="it1"></mat-form-field>
+                <mat-form-field appearance="fill">
+                  <mat-label>Expiry2</mat-label>
+                  <mat-select (selectionChange)="onSelectExpiries($event, 'chart', 2)">
+                    <mat-option *ngFor="let exp of expiry" [value]="exp">
+                      {{exp}}
+                    </mat-option>
+                  </mat-select>
+                </mat-form-field>
+                <mat-form-field appearance="fill"><input type="text" matInput placeholder="CE/PE" formControlName="it2"></mat-form-field>
+              </div>
+
+              <div style="display:flex;justify-content:space-around">
+                <mat-form-field appearance="fill"><input type="number" matInput placeholder="Quantity (in lots)" formControlName="qty"></mat-form-field>
+                <mat-form-field appearance="fill"><input type="number" matInput placeholder="Target Profit" formControlName="tp"></mat-form-field>
+              </div>
+
+              <div class="example-button-row">
+                <button type="submit" mat-raised-button color="primary">Chart</button>
+              </div>
+            </form>
+          </mat-expansion-panel>-->
+
+          <mat-expansion-panel (opened)="panelOpenState = true" (closed)="panelOpenState = false">
+            <mat-expansion-panel-header>
+              <mat-panel-title>
+                Strangle - Constant Width
+              </mat-panel-title>
+            </mat-expansion-panel-header>
+            <mat-grid-list cols="2" rowHeight="4:1">
+              <mat-grid-tile><mat-form-field><input matInput placeholder="Value1"></mat-form-field></mat-grid-tile>
+              <mat-grid-tile><mat-form-field><input matInput placeholder="Value2"></mat-form-field></mat-grid-tile>
+              <mat-grid-tile><mat-form-field><input matInput placeholder="Value3"></mat-form-field></mat-grid-tile>
+              <mat-grid-tile><mat-form-field><input matInput placeholder="Value4"></mat-form-field></mat-grid-tile>
+            </mat-grid-list>
+          </mat-expansion-panel>
+
+          <mat-expansion-panel (opened)="panelOpenState = true" (closed)="panelOpenState = false">
+            <mat-expansion-panel-header>
+              <mat-panel-title>
+                Momentum Trade - Volume
+              </mat-panel-title>
+            </mat-expansion-panel-header>
+            <mat-grid-list cols="2" rowHeight="4:1">
+              <mat-grid-tile><mat-form-field><input matInput placeholder="Value1"></mat-form-field></mat-grid-tile>
+              <mat-grid-tile><mat-form-field><input matInput placeholder="Value2"></mat-form-field></mat-grid-tile>
+              <mat-grid-tile><mat-form-field><input matInput placeholder="Value3"></mat-form-field></mat-grid-tile>
+              <mat-grid-tile><mat-form-field><input matInput placeholder="Value4"></mat-form-field></mat-grid-tile>
+            </mat-grid-list>
+          </mat-expansion-panel>
+        </mat-accordion>
+
+      </div>
+
+      <button style="margin-top:30px" (click)="getTokens()" mat-raised-button color="primary">Load Tokens</button>
+
+      <!--<button style="margin-top:30px" (click)="startdsservice()" mat-raised-button [color]="gethealthstatus(-99) ? 'primary':'warn'">Ticker Service</button>-->
+      <button style="margin-top:30px;margin-left:4px" (click)="startdsservice()" mat-raised-button [ngClass]="gethealthstatus(-99)?'button-fab-green':'button-fab-red'">Ticker Service</button>
+      <button style="margin-top:30px;margin-left:4px" (click)="generatevolcdls()" mat-raised-button color="primary">Volume Candles</button>
+    </mat-card>
+  </div>
+
+  <div class="trade-view" style="width:70%;margin-top:20px">
+    <h2 style="margin-left:20px">Active Algorithms</h2>
+    <mat-accordion class="example-headers-align">
+      <mat-expansion-panel (opened)="panelOpenState = true" *ngFor="let activeAlgo of activeAlgos" (closed)="panelOpenState = false">
+        <mat-expansion-panel-header>
+
+          <mat-panel-title>
+            <div class="flex-exp-container">
+              <p>{{activeAlgo.an}} <span matBadge={{activeAlgo.orders.length}} matBadgeSize="1px" matBadgeColor="accent" matBadgeOverlap="true"> </span></p>
+
+              <div class="ast"> Base Instrument: {{activeAlgo.binstrument}}</div>
+              <div class="ast">  Lots: {{activeAlgo.lotsize}}</div>
+              <div class="ast"> Candle Time: {{activeAlgo.mins}} mins</div>
+              <div class="ast"> Expiry: {{activeAlgo.expiry}}</div>
+              <div class="ast"> Algo Start : {{activeAlgo.algodate}}</div>
+
+              <div class="warn-flex-container">
+                <div class="warn-button-container" *ngIf="!gethealthstatus(activeAlgo.ains)">
+                  <button mat-mini-fab class="button-fab-red" (click)="startstopalgo(activeAlgo.ains, activeAlgo.aid, 1)" mat-mini-fab-size="1px" style="width:20px;height:20px;line-height:16px" aria-label="primary button">
+                    <!--<mat-icon>filter_list</mat-icon>-->
+                  </button>
+                </div>
+                <div class="warn-button-container" *ngIf="gethealthstatus(activeAlgo.ains)">
+                  <button mat-mini-fab class="button-fab-green" (click)="startstopalgo(activeAlgo.ains, activeAlgo.aid, 0)" mat-mini-fab-size="1px" style="width:20px;height:20px;line-height:16px" aria-label="warn button">
+                  </button>
+                </div>
+              </div>
+            </div>
+          </mat-panel-title>
+        </mat-expansion-panel-header>
+        <mat-card>
+          <mat-tab-group animationDuration="0ms" selectedTabChange="getExchangeData()">
+            <mat-tab label="Orders">
+              <mat-table [dataSource]="activeAlgo.orders" class="mat-elevation-z8">
+
+                <!-- Position Column -->
+                <ng-container matColumnDef="orderTime">
+                  <mat-header-cell *matHeaderCellDef> Order Time </mat-header-cell>
+                  <mat-cell *matCellDef="let element"> {{element.ordertime.seconds * 1000| date:'hh:mm:ss a' :'UTC'}} </mat-cell>
+                </ng-container>
+
+                <!-- Position Column -->
+                <ng-container matColumnDef="tradingSymbol">
+                  <mat-header-cell *matHeaderCellDef> Symbol </mat-header-cell>
+                  <mat-cell *matCellDef="let element"> {{element.tradingsymbol}} </mat-cell>
+                </ng-container>
+
+                <!-- Price Column -->
+                <ng-container matColumnDef="price">
+                  <mat-header-cell *matHeaderCellDef> Price </mat-header-cell>
+                  <mat-cell *matCellDef="let element"> {{element.price}} </mat-cell>
+                </ng-container>
+
+                <!-- Quantity Column -->
+                <ng-container matColumnDef="quantity">
+                  <mat-header-cell *matHeaderCellDef> Quantity </mat-header-cell>
+                  <mat-cell *matCellDef="let element"> {{element.quantity}} </mat-cell>
+                </ng-container>
+
+                <!-- TransactionType Column -->
+                <ng-container matColumnDef="transactionType">
+                  <mat-header-cell *matHeaderCellDef> TransactionType </mat-header-cell>
+                  <mat-cell *matCellDef="let element"> {{element.transactiontype}} </mat-cell>
+                </ng-container>
+
+                <!-- TransactionType Column -->
+                <ng-container matColumnDef="orderType">
+                  <mat-header-cell *matHeaderCellDef> Order Type </mat-header-cell>
+                  <mat-cell *matCellDef="let element"> {{element.ordertype}} </mat-cell>
+                </ng-container>
+
+                <!-- Algo name Column -->
+                <ng-container matColumnDef="status">
+                  <mat-header-cell *matHeaderCellDef> Algorithm </mat-header-cell>
+                  <mat-cell *matCellDef="let element"> {{element.status}} </mat-cell>
+                </ng-container>
+
+                <mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></mat-header-row>
+                <mat-row *matRowDef="let row; columns: displayedColumns;"></mat-row>
+              </mat-table>
+            </mat-tab>
+            <mat-tab label="Log">
+              <!--Logger-->
+              <div *ngIf="logs !== undefined">
+                <mat-card [dataSource]="logs" *ngFor="let log of filterLogsOfType(activeAlgo)">
+                  <div class="scrollable">
+                    {{ log.logTime.seconds * 1000 |  date:'hh:mm a':'UTC' }} : {{ log.message }}
+                    <!--{{ log.messengerMethod }} @-->
+
+                  </div>
+                </mat-card>
+              </div>
+            </mat-tab>
+          </mat-tab-group>
+        </mat-card>
+      </mat-expansion-panel>
+    </mat-accordion>
+  </div>
+  <!--<div class="chart-view" style="width:70%;margin-top:20px">
+    <h2 style="margin-left:20px">Active Charts</h2>
+
+    <div style="width:100%" >
+      <canvas id="canvas"></canvas>
+   
+    </div>
+  </div>-->
+</div>
