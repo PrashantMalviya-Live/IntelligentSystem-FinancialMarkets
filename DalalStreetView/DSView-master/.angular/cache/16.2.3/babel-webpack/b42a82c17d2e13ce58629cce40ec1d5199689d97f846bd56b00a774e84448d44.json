@@ -1,1 +1,0 @@
-{"ast":null,"code":"export function getBaseUrl() {\n  return document.getElementsByTagName('base')[0].href;\n}","map":null,"metadata":{},"sourceType":"module","externalDependencies":[]}
