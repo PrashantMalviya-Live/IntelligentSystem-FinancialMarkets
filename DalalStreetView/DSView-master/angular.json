@@ -43,8 +43,7 @@
               ],
               "optimization": true,
               "outputHashing": "all",
-              "sourceMap": false,
-              "extractCss": true,
+              "sourceMap": true,
               "namedChunks": false,
               "extractLicenses": true,
               "vendorChunk": false,
@@ -61,6 +60,14 @@
                   "maximumError": "10kb"
                 }
               ]
+            },
+            "development": {
+              "buildOptimizer": false,
+              "optimization": false,
+              "vendorChunk": true,
+              "extractLicenses": false,
+              "sourceMap": true,
+              "namedChunks": true
             }
           }
         },
@@ -72,8 +79,12 @@
           "configurations": {
             "production": {
               "browserTarget": "DSView:build:production"
+            },
+            "development": {
+              "browserTarget": "DSView:build:development"
             }
-          }
+          },
+          "defaultConfiguration": "development"
         },
         "extract-i18n": {
           "builder": "@angular-devkit/build-angular:extract-i18n",
@@ -121,11 +132,13 @@
           "configurations": {
             "production": {
               "devServerTarget": "DSView:serve:production"
+            },
+            "development": {
+              "devServerTarget": "DSView:serve:development"
             }
           }
         }
       }
     }
-  },
-  "defaultProject": "DSView"
+  }
 }

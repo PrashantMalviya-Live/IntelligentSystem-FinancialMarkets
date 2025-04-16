@@ -11,7 +11,7 @@ using System.Dynamic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using ZConnectWrapper;
+using BrokerConnectWrapper;
 using ZMQFacade;
 using System.Timers;
 using System.Threading;
@@ -750,7 +750,7 @@ namespace Algorithms.Algorithms
                     orderTrio.Order = order;
                     //orderTrio.SLOrder = slOrder;
                     //orderTrio.TPOrder = tpOrder;
-                    orderTrio.StopLoss = stopLoss;
+                    orderTrio.StopLoss = _stopLoss;
                     orderTrio.TargetProfit = targetProfit;
                     orderTrio.EntryRSI = entryRSI;
                     orderTrio.EntryTradeTime = currentTime;
@@ -874,9 +874,9 @@ namespace Algorithms.Algorithms
                     return true;
                 }
 
-                if ( (lastPrice <= orderTrio.StopLoss)
-                    || ((currentTime - orderTrio.EntryTradeTime).TotalMinutes > _timeBandForExit && semaValue < lemaValue - _emaBandForExit)
-                    || ((currentTime - orderTrio.EntryTradeTime).TotalMinutes > 15)
+                if ( (lastPrice <= orderTrio.Order.AveragePrice - _stopLoss)// StopLoss)
+                    //|| ((currentTime - orderTrio.EntryTradeTime).TotalMinutes > _timeBandForExit && semaValue < lemaValue - _emaBandForExit)
+                    //|| ((currentTime - orderTrio.EntryTradeTime).TotalMinutes > 15)
                     )
                 {
                     return true;

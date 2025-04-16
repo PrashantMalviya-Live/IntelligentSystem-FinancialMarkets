@@ -43,8 +43,10 @@ namespace MarketView
             //});
 
             services.AddGrpc();
-
+            services.AddHttpClient();
             services.AddControllers();
+            services.AddMemoryCache();
+            
             //services.AddHttpsRedirection(options =>
             //{
             //    options.RedirectStatusCode = StatusCodes.Status307TemporaryRedirect;

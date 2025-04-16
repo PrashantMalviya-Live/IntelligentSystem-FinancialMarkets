@@ -1,0 +1,458 @@
+﻿@page "/alerts"
+@inject AlertsClient AClient
+@inject MarketClient MClient
+@inject NavigationManager NavigationManager
+
+
+@rendermode InteractiveServer
+@implements IAsyncDisposable
+
+
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.AspNetCore.WebUtilities
+@using StockMarketAlertsApp.Data
+@inject UserManager<ApplicationUser> UserManager
+
+<PageTitle>Alerts</PageTitle>
+
+<h1>Alerts Management</h1>
+<br />
+
+
+<AuthorizeView>
+    <Authorized>
+        @if (@userCredits == 0)
+        {
+            <text><em>Loading...</em></text>
+        }
+        else
+        {
+            <h3>Credits: @userCredits points <button class="btn btn-primary" @onclick="AddUserCredits">Load Points</button> </h3>
+        }
+        
+        <h4>Active Alerts:</h4>
+        <br />
+        <table class="table table-striped">
+            <thead>
+               
+                <tr>
+                    <th>
+                        Sl. No.
+                    </th>
+                    <th>
+                        Stock
+                    </th>
+                    <th>
+                        Condition
+                    </th>
+                    <th>
+                        Active
+                    </th>
+                    <th>
+                        
+                    </th>
+                    <th>
+                        
+                    </th>
+                </tr>
+            </thead>
+
+            <tbody>
+
+                @if (userAlertsView == null)
+                {
+                    <text><em>Loading...</em></text>
+                }
+                else
+                {
+                    @for (int i = 0; i < userAlertsView.Count(); i++)
+                    {
+                        var alert = userAlertsView[i];
+                        <tr>
+                            <td> @GetSymbolRowCount(i)</td>
+                            <td style="font-size:12px">@alert.TradingSymbol</td>
+                            @* <td style="font-size:12px">@alert.Criteria</td> *@
+                            <td>
+                                @* Start from 1 as index 0 is id *@
+                                @* Alert criteria will be "id:[id];indicator:{indicatorpropertyname:propertyvalues};operator:operatorid;indicator:{indicator:properties}" *@
+                              @*   @for (int c = 1; c < @alert.Criteria.Count; c++)
+                                {
+                                    //This is either indicator or operator
+                                    @* var equationComponent = @alert.Criteria [c].Value;
+
+                                    //This is at indicator and operator level. LabelDropDown is at property and selection level.
+                                    <CascadingValue Value="@equationComponent">
+                                        <ParentLabelDropDown ParentID="null" />
+                                    </CascadingValue> *@
+                                        @* LHSIndicatorProperties="@lhsIndicationProperties" 
+                                        RHSIndicatorProperties="@rhsIndicationProperties" 
+                                        AlertCriterion="@alert.Criteria[c]" 
+                                        SelectedItemChanged="SelectedItemChangedHandler"
+                        EnableLogicalOperator="@showLogicalOperator" /> *@
+
+                                    @* <ParentLabelDropDown AlertCriterion="@alert.Criteria[c]"
+                                                         SelectedItemChanged="SelectedItemChangedHandler" EnableLogicalOperator="@showLogicalOperator" /> 
+                                } *@
+
+
+                            </td>
+                            <td style="font-size:12px">@alert.Active</td>
+                        </tr>
+                    }
+                }
+
+            </tbody>
+        </table>
+
+
+        <br />
+    </Authorized>
+</AuthorizeView>
+
+@if (instrumentOptions == null)
+{
+    <text><em>Loading...</em></text>
+}
+else
+{
+    <h5>Set up alerts for 
+        <LabelDropDown TItem="string" 
+            Items="instrumentOptions" 
+            SelectedItem="@alertTrigger.InstrumentToken.ToString()" 
+            
+            /> ticker</h5>
+    @* SelectedItemChanged="OnSelectedItemChanged"  *@
+    <h6>Where</h6>
+    <button @onclick="AddIndicator">Add Indicator</button>
+    <button @onclick="AddMathOperator">Add Math Operator</button>
+    <button @onclick="AddLogicalOperator">Add Logical Operator</button>
+    <button @onclick="AddConditionalOperator">Add Conditional Operator</button>
+    <button @onclick="RemoveLast">Remove Last</button>
+    <button @onclick="Clear">Clear</button>
+
+    <div>
+        @foreach (var alertCriteria in alertTrigger.Criteria)
+        {
+            <div>
+                @* //This is at indicator and operator level. LabelDropDown is at property and selection level. *@
+                <CascadingValue Value="@Indicators" Name="Indicators">
+                <CascadingValue Value="@alertCriteria" Name="SelectedIndicator">
+                    <ParentLabelDropDown 
+                        Key="@alertCriteria.Key"
+                        IndicatorId="@alertCriteria.Value.Id.ToString()" 
+                        IndicatorOptions ="indicatorOptions" 
+                        IndicatorType="@alertCriteria.Value.Type"
+                        SelectedIndicatorChanged = "OnIndicatorChanged"
+                        ParentID="null" />
+                    </CascadingValue>
+                </CascadingValue>
+                @* PropertiesOptions="@GetPropertyOptions(@alertCriteria.Id.ToString())" *@
+
+            </div>
+        }
+        @* @for (int i = 0; i < alertTrigger.Criteria.Count; i++)
+        {
+            var alertCriteria = @alertTrigger.Criteria[i];
+            var lhsIndicationProperties = Indicators[Int32.Parse(alertCriteria.LHSIndicator.Split(":")[0]) - 1].PropertyNameAndValues;
+            var rhsIndicationProperties = Indicators[Int32.Parse(alertCriteria.RHSIndicator.Split(":")[0]) - 1].PropertyNameAndValues;
+
+            <ParentLabelDropDown LHSIndicatorProperties="@lhsIndicationProperties" RHSIndicatorProperties="@rhsIndicationProperties" AlertCriterion="@alertTrigger.Criteria[i]" SelectedItemChanged="SelectedItemChangedHandler" EnableLogicalOperator="@showLogicalOperator" />
+        } *@
+    </div>
+
+    <button @onclick="Submit">Set Alert</button>
+    
+    <br />
+    if(@success == 1)
+    {
+    <a class="bs-success"> Success! You have created an alert. We will inform you when the alert conditions are met.</a>
+    }
+    else if (@success == -1)
+    {
+    <a class="bs-danger"> Faiulure! We encountered some error in creating the alert. Please contact us at XX</a>
+    }
+}
+@code {
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? authenticationState { get; set; }
+
+    [SupplyParameterFromQuery]
+    private string? UserId { get; set; }
+
+    private AlertTrigger[]? userAlertsView;
+
+    private ApplicationUser? currentUser;
+    private decimal userCredits;
+
+    public IndicatorOperator[] Indicators;
+
+    //private Dictionary<string, Dictionary<string, string>> IndicatorPropertyOptions;
+
+    private async Task<ApplicationUser?> GetCurrentUserAsync()
+    {
+        return await UserManager.FindByEmailAsync("Email");
+    }
+
+    private int GetSymbolRowCount(int inputTimeFramesRowCount)
+    {
+        return inputTimeFramesRowCount + 1;
+    }
+
+    private bool showLogicalOperator = false;
+    private Int16 success = 0;
+
+    AlertTrigger alertTrigger = new()
+        {
+            ID = 0,
+            InstrumentToken = 260105,
+            TradingSymbol = "NIFTY BANK",
+            UserId = string.Empty,
+            SetupDate = DateTime.Now,
+            StartDate = DateTime.Now,
+            EndDate = DateTime.Now.AddDays(30),
+            Criteria = new Dictionary<string, IndicatorOperator>()
+        };
+
+    private List<string> selectedItems = new List<string>();
+
+    private string selectedInstrument = "NIFTY50";
+
+    public Dictionary<string, string>? instrumentOptions;
+    public Dictionary<string, string>? indicatorOptions;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (authenticationState is not null)
+        {
+            var authState = await authenticationState;
+            var user = authState?.User;
+
+            if (user?.Identity is not null && user.Identity.IsAuthenticated)
+            {
+                //authMessage = $"{user.Identity.Name} is authenticated.";
+                currentUser = await UserManager.GetUserAsync(user);
+
+                userCredits = await GetUserCredits(userId: currentUser.Id);// user.Id);
+                userAlertsView = await AClient.GetUserAlerts(userId: currentUser.Id);// user.Id);
+            }
+        }
+        Indicators = await MClient.GetIndicatorListAsync();
+        // UserId = "1";
+        // if (UserId is not null)
+        // {
+        //     ///TODO: PENDING USER AUTHENTICATION
+        //     //var user = await UserManager.FindByIdAsync(UserId);
+        //     //if (user is not null)
+        //     //{
+        //     // var user = CurrentUser;
+        //     currentUser = await GetCurrentUserAsync();
+        //     userCredits = await GetUserCredits(userId: UserId);// user.Id);
+        //     userAlertsView = await AClient.GetUserAlerts(userId: UserId);// user.Id);
+        //                                                                  //}
+        // }
+
+        var instruments = await MClient.GetInstrumentsAsync();//. new Dictionary<string, string> { { "260105", "NIFTY" }, { "256265", "BANKNIFTY" }, { "223432", "TCS" } };
+        instrumentOptions = instruments.ToDictionary(x => x.InstrumentToken.ToString(), x => x.TradingSymbol);
+
+        indicatorOptions = Indicators.Where(x=>x.Type == IndicatorOperatorType.Indicator).ToDictionary(x => x.Id.ToString(), x => x.Name);
+    }
+    private Task OnIndicatorUpdate(string newItemKey)
+    {
+        // IndicatorPropertyOptions = GetPropertyOptions(newItemKey.ToString());
+
+
+
+        //SelectedItemChanged.InvokeAsync(newItemKey).Wait();
+
+        // //indicatorOptions
+        // var lhsIndicationProperties = indicator!.PropertyNameAndValues; // Indi AlertCriterion.LHSIndicator.Substring(AlertCriterion.LHSIndicator.IndexOf(";")).Split(";");
+
+        // AlertCriterion.LHSIndicator = $"{data.newItemValue}:{indicator.Name}";
+
+        // foreach (var p in lhsIndicationProperties)
+        // {
+        //     AlertCriterion.LHSIndicator += $";{p.Key}:{p.Value.FirstOrDefault().Key}";
+        // }
+        // if (SelectedItemChanged.HasDelegate)
+        // {
+        //     SelectedItemChanged.InvokeAsync(AlertCriterion).Wait();
+        // }
+        return Task.CompletedTask;
+    }
+
+
+    // private Dictionary<string, Dictionary<string, string>> GetPropertyOptions(string indicatorId)
+    // {
+    //     //return Indicators.FirstOrDefault(x => x.Id.ToString() == indicatorId).PropertyNameAndValues;
+
+
+    //     //return Indicators.FirstOrDefault(x => x.Id == indicatorId).DropDownComponentProperties
+
+    // }
+
+    private async Task<decimal> GetUserCredits(string userId)//ApplicationUser applicationUser)
+    {
+        return await AClient.GetUserCredits(userId);// applicationUser.Id);
+    }
+
+    private int counter = 0;
+
+    private async Task AddUserCredits()
+    {
+        userCredits = await AClient.AddUserCredits(currentUser.Id, credits: 100);
+    }
+
+    private void AddIndicator()
+    {
+        alertTrigger.Criteria.Add(Guid.NewGuid().ToString(), Indicators[0]);
+
+        // DropDownComponentProperty dropDownComponentProperty = new DropDownComponentProperty() { Id = "1", Name = "Time Period", SelectedValue = "42" };
+        // IndicatorOperator childIndicator = new IndicatorOperator() { Id = "9", Name = "Candle", Type = IndicatorOperatorType.Indicator, DropDownComponentProperties = new List<DropDownComponentProperty>() { dropDownComponentProperty }, ChildIndicators = null };
+        // dropDownComponentProperty = new DropDownComponentProperty() { Id = "1", Name = "Length", SelectedValue = "5" };
+        // alertTrigger.Criteria.Add(
+        // new IndicatorOperator()
+        //     {
+        //         Id = "1",
+        //         Name = "EMA",
+        //         Type = IndicatorOperatorType.Indicator,
+        //         DropDownComponentProperties = new List<DropDownComponentProperty>() { dropDownComponentProperty },
+        //         ChildIndicators = new List<IndicatorOperator>() { childIndicator }
+        //     });
+    }
+    private void AddMathOperator()
+    {
+        alertTrigger.Criteria.Add(Guid.NewGuid().ToString(), Indicators.FirstOrDefault(x => x.Type == IndicatorOperatorType.MathOperator));
+
+        // DropDownComponentProperty dropDownComponentProperty = new DropDownComponentProperty() { Id = "1", Name = "MathOperator", SelectedValue = "50" };
+        // alertTrigger.Criteria.Add(
+        //     new IndicatorOperator()
+        //         {
+        //             Id = "12",
+        //             Name = "MathOperator",
+        //             Type = IndicatorOperatorType.MathOperator,
+        //             DropDownComponentProperties = new List<DropDownComponentProperty>() { dropDownComponentProperty },
+        //             ChildIndicators = null
+        //         });
+    }
+    private void AddLogicalOperator()
+    {
+        alertTrigger.Criteria.Add(Guid.NewGuid().ToString(), Indicators.FirstOrDefault(x => x.Type == IndicatorOperatorType.LogicalOperator));
+        // DropDownComponentProperty dropDownComponentProperty = new DropDownComponentProperty() { Id = "1", Name = "LogicalOperator", SelectedValue = "48" };
+        // alertTrigger.Criteria.Add(
+        //     new IndicatorOperator()
+        //         {
+        //             Id = "13",
+        //             Name = "LogicalOperator",
+        //             Type = IndicatorOperatorType.LogicalOperator,
+        //             DropDownComponentProperties = new List<DropDownComponentProperty>() { dropDownComponentProperty },
+        //             ChildIndicators = null
+        //         });
+    }
+    private void AddConditionalOperator()
+    {
+    }
+    private void RemoveLast()
+    {
+        alertTrigger.Criteria.Remove(alertTrigger.Criteria.Last().Key);
+    }
+    private void Clear()
+    {
+        alertTrigger.Criteria.Clear();
+    }
+
+    // private void AddParentComponent()
+    // {
+    //     //indicatorid:indicatorname;propertyname, indicatorypropertyid;
+
+    //     //operator and indicator. Operator consists on Math operator, logical operator and brackets
+    //     //indicator are all indicators with all their properties
+    //     //there should be one indicator and one operator always, and should start with idicator and end with indicator: [indicator][operator][indicator]
+
+    //     //Criteria Json
+    //     /* 
+    //     Indicator format: ID:Name;Property1Name:PropertyValues; on:[ChildIndicator]
+    //     Operator Format: ID
+    //     */
+
+    //     DropDownComponentProperty dropDownComponentProperty = new DropDownComponentProperty() { Id = "1", Name = "Time Period", SelectedValue = "42" };
+    //     IndicatorOperator childIndicator = new IndicatorOperator() { Id = "9", Name = "Candle", Type=IndicatorOperatorType.Indicator,  DropDownComponentProperties = new List<DropDownComponentProperty>() { dropDownComponentProperty }, ChildIndicators = null };
+    //     dropDownComponentProperty = new DropDownComponentProperty() { Id= "1", Name="Length", SelectedValue="5" };
+    //     alertTrigger.Criteria.Add(
+    //     new IndicatorOperator()
+    //             {
+    //                 Id = "1",
+    //                 Name = "EMA",
+    //             Type = IndicatorOperatorType.Indicator,
+    //                 DropDownComponentProperties = new List<DropDownComponentProperty>() { dropDownComponentProperty },
+    //                 ChildIndicators = new List<IndicatorOperator>() { childIndicator } });
+
+    //     dropDownComponentProperty = new DropDownComponentProperty() { Id = "1", Name = "MathOperator", SelectedValue = "50" };
+
+    //     alertTrigger.Criteria.Add(  
+    //         new IndicatorOperator()
+    //             {
+    //                 Id = "12",
+    //                 Name = "MathOperator",
+    //                 Type = IndicatorOperatorType.MathOperator,
+    //                 DropDownComponentProperties = new List<DropDownComponentProperty>() { dropDownComponentProperty },
+    //                 ChildIndicators = null
+    //             });
+
+    //     dropDownComponentProperty = new DropDownComponentProperty() { Id = "1", Name = "Time Period", SelectedValue = "42" };
+    //     childIndicator = new IndicatorOperator() { Id = "9", Name = "Candle", Type = IndicatorOperatorType.Indicator, DropDownComponentProperties = new List<DropDownComponentProperty>() { dropDownComponentProperty }, ChildIndicators = null };
+
+    //     dropDownComponentProperty = new DropDownComponentProperty() { Id = "1", Name = "Length", SelectedValue = "6" };
+    //     alertTrigger.Criteria.Add(
+    //         new IndicatorOperator()
+    //             {
+    //                 Id = "1",
+    //                 Name = "EMA",
+    //                 Type = IndicatorOperatorType.Indicator,
+    //                 DropDownComponentProperties = new List<DropDownComponentProperty>() { dropDownComponentProperty },
+    //                 ChildIndicators = new List<IndicatorOperator>() { childIndicator }
+    //             });
+
+
+    //     //alertTrigger.Criteria.Add(new() { Id = counter++, LHSIndicator = "1:EMA;Length:5;on:[ChildIndicator]", LHSTimeInMinutes = "2", LogicalCriteria = "1", MathOperator = "1", RHSIndicator = "1:EMA;Length:5;On:[ChildIndicator]", RHSTimeInMinutes = "2" });
+    //     showLogicalOperator = true;
+    // }
+
+
+    private void OnIndicatorChanged((string oldIndicatorKey, string newIndicatorId) data)
+    {
+        IndicatorOperator newIndicator = Indicators.First(x => x.Id.ToString() == data.newIndicatorId);
+        //replace old indicator by new indicator
+        alertTrigger.Criteria[data.oldIndicatorKey] = newIndicator;
+    }
+
+    private async Task Submit()
+    {
+        // if(UserId ==  null || UserId == string.Empty)
+        // {
+        //     NavigationManager.NavigateTo("/Account/Register");
+        // }
+        alertTrigger.UserId = currentUser.Id;
+        success = await AClient.SetAlertAsync(alertTrigger);
+        //NavigationManager.Refresh();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+    }
+
+    private List<ControlModel> controls = new();
+
+    private void AddControl()
+    {
+        //controls.Add(new ControlModel { Id = Guid.NewGuid(), SelectedValue = string.Empty, dcType = typeof(DynamicControls)});
+    }
+
+
+    public class ControlModel
+    {
+        public Guid Id { get; set; }
+        public string SelectedValue { get; set; }
+        public Type dcType { get; set; }
+    }
+}

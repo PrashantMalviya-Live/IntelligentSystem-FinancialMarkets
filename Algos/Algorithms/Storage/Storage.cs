@@ -77,28 +77,28 @@ namespace Algos.TLogics
         }
 
         //make sure ref is working with struct . else make it class
-        public virtual async Task<bool> OnNext(Tick[] ticks)
+        public virtual void OnNext(Tick tick)
         {
             if (LiveTicks == null)
             {
-                return true;
+                return ;
             }
 
             List<KeyValuePair<uint, Tick>> tickCollection = new List<KeyValuePair<uint, Tick>>();
             lock (LiveTicks)
             {
-                foreach (Tick Tickdata in ticks)
-                {
-                    LiveTicks.Enqueue(Tickdata);
-                    KeyValuePair<uint, Tick> keyValue = new KeyValuePair<uint, Tick>(Tickdata.InstrumentToken, Tickdata);
+                //foreach (Tick Tickdata in ticks)
+                //{
+                    LiveTicks.Enqueue(tick);
+                    KeyValuePair<uint, Tick> keyValue = new KeyValuePair<uint, Tick>(tick.InstrumentToken, tick);
                     tickCollection.Add(keyValue);
-                }
+                //}
             }
             //IgniteConnector.Put(tickCollection);
             //t1.Start(ticks);
             //NCacheFacade.UpdateNCacheData(ticks);
 
-            return true;
+            return ;
         }
 
         /// <summary>
@@ -129,7 +129,10 @@ namespace Algos.TLogics
 
         }
 
-
+        public void StopTrade(bool stop)
+        {
+            //_stopTrade = stop;
+        }
         public static void InitTimer()
         {
             GlobalObjects.OHLCTimer = new System.Timers.Timer(20000);

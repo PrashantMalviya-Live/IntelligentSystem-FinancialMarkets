@@ -129,8 +129,8 @@ namespace TradeEMACross.Controllers
 
             ///FOR ALL STOCKS FUTURE , PASS INSTRUMENTTOKEN AS ZERO. FOR CE/PE ON BNF/NF SEND THE INDEX TOKEN AS INSTRUMENTTOKEN
             OptionBuyonEMACross optionBuyonEMACross =
-                new OptionBuyonEMACross(endDateTime, candleTimeSpan, instrumentToken, expiry,
-                optionQuantity, optionBuyOnEMACrossInputs.TP, optionBuyOnEMACrossInputs.SL, 
+                new OptionBuyonEMACross(candleTimeSpan, instrumentToken, //expiry,
+                optionQuantity, uid:"PM27031981", optionBuyOnEMACrossInputs.TP, optionBuyOnEMACrossInputs.SL, 
                 optionBuyOnEMACrossInputs.SEMA, optionBuyOnEMACrossInputs.LEMA, 200, algoInstance, false, 0);
 
             optionBuyonEMACross.OnOptionUniverseChange += OptionBuywithRSI_OnOptionUniverseChange;

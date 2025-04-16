@@ -1,0 +1,64 @@
+﻿@typeparam TItem
+
+<span>
+    @if (!_isEditing)
+    {
+        <label class="text-success" @onclick="EnterEditMode">@_selectedItemText</label>
+    }
+    else
+    {
+        <select @onchange="OnSelectionChanged">
+            @foreach (var item in Items)
+            {
+                <option value=@item.Key,@item.Value selected="@(EqualityComparer<TItem>.Equals(item.Key, SelectedItem))">@item.Value</option>
+            }
+          
+        </select>
+    }
+</span>
+
+@code {
+    private bool _isEditing = false;
+    private string _selectedItemText;
+
+    [Parameter]
+    public required Dictionary<string, TItem> Items { get; set; }
+
+    // public static Dictionary<string, string> instrumentOptions = new Dictionary<string, string> { { "260105", "NIFTY" }, { "256265", "BANKNIFTY" }, { "223432", "TCS" } };
+    // public static Dictionary<string, string> timeFrameOptions = new Dictionary<string, string> { { "0", "1 min" }, { "1", "2 min" }, { "2", "3 min" } };
+    // public static Dictionary<string, string> indicatorOptions = new Dictionary<string, string> { { "0", "Open" }, { "1", "High" }, { "2", "EMA" }, { "3", "RSI" } };
+    // public static Dictionary<string, string> mathoperatorOptions = new Dictionary<string, string> { { "0", "Equals to" }, { "1", "Greater than" }, { "2", "Less than" } };
+    // public static Dictionary<string, string> logicaloperatorOptions = new Dictionary<string, string> { { "0", "AND" }, { "1", "OR" } };
+
+    [Parameter]
+    public string SelectedItem { get; set; }
+
+    [Parameter]
+    public EventCallback<string> SelectedItemChanged { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        _selectedItemText = Items[SelectedItem].ToString();
+    }
+
+    private void EnterEditMode()
+    {
+        _isEditing = true;
+    }
+
+    private async Task OnSelectionChanged(ChangeEventArgs e)
+    {
+        var kv = e.Value.ToString().Split(',');
+
+        var selectedValue = kv[0];
+
+        SelectedItem = Items.FirstOrDefault(item => item.Key == selectedValue).Key.ToString();
+        _selectedItemText = SelectedItem;
+        _isEditing = false;
+
+        if (SelectedItemChanged.HasDelegate)
+        {
+            await SelectedItemChanged.InvokeAsync(SelectedItem);
+        }
+    }
+}

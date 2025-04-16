@@ -47,39 +47,39 @@ namespace MarketView.Controllers
         /// </summary>
         /// <returns></returns>
         // GET: api/<PositionController>
-        [HttpGet]
-        public IEnumerable<IEnumerable<OrderView>> Get()
-        {
-            DataLogic dl = new DataLogic();
-            List<Order> orders = dl.GetOrders();
+        //[HttpGet]
+        //public IEnumerable<IEnumerable<OrderView>> Get()
+        //{
+        //    DataLogic dl = new DataLogic();
+        //    List<Order> orders = dl.GetOrders();
 
-            List<List<OrderView>> orderViewbyInstance = new List<List<OrderView>>();
-            var algoInstances = orders.Select(x => x.AlgoInstance).Distinct();
+        //    List<List<OrderView>> orderViewbyInstance = new List<List<OrderView>>();
+        //    var algoInstances = orders.Select(x => x.AlgoInstance).Distinct();
 
-            foreach(int ai in algoInstances)
-            {
-                List<OrderView> orderview = (from n in orders.FindAll(x => x.AlgoInstance == ai) select GetOrderView(n)).ToList();
-                orderViewbyInstance.Add(orderview);
-            }
+        //    foreach(int ai in algoInstances)
+        //    {
+        //        List<OrderView> orderview = (from n in orders.FindAll(x => x.AlgoInstance == ai) select GetOrderView(n)).ToList();
+        //        orderViewbyInstance.Add(orderview);
+        //    }
 
-            return orderViewbyInstance;
-            //foreach (Order order in orders)
-            //{
-            //    if (orderViewbyInstance.ContainsKey(order.AlgoInstance))
-            //    {
-            //        orderViewbyInstance[order.AlgoInstance].Add(GetOrderView(order));
-            //    }
-            //    else
-            //    {
-            //        orderViewbyInstance.Add(order.AlgoInstance, new List<OrderView>() { GetOrderView(order) });
-            //    }
-            //}
-            //JsonSerializerSettings settings = new JsonSerializerSettings();
-            //settings.
-            //JsonConverter converter= JsonConvert.SerializeObject()
+        //    return orderViewbyInstance;
+        //    //foreach (Order order in orders)
+        //    //{
+        //    //    if (orderViewbyInstance.ContainsKey(order.AlgoInstance))
+        //    //    {
+        //    //        orderViewbyInstance[order.AlgoInstance].Add(GetOrderView(order));
+        //    //    }
+        //    //    else
+        //    //    {
+        //    //        orderViewbyInstance.Add(order.AlgoInstance, new List<OrderView>() { GetOrderView(order) });
+        //    //    }
+        //    //}
+        //    //JsonSerializerSettings settings = new JsonSerializerSettings();
+        //    //settings.
+        //    //JsonConverter converter= JsonConvert.SerializeObject()
 
-            //return JsonConvert.SerializeObject(orderViewbyInstance);
-        }
+        //    //return JsonConvert.SerializeObject(orderViewbyInstance);
+        //}
         private OrderView GetOrderView(Order order)
         {
             return new OrderView

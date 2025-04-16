@@ -6,12 +6,128 @@ using GlobalLayer;
 using System.Text;
 using System.Threading.Tasks;
 using System.Reflection.Metadata.Ecma335;
+using Newtonsoft.Json.Linq;
+using Microsoft.SqlServer.Server;
+using System.Linq;
+using static System.Formats.Asn1.AsnWriter;
+using Google.Protobuf.WellKnownTypes;
+using System.Runtime.InteropServices;
+//using System.Diagnostics.Metrics;
 //using Alachisoft.NCache.Common.Util;
 
 namespace DataAccess
 {
     public class MarketDAO
     {
+        public List<string> GetActiveTradingDays(DateTime fromDate, DateTime toDate)
+        {
+            SqlConnection sqlConnection = new SqlConnection(Utility.GetConnectionString());
+            SqlCommand sqlCMD = new SqlCommand("GetTradingDays", sqlConnection)
+            {
+                CommandTimeout = 3000,
+                CommandType = CommandType.StoredProcedure
+            };
+
+            sqlCMD.Parameters.AddWithValue("@FromDate", fromDate);
+            sqlCMD.Parameters.AddWithValue("@ToDate", toDate);
+
+            SqlDataAdapter daInstruments = new SqlDataAdapter()
+            {
+                SelectCommand = sqlCMD
+            };
+
+            DataSet dsTradingDays = new DataSet();
+            daInstruments.Fill(dsTradingDays);
+            sqlConnection.Close();
+
+            List<string> days = new List<string>();
+
+            foreach (DataRow dr in dsTradingDays.Tables[0].Rows)
+            {
+                days.Add(Convert.ToDateTime(dr[0]).ToShortDateString());
+            }
+
+            return days;
+        }
+
+        public DateTime GetPreviousTradingDate(DateTime tradeDate, int numberOfDaysPrior, uint token)
+        {
+            SqlConnection sqlConnection = new SqlConnection(Utility.GetConnectionString());
+            SqlCommand sqlCMD = new SqlCommand("GetPreviousTradingDate", sqlConnection)
+            {
+                CommandTimeout = 3000,
+                CommandType = CommandType.StoredProcedure
+            };
+
+            sqlCMD.Parameters.AddWithValue("@Date", tradeDate);
+            sqlCMD.Parameters.AddWithValue("@NumberOfDaysPrior", numberOfDaysPrior);
+            sqlCMD.Parameters.AddWithValue("@Token", Convert.ToInt64(token));
+
+
+            sqlConnection.Open();
+            DateTime ptDate = Convert.ToDateTime(sqlCMD.ExecuteScalar());
+            sqlConnection.Close();
+
+            return ptDate;
+        }
+
+        public DateTime GetPreviousWeeklyExpiry(DateTime tradeDate, int numberofWeeksPrior = 1)
+        {
+            SqlConnection sqlConnection = new SqlConnection(Utility.GetConnectionString());
+            SqlCommand sqlCMD = new SqlCommand("GetPreviousWeekExpiry", sqlConnection)
+            {
+                CommandTimeout = 3000,
+                CommandType = CommandType.StoredProcedure
+            };
+
+            sqlCMD.Parameters.AddWithValue("@TradeDate", tradeDate);
+            sqlCMD.Parameters.AddWithValue("@NumberOfWeeksPrior", numberofWeeksPrior);
+
+
+            sqlConnection.Open();
+            DateTime expiryDate = Convert.ToDateTime(sqlCMD.ExecuteScalar());
+            sqlConnection.Close();
+
+            return expiryDate;
+        }
+        public DateTime GetCurrentMonthlyExpiry(DateTime tradeDate, uint binstrument)
+        {
+            SqlConnection sqlConnection = new SqlConnection(Utility.GetConnectionString());
+            SqlCommand sqlCMD = new SqlCommand("GetCurrentMonthExpiry", sqlConnection)
+            {
+                CommandTimeout = 3000,
+                CommandType = CommandType.StoredProcedure
+            };
+
+            sqlCMD.Parameters.AddWithValue("@TradeDate", tradeDate);
+            sqlCMD.Parameters.AddWithValue("@BInstrument", Convert.ToInt64(binstrument));
+
+
+            sqlConnection.Open();
+            DateTime expiryDate = Convert.ToDateTime(sqlCMD.ExecuteScalar());
+            sqlConnection.Close();
+
+            return expiryDate;
+        }
+        public DateTime GetCurrentWeeklyExpiry(DateTime tradeDate, uint binstrument)
+        {
+            SqlConnection sqlConnection = new SqlConnection(Utility.GetConnectionString());
+            SqlCommand sqlCMD = new SqlCommand("GetCurrentWeekExpiry", sqlConnection)
+            {
+                CommandTimeout = 3000,
+                CommandType = CommandType.StoredProcedure
+            };
+
+            sqlCMD.Parameters.AddWithValue("@TradeDate", tradeDate);
+            sqlCMD.Parameters.AddWithValue("@BInstrument", Convert.ToInt64(binstrument));
+
+
+            sqlConnection.Open();
+            DateTime expiryDate = Convert.ToDateTime(sqlCMD.ExecuteScalar());
+            sqlConnection.Close();
+
+            return expiryDate;
+        }
         public OHLC GetPreviousDayRange(uint token, DateTime dateTime)
         {
             SqlConnection sqlConnection = new SqlConnection(Utility.GetConnectionString());
@@ -33,15 +149,22 @@ namespace DataAccess
             DataSet dsOHLC = new DataSet();
             daInstruments.Fill(dsOHLC);
             sqlConnection.Close();
+            OHLC ohlc = null;
+            if (dsOHLC.Tables[0].Rows.Count > 0)
+            {
+                DataRow dataRow = dsOHLC.Tables[0].Rows[0];
 
-            DataRow dataRow = dsOHLC.Tables[0].Rows[0];
-
-            OHLC ohlc = new OHLC() { 
-                Open = Convert.ToDecimal(dataRow["Open"]), 
-                High = Convert.ToDecimal(dataRow["High"]), 
-                Low = Convert.ToDecimal(dataRow["Low"]), 
-                Close = Convert.ToDecimal(dataRow["Close"]) };
-
+                if (dataRow["Open"] != DBNull.Value && dataRow["High"] != null && dataRow["Low"] != null && dataRow["Close"] !=  null)
+                {
+                    ohlc = new OHLC()
+                    {
+                        Open = Convert.ToDecimal(dataRow["Open"]),
+                        High = Convert.ToDecimal(dataRow["High"]),
+                        Low = Convert.ToDecimal(dataRow["Low"]),
+                        Close = Convert.ToDecimal(dataRow["Close"])
+                    };
+                }
+            }
             return ohlc;
         }
         public OHLC GetPriceRange(uint token, DateTime startDateTime, DateTime endDateTime)
@@ -98,6 +221,295 @@ namespace DataAccess
 
             return (string)sqlCMD.Parameters["@AccessToken"].Value;
         }
+
+        public DataSet GetAlertTriggersforUser(string userId)
+        {
+            SqlConnection sqlConnection = new SqlConnection(Utility.GetConnectionString());
+            SqlCommand sqlCMD = new SqlCommand("GetAlertTriggersforUser", sqlConnection)
+            {
+                CommandTimeout = 3000,
+                CommandType = CommandType.StoredProcedure
+            };
+
+            sqlCMD.Parameters.AddWithValue("@UserId", userId);
+
+            SqlDataAdapter daInstruments = new SqlDataAdapter()
+            {
+                SelectCommand = sqlCMD
+            };
+
+            DataSet dsAlertTriggers = new DataSet();
+            daInstruments.Fill(dsAlertTriggers);
+            sqlConnection.Close();
+
+            return dsAlertTriggers;
+        }
+
+
+        public DataSet GetActiveAlertTriggers()
+        {
+            SqlConnection sqlConnection = new SqlConnection(Utility.GetConnectionString());
+            SqlCommand sqlCMD = new SqlCommand("GetActiveAlertTriggers", sqlConnection)
+            {
+                CommandTimeout = 3000,
+                CommandType = CommandType.StoredProcedure
+            };
+
+            SqlDataAdapter daInstruments = new SqlDataAdapter()
+            {
+                SelectCommand = sqlCMD
+            };
+
+            DataSet dsAlertTriggers = new DataSet();
+            daInstruments.Fill(dsAlertTriggers);
+            sqlConnection.Close();
+
+            return dsAlertTriggers;
+        }
+
+        public DataSet GetAlertsbyAlertId(int alertId)
+        {
+            SqlConnection sqlConnection = new SqlConnection(Utility.GetConnectionString());
+            SqlCommand sqlCMD = new SqlCommand("GetAlertsbyAlertId", sqlConnection)
+            {
+                CommandTimeout = 3000,
+                CommandType = CommandType.StoredProcedure
+            };
+
+            sqlCMD.Parameters.AddWithValue("@AlertId", alertId);
+
+            SqlDataAdapter daInstruments = new SqlDataAdapter()
+            {
+                SelectCommand = sqlCMD
+            };
+
+            DataSet dsAlertTriggers = new DataSet();
+            daInstruments.Fill(dsAlertTriggers);
+            sqlConnection.Close();
+
+            return dsAlertTriggers;
+        }
+
+        public DataSet GetGeneratedAlerts(string userId)
+        {
+            SqlConnection sqlConnection = new SqlConnection(Utility.GetConnectionString());
+            SqlCommand sqlCMD = new SqlCommand("GetGeneratedAlerts", sqlConnection)
+            {
+                CommandTimeout = 3000,
+                CommandType = CommandType.StoredProcedure
+            };
+
+            sqlCMD.Parameters.AddWithValue("@UserId", userId);
+
+            SqlDataAdapter daInstruments = new SqlDataAdapter()
+            {
+                SelectCommand = sqlCMD
+            };
+
+            DataSet dsGeneratedAlerts = new DataSet();
+            daInstruments.Fill(dsGeneratedAlerts);
+            sqlConnection.Close();
+
+            return dsGeneratedAlerts;
+        }
+
+        public async Task<decimal> GetUserCreditsAsync(string userId)
+        {
+            SqlConnection sqlConnection = new SqlConnection(Utility.GetConnectionString());
+            SqlCommand sqlCMD = new SqlCommand("GetUserCredits", sqlConnection)
+            {
+                CommandTimeout = 3000,
+                CommandType = CommandType.StoredProcedure
+            };
+
+            sqlCMD.Parameters.AddWithValue("@UserId", userId);
+
+            decimal userCredit = 0;
+            try
+            {
+                sqlConnection.Open();
+                userCredit =(decimal) await sqlCMD.ExecuteScalarAsync();
+                sqlConnection.Close();
+            }
+            catch (Exception e)
+            {
+                Logger.LogWrite(e.Message);
+            }
+            finally
+            {
+                if (sqlConnection.State == ConnectionState.Open)
+                    sqlConnection.Close();
+            }
+            return userCredit;
+        }
+
+        
+
+        public DataSet GetInstrumentList()
+        {
+            SqlConnection sqlConnection = new SqlConnection(Utility.GetConnectionString());
+            SqlCommand sqlCMD = new SqlCommand("GetInstrumentListForAlert", sqlConnection)
+            {
+                CommandTimeout = 3000,
+                CommandType = CommandType.StoredProcedure
+            };
+
+            SqlDataAdapter daInstruments = new SqlDataAdapter()
+            {
+                SelectCommand = sqlCMD
+            };
+
+            DataSet dsInstrumentList = new DataSet();
+            daInstruments.Fill(dsInstrumentList);
+            sqlConnection.Close();
+
+            return dsInstrumentList;
+        }
+        public DataSet GetCandleTimeFrames()
+        {
+            SqlConnection sqlConnection = new SqlConnection(Utility.GetConnectionString());
+            SqlCommand sqlCMD = new SqlCommand("GetCandleTimeFrames", sqlConnection)
+            {
+                CommandTimeout = 3000,
+                CommandType = CommandType.StoredProcedure
+            };
+
+            
+            SqlDataAdapter daInstruments = new SqlDataAdapter()
+            {
+                SelectCommand = sqlCMD
+            };
+
+
+            DataSet dsList = new DataSet();
+            daInstruments.Fill(dsList);
+            sqlConnection.Close();
+
+            return dsList;
+        }
+        public DataSet GetIndicatorList()
+        {
+            SqlConnection sqlConnection = new SqlConnection(Utility.GetConnectionString());
+            SqlCommand sqlCMD = new SqlCommand("GetIndicatorList", sqlConnection)
+            {
+                CommandTimeout = 3000,
+                CommandType = CommandType.StoredProcedure
+            };
+
+            SqlDataAdapter daInstruments = new SqlDataAdapter()
+            {
+                SelectCommand = sqlCMD
+            };
+
+            DataSet dsIndicatorList = new DataSet();
+            daInstruments.Fill(dsIndicatorList);
+            sqlConnection.Close();
+
+            return dsIndicatorList;
+        }
+
+        public DataSet GetIndicatorProperties(int indicatorId)
+        {
+            SqlConnection sqlConnection = new SqlConnection(Utility.GetConnectionString());
+            SqlCommand sqlCMD = new SqlCommand("GetIndicatorProperties", sqlConnection)
+            {
+                CommandTimeout = 3000,
+                CommandType = CommandType.StoredProcedure
+            };
+
+            sqlCMD.Parameters.AddWithValue("@IndicatorId", indicatorId);
+
+            SqlDataAdapter daInstruments = new SqlDataAdapter()
+            {
+                SelectCommand = sqlCMD
+            };
+
+            DataSet dsIndicatorProperties = new DataSet();
+            daInstruments.Fill(dsIndicatorProperties);
+            sqlConnection.Close();
+
+            return dsIndicatorProperties;
+        }
+
+        
+            public async Task<int> UpdateGeneratedAlertsAsync(Alert alert)
+        {
+            SqlConnection sqlConnection = new SqlConnection(Utility.GetConnectionString());
+            SqlCommand insertCMD = new SqlCommand("UpdateGeneratedAlerts", sqlConnection)
+            {
+                CommandTimeout = 3000,
+                CommandType = CommandType.StoredProcedure
+            };
+
+            insertCMD.Parameters.AddWithValue("@UserId", alert.UserId);
+            insertCMD.Parameters.AddWithValue("@AlertId", alert.ID);
+            insertCMD.Parameters.AddWithValue("@AlertTriggerId", alert.AlertTriggerID);
+            insertCMD.Parameters.AddWithValue("@AlertModes", alert.AlertModes);
+            insertCMD.Parameters.AddWithValue("@TriggerDateTime", alert.TriggeredDateTime);
+
+            insertCMD.Parameters.Add("@TriggerId", SqlDbType.Int).Direction = ParameterDirection.Output;
+
+            try
+            {
+                sqlConnection.Open();
+                await insertCMD.ExecuteNonQueryAsync();
+                sqlConnection.Close();
+            }
+            catch (Exception e)
+            {
+                Logger.LogWrite(e.Message);
+            }
+            finally
+            {
+                if (sqlConnection.State == ConnectionState.Open)
+                    sqlConnection.Close();
+            }
+            return (int)insertCMD.Parameters["@TriggerId"].Value;
+        }
+
+        public async Task<int> UpdateAlertTriggerAsync(
+            int id, uint instrumentToken, string tradingSymbol, string userid, 
+            DateTime setupdate, DateTime startDate, DateTime endDate,  byte numberOfTriggersPerInterval, 
+            byte triggerFrequency, byte totalNumberOfTriggers, string alertCriteria)
+        {
+            SqlConnection sqlConnection = new SqlConnection(Utility.GetConnectionString());
+            SqlCommand insertCMD = new SqlCommand("UpdateAlertTrigger", sqlConnection)
+            {
+                CommandTimeout = 3000,
+                CommandType = CommandType.StoredProcedure
+            };
+
+            insertCMD.Parameters.AddWithValue("@Id", id);
+            insertCMD.Parameters.AddWithValue("@UserId", userid);
+            insertCMD.Parameters.AddWithValue("@InstrumentToken", (Int64)instrumentToken);
+            insertCMD.Parameters.AddWithValue("@SetUpDate", setupdate);
+            insertCMD.Parameters.AddWithValue("@StartDate", startDate);
+            insertCMD.Parameters.AddWithValue("@EndDate", endDate);
+            insertCMD.Parameters.AddWithValue("@TriggerFrequency", triggerFrequency);
+            insertCMD.Parameters.AddWithValue("@NumberOfTriggersPerInterval", numberOfTriggersPerInterval);
+            insertCMD.Parameters.AddWithValue("@TotalNumberOfTriggers", totalNumberOfTriggers);
+            insertCMD.Parameters.AddWithValue("@TradingSymbol", tradingSymbol);
+            insertCMD.Parameters.AddWithValue("@AlertCriteria", alertCriteria);
+
+            insertCMD.Parameters.Add("@AlertTriggerId", SqlDbType.Int).Direction = ParameterDirection.Output;
+
+            try
+            {
+                sqlConnection.Open();
+                await insertCMD.ExecuteNonQueryAsync();
+                sqlConnection.Close();
+            }
+            catch (Exception e)
+            {
+                Logger.LogWrite(e.Message);
+            }
+            finally
+            {
+                if (sqlConnection.State == ConnectionState.Open)
+                    sqlConnection.Close();
+            }
+            return (int)insertCMD.Parameters["@AlertTriggerId"].Value;
+        }
         public bool UpdateUser(User activeUser)
         {
             SqlConnection sqlConnection = new SqlConnection(Utility.GetConnectionString());
@@ -113,6 +525,13 @@ namespace DataAccess
             sqlCMD.Parameters.AddWithValue("@Email", activeUser.Email);
             sqlCMD.Parameters.AddWithValue("@ApiKey", activeUser.APIKey);
             sqlCMD.Parameters.AddWithValue("@AccessToken", activeUser.AccessToken);
+
+            sqlCMD.Parameters.AddWithValue("@ConsumerKey", activeUser.ConsumerKey);
+            sqlCMD.Parameters.AddWithValue("@SessionToken", activeUser.SessionToken);
+
+            sqlCMD.Parameters.AddWithValue("@SID", activeUser.SID);
+            sqlCMD.Parameters.AddWithValue("@HsServerId", activeUser.HsServerId);
+            sqlCMD.Parameters.AddWithValue("@ApplicationUserId", activeUser.ApplicationUserId);
 
             try
             {
@@ -132,7 +551,141 @@ namespace DataAccess
             }
             return false;
         }
-        public DataSet GetActiveUser()
+
+        public void UpdateArg8(int algoInstance, decimal arg8)
+        {
+            SqlConnection sqlConnection = new SqlConnection(Utility.GetConnectionString());
+            SqlCommand sqlCMD = new SqlCommand("UpdateArg8", sqlConnection)
+            {
+                CommandTimeout = 3000,
+                CommandType = CommandType.StoredProcedure
+            };
+
+            sqlCMD.Parameters.AddWithValue("@AlgoInstance", algoInstance);
+            sqlCMD.Parameters.AddWithValue("@Arg8", arg8);
+
+            try
+            {
+                sqlConnection.Open();
+                sqlCMD.ExecuteNonQuery();
+                sqlConnection.Close();
+            }
+            catch (Exception e)
+            {
+                Logger.LogWrite(e.Message);
+            }
+            finally
+            {
+                if (sqlConnection.State == ConnectionState.Open)
+                    sqlConnection.Close();
+            }
+        }
+        public void UpdateAlgoParamaters(int algoInstance, decimal upperLimit = 0, decimal lowerLimit = 0, decimal arg1 = 0, decimal arg2 = 0,
+            decimal arg3 = 0, decimal arg4 = 0, decimal arg5 = 0, decimal arg6 = 0, decimal arg7 = 0, decimal arg8 = 0, string arg9 = "")
+        {
+            SqlConnection sqlConnection = new SqlConnection(Utility.GetConnectionString());
+            SqlCommand sqlCMD = new SqlCommand("UpdateAlgoParameters", sqlConnection)
+            {
+                CommandTimeout = 3000,
+                CommandType = CommandType.StoredProcedure
+            };
+
+            sqlCMD.Parameters.AddWithValue("@AlgoInstance", algoInstance);
+            if (upperLimit != 0)
+            {
+                sqlCMD.Parameters.AddWithValue("@UpperLimit", upperLimit);
+            }
+            if (lowerLimit != 0)
+            {
+                sqlCMD.Parameters.AddWithValue("@LowerLimit", lowerLimit);
+            }
+            if (arg1 != 0)
+            {
+                sqlCMD.Parameters.AddWithValue("@Arg1", arg1);
+            }
+            if (arg2 != 0)
+            {
+                sqlCMD.Parameters.AddWithValue("@Arg2", arg2);
+            }
+            if (arg3 != 0)
+            {
+                sqlCMD.Parameters.AddWithValue("@Arg3", arg3);
+            }
+            if (arg4 != 0)
+            {
+                sqlCMD.Parameters.AddWithValue("@Arg4", arg4);
+            }
+            if (arg5 != 0)
+            {
+                sqlCMD.Parameters.AddWithValue("@Arg5", arg5);
+            }
+            if (arg6 != 0)
+            {
+                sqlCMD.Parameters.AddWithValue("@Arg6", arg6);
+            }
+            if (arg7 != 0)
+            {
+                sqlCMD.Parameters.AddWithValue("@Arg7", arg7);
+            }
+            if (arg8 != 0)
+            {
+                sqlCMD.Parameters.AddWithValue("@Arg8", arg8);
+            }
+            if (arg9 != "")
+            {
+                sqlCMD.Parameters.AddWithValue("@Arg9", arg9);
+            }
+
+            try
+            {
+                sqlConnection.Open();
+                sqlCMD.ExecuteNonQuery();
+                sqlConnection.Close();
+            }
+            catch (Exception e)
+            {
+                Logger.LogWrite(e.Message);
+            }
+            finally
+            {
+                if (sqlConnection.State == ConnectionState.Open)
+                    sqlConnection.Close();
+            }
+        }
+        public bool UpdateCandleScore(int algoInstance, DateTime candleTime, Decimal candlePrice, int score)
+        {
+            SqlConnection sqlConnection = new SqlConnection(Utility.GetConnectionString());
+            SqlCommand sqlCMD = new SqlCommand("UpdateCandleScore", sqlConnection)
+            {
+                CommandTimeout = 3000,
+                CommandType = CommandType.StoredProcedure
+            };
+
+            sqlCMD.Parameters.AddWithValue("@AlgoInstance", algoInstance);
+            sqlCMD.Parameters.AddWithValue("@CandleCloseTime", candleTime);
+            sqlCMD.Parameters.AddWithValue("@CandlePrice", candlePrice);
+            sqlCMD.Parameters.AddWithValue("@CandleScore", score);
+
+            try
+            {
+                sqlConnection.Open();
+                sqlCMD.ExecuteNonQuery();
+                sqlConnection.Close();
+                return true;
+            }
+            catch (Exception e)
+            {
+                Logger.LogWrite(e.Message);
+            }
+            finally
+            {
+                if (sqlConnection.State == ConnectionState.Open)
+                    sqlConnection.Close();
+            }
+            return false;
+        }
+      
+        public DataSet GetActiveUser(int brokerId = 0, string userid = "")
         {
             SqlConnection sqlConnection = new SqlConnection(Utility.GetConnectionString());
             SqlCommand selectCMD = new SqlCommand("GetActiveUser", sqlConnection)
@@ -140,6 +693,8 @@ namespace DataAccess
                 CommandTimeout = 3000,
                 CommandType = CommandType.StoredProcedure
             };
+            selectCMD.Parameters.AddWithValue("@BrokerId", brokerId);
+            selectCMD.Parameters.AddWithValue("@UserId", userid);
             SqlDataAdapter daInstruments = new SqlDataAdapter()
             {
                 SelectCommand = selectCMD
@@ -153,13 +708,62 @@ namespace DataAccess
 
             return dsUser;
         }
+        public DataSet GetUserByApplicationUserId(string userid, int brokerId)
+        {
+            SqlConnection sqlConnection = new SqlConnection(Utility.GetConnectionString());
+            SqlCommand selectCMD = new SqlCommand("GetUserByApplicationUserId", sqlConnection)
+            {
+                CommandTimeout = 3000,
+                CommandType = CommandType.StoredProcedure
+            };
+            
+            selectCMD.Parameters.AddWithValue("@UserId", userid);
+            selectCMD.Parameters.AddWithValue("@BrokerId", brokerId);
+
+            SqlDataAdapter daInstruments = new SqlDataAdapter()
+            {
+                SelectCommand = selectCMD
+            };
+
+
+            sqlConnection.Open();
+            DataSet dsUser = new DataSet();
+            daInstruments.Fill(dsUser);
+            sqlConnection.Close();
+
+            return dsUser;
+        }
+        public DataSet GetActiveApplicationUser(string userid = "")
+        {
+            SqlConnection sqlConnection = new SqlConnection(Utility.GetConnectionString());
+            SqlCommand selectCMD = new SqlCommand("GetActiveApplicationUser", sqlConnection)
+            {
+                CommandTimeout = 3000,
+                CommandType = CommandType.StoredProcedure
+            };
+            selectCMD.Parameters.AddWithValue("@UserId", userid);
+            SqlDataAdapter daInstruments = new SqlDataAdapter()
+            {
+                SelectCommand = selectCMD
+            };
+
+
+            sqlConnection.Open();
+            DataSet dsUser = new DataSet();
+            daInstruments.Fill(dsUser);
+            sqlConnection.Close();
+
+            return dsUser;
+        }
+        
+
         public int GenerateAlgoInstance(AlgoIndex algoIndex, uint bToken, DateTime timeStamp, DateTime expiry,
             int initialQtyInLotsSize, int maxQtyInLotSize = 0, int stepQtyInLotSize = 0, decimal upperLimit = 0, 
             decimal upperLimitPercent = 0, decimal lowerLimit = 0, decimal lowerLimitPercent = 0, 
             float stopLossPoints = 0, int optionType = 0, int optionIndex = 0, float candleTimeFrameInMins = 5, 
             CandleType candleType = CandleType.Time, decimal arg1 = 0, decimal arg2 = 0,
             decimal arg3 = 0, decimal arg4 = 0, decimal arg5 = 0, decimal arg6 = 0, decimal arg7 = 0,
-            decimal arg8 = 0, bool positionSizing = false, decimal maxLossPerTrade = 0)
+            decimal arg8 = 0, string arg9 = "", bool positionSizing = false, decimal maxLossPerTrade = 0)
         {
             SqlConnection sqlConnection = new SqlConnection(Utility.GetConnectionString());
             SqlCommand insertCMD = new SqlCommand("CreateAlgoInstance", sqlConnection)
@@ -193,6 +797,7 @@ namespace DataAccess
             insertCMD.Parameters.AddWithValue("@Arg6", arg6);
             insertCMD.Parameters.AddWithValue("@Arg7", arg7);
             insertCMD.Parameters.AddWithValue("@Arg8", arg8);
+            insertCMD.Parameters.AddWithValue("@Arg9", arg9);
             insertCMD.Parameters.AddWithValue("@PositionSizing", positionSizing);
             insertCMD.Parameters.AddWithValue("@MaxLossPerTrade", maxLossPerTrade);
 
@@ -238,7 +843,7 @@ namespace DataAccess
 
             return dsInstruments;
         }
-        public DataSet GetActiveAlgos(AlgoIndex algoIndex)
+        public DataSet GetActiveAlgos(AlgoIndex algoIndex, string userId)
         {
             SqlConnection sqlConnection = new SqlConnection(Utility.GetConnectionString());
 
@@ -248,6 +853,7 @@ namespace DataAccess
                 CommandType = CommandType.StoredProcedure
             };
             selectCMD.Parameters.AddWithValue("@AlgoIndex", (int)algoIndex);
+            selectCMD.Parameters.AddWithValue("@UserId", userId);
             SqlDataAdapter daInstruments = new SqlDataAdapter()
             {
                 SelectCommand = selectCMD
@@ -261,7 +867,7 @@ namespace DataAccess
 
             return dsInstruments;
         }
-        public DataSet GetInstrument(uint instrumentToken, DateTime expiry)
+        public DataSet GetInstrument(uint instrumentToken, DateTime? expiry)
         {
             SqlConnection sqlConnection = new SqlConnection(Utility.GetConnectionString());
 
@@ -271,7 +877,11 @@ namespace DataAccess
                 CommandType = CommandType.StoredProcedure
             };
             selectCMD.Parameters.AddWithValue("@InstrumentToken", Convert.ToInt64(instrumentToken));
-            selectCMD.Parameters.AddWithValue("@Expiry", expiry);
+            
+            if (expiry.HasValue)
+            {
+                selectCMD.Parameters.AddWithValue("@Expiry", expiry.Value);
+            }
             SqlDataAdapter daInstrument = new SqlDataAdapter()
             {
                 SelectCommand = selectCMD
@@ -284,6 +894,33 @@ namespace DataAccess
 
             return dsInstrument;
         }
+
+        public DataSet LoadAlgoInputs(AlgoIndex algoindex, DateTime fromDate, DateTime toDate)
+        {
+            SqlConnection sqlConnection = new SqlConnection(Utility.GetConnectionString());
+
+            SqlCommand selectCMD = new SqlCommand("GetAlgoInputs", sqlConnection)
+            {
+                CommandTimeout = 3000,
+                CommandType = CommandType.StoredProcedure
+            };
+            selectCMD.Parameters.AddWithValue("@AlgoIndex", Convert.ToInt32(algoindex));
+            selectCMD.Parameters.AddWithValue("@FromDate", fromDate);
+            selectCMD.Parameters.AddWithValue("@ToDate", toDate);
+
+            SqlDataAdapter daInstrument = new SqlDataAdapter()
+            {
+                SelectCommand = selectCMD
+            };
+
+            sqlConnection.Open();
+            DataSet dsAlgoInputs = new DataSet();
+            daInstrument.Fill(dsAlgoInputs);
+            sqlConnection.Close();
+
+            return dsAlgoInputs;
+        }
+
         public DataSet GetInstrument(string tradingSymbol)
         {
             SqlConnection sqlConnection = new SqlConnection(Utility.GetConnectionString());
@@ -307,7 +944,7 @@ namespace DataAccess
             return dsInstrument;
         }
 
-        public DataSet GetInstrument(DateTime expiry, uint bInstrumentToken, decimal strike, string instrumentType)
+        public DataSet GetInstrument(DateTime? expiry, uint bToken, decimal strike, string instrumentType)
         {
             SqlConnection sqlConnection = new SqlConnection(Utility.GetConnectionString());
 
@@ -316,10 +953,44 @@ namespace DataAccess
                 CommandTimeout = 3000,
                 CommandType = CommandType.StoredProcedure
             };
-            
-            selectCMD.Parameters.AddWithValue("@BToken", Convert.ToInt64(bInstrumentToken));
-            selectCMD.Parameters.AddWithValue("@Expiry", expiry);
+
+            selectCMD.Parameters.AddWithValue("@BToken", (Int64)bToken);
+            if (expiry.HasValue)
+            {
+                selectCMD.Parameters.AddWithValue("@Expiry", expiry.Value);
+            }
             selectCMD.Parameters.AddWithValue("@Strike", strike);
+            selectCMD.Parameters.AddWithValue("@InstrumentType", instrumentType);
+
+            SqlDataAdapter daInstrument = new SqlDataAdapter()
+            {
+                SelectCommand = selectCMD
+            };
+
+            sqlConnection.Open();
+            DataSet dsInstrument = new DataSet();
+            daInstrument.Fill(dsInstrument);
+            sqlConnection.Close();
+
+            return dsInstrument;
+        }
+
+        public DataSet GetOTMInstrument(DateTime? expiry, uint bToken, decimal strike, string instrumentType)
+        {
+            SqlConnection sqlConnection = new SqlConnection(Utility.GetConnectionString());
+
+            SqlCommand selectCMD = new SqlCommand("GetOTMDInstrument", sqlConnection)
+            {
+                CommandTimeout = 3000,
+                CommandType = CommandType.StoredProcedure
+            };
+            
+            selectCMD.Parameters.AddWithValue("@BToken", (Int64)bToken);
+            if (expiry.HasValue)
+            {
+                selectCMD.Parameters.AddWithValue("@Expiry", expiry.Value);
+            }
+            selectCMD.Parameters.AddWithValue("@BPrice", strike);
             selectCMD.Parameters.AddWithValue("@InstrumentType", instrumentType);
 
             SqlDataAdapter daInstrument = new SqlDataAdapter()
@@ -419,12 +1090,89 @@ namespace DataAccess
 
             return dsInstruments;
         }
+        public DataSet LoadIndexStocks(uint indexToken)
+        {
+            SqlConnection sqlConnection = new SqlConnection(Utility.GetConnectionString());
+
+            SqlCommand selectCMD = new SqlCommand("LoadIndexStocks", sqlConnection)
+            {
+                CommandTimeout = 3000,
+                CommandType = CommandType.StoredProcedure
+            };
+            selectCMD.Parameters.AddWithValue("@IndexToken", (Int64)indexToken);
+
+            SqlDataAdapter daInstruments = new SqlDataAdapter()
+            {
+                SelectCommand = selectCMD
+            };
+
+            sqlConnection.Open();
+            DataSet dsInstruments = new DataSet();
+            daInstruments.Fill(dsInstruments);
+            sqlConnection.Close();
+
+            return dsInstruments;
+        }
+        public DataSet LoadOptions(DateTime? expiry, uint baseInstrumentToken, decimal baseInstrumentPrice = 0,
+            decimal maxDistanceFromBInstrument = 500)
+        {
+            SqlConnection sqlConnection = new SqlConnection(Utility.GetConnectionString());
+
+            SqlCommand selectCMD = new SqlCommand("GetOptions", sqlConnection)
+            {
+                CommandTimeout = 3000,
+                CommandType = CommandType.StoredProcedure
+            };
+            selectCMD.Parameters.AddWithValue("@ExpiryDate", expiry.Value);
+            selectCMD.Parameters.AddWithValue("@BaseInstrumentToken", (Int64)baseInstrumentToken);
+            selectCMD.Parameters.AddWithValue("@BaseInstrumentPrice", baseInstrumentPrice);
+            selectCMD.Parameters.AddWithValue("@MaxDistanceFromBInstrument", maxDistanceFromBInstrument);
+
+            SqlDataAdapter daInstruments = new SqlDataAdapter()
+            {
+                SelectCommand = selectCMD
+            };
+
+            sqlConnection.Open();
+            DataSet dsInstruments = new DataSet();
+            daInstruments.Fill(dsInstruments);
+            sqlConnection.Close();
+
+            return dsInstruments;
+        }
         public DataSet LoadCloseByOptions(DateTime? expiry, uint baseInstrumentToken, decimal baseInstrumentPrice = 0, 
             decimal maxDistanceFromBInstrument= 500)
         {
             SqlConnection sqlConnection = new SqlConnection(Utility.GetConnectionString());
 
             SqlCommand selectCMD = new SqlCommand("GetNearByOptions", sqlConnection)
+            {
+                CommandTimeout = 3000,
+                CommandType = CommandType.StoredProcedure
+            };
+            selectCMD.Parameters.AddWithValue("@ExpiryDate", expiry.Value);
+            selectCMD.Parameters.AddWithValue("@BaseInstrumentToken", (Int64)baseInstrumentToken);
+            selectCMD.Parameters.AddWithValue("@BaseInstrumentPrice", baseInstrumentPrice);
+            selectCMD.Parameters.AddWithValue("@MaxDistanceFromBInstrument", maxDistanceFromBInstrument);
+
+            SqlDataAdapter daInstruments = new SqlDataAdapter()
+            {
+                SelectCommand = selectCMD
+            };
+
+            sqlConnection.Open();
+            DataSet dsInstruments = new DataSet();
+            daInstruments.Fill(dsInstruments);
+            sqlConnection.Close();
+
+            return dsInstruments;
+        }
+        public DataSet LoadCloseByStraddleOptions(DateTime? expiry, uint baseInstrumentToken, decimal baseInstrumentPrice = 0,
+            decimal maxDistanceFromBInstrument = 500)
+        {
+            SqlConnection sqlConnection = new SqlConnection(Utility.GetConnectionString());
+
+            SqlCommand selectCMD = new SqlCommand("GetNearByStraddleOptions", sqlConnection)
             {
                 CommandTimeout = 3000,
                 CommandType = CommandType.StoredProcedure
@@ -502,7 +1250,7 @@ namespace DataAccess
         }
 
         public DataSet GetHistoricalCandlePrices(int numberofCandles, DateTime endDateTime, string tokenList, TimeSpan timeFrame, 
-            bool isBaseInstrument = false, CandleType candleType = CandleType.Time, uint vThreshold = 0)
+            bool isBaseInstrument = false, CandleType candleType = CandleType.Time, uint vThreshold = 0, uint bToken = 256265)
         {
             SqlConnection sqlConnection = new SqlConnection(Utility.GetConnectionString());
             
@@ -524,6 +1272,7 @@ namespace DataAccess
                 selectCMD.Parameters.AddWithValue("@TimeFrame", timeFrame);
                 selectCMD.Parameters.AddWithValue("@InstrumentTokenList", tokenList);
                 selectCMD.Parameters.AddWithValue("@CandleType", (int)CandleType.Time);
+                selectCMD.Parameters.AddWithValue("@BInstrument", (Int64) bToken);
             }
             else if (candleType == CandleType.Volume)
             {
@@ -878,8 +1627,94 @@ namespace DataAccess
             }
         }
 
-        public void UpdateOrder(Order order, int algoInstance)
+        public void UpdateAlgoPnl(int algoInstance, decimal pnl)
         {
+            SqlConnection sqlConnection = new SqlConnection(Utility.GetConnectionString());
+            SqlCommand updateCMD = new SqlCommand("UpdateAlgoPnl", sqlConnection)
+            {
+                CommandTimeout = 3000,
+                CommandType = CommandType.StoredProcedure
+            };
+
+            updateCMD.Parameters.AddWithValue("@AlgoInstance", algoInstance);
+            updateCMD.Parameters.AddWithValue("@PnL", pnl);
+
+            try
+            {
+                sqlConnection.Open();
+                updateCMD.ExecuteNonQuery();
+                sqlConnection.Close();
+            }
+            catch (Exception e)
+            {
+                Logger.LogWrite(e.Message);
+            }
+            finally
+            {
+                if (sqlConnection.State == ConnectionState.Open)
+                    sqlConnection.Close();
+            }
+        }
+        public void DeActivateAlgo(int algoInstance)
+        {
+            SqlConnection sqlConnection = new SqlConnection(Utility.GetConnectionString());
+            SqlCommand updateCMD = new SqlCommand("DeActivateAlgo", sqlConnection)
+            {
+                CommandTimeout = 3000,
+                CommandType = CommandType.StoredProcedure
+            };
+
+            updateCMD.Parameters.AddWithValue("@AlgoInstance", algoInstance);
+
+            try
+            {
+                sqlConnection.Open();
+                updateCMD.ExecuteNonQuery();
+                sqlConnection.Close();
+            }
+            catch (Exception e)
+            {
+                Logger.LogWrite(e.Message);
+            }
+            finally
+            {
+                if (sqlConnection.State == ConnectionState.Open)
+                    sqlConnection.Close();
+            }
+        }
+        public void DeActivateOrderTrio(OrderTrio orderTrio)
+        {
+            SqlConnection sqlConnection = new SqlConnection(Utility.GetConnectionString());
+            SqlCommand updateCMD = new SqlCommand("DeActivateOrderTrio", sqlConnection)
+            {
+                CommandTimeout = 3000,
+                CommandType = CommandType.StoredProcedure
+            };
+
+            updateCMD.Parameters.AddWithValue("@OrderTrioID", orderTrio.Id);
+
+            try
+            {
+                sqlConnection.Open();
+                updateCMD.ExecuteNonQuery();
+                sqlConnection.Close();
+            }
+            catch (Exception e)
+            {
+                Logger.LogWrite(e.Message);
+            }
+            finally
+            {
+                if (sqlConnection.State == ConnectionState.Open)
+                    sqlConnection.Close();
+            }
+        }
+
+
+
+        public decimal UpdateOrder(Order order, int algoInstance)
+        {
+            decimal netpnl = 0;
             SqlConnection sqlConnection = new SqlConnection(Utility.GetConnectionString());
             SqlCommand updateCMD = new SqlCommand("UpdateOrder", sqlConnection)
             {
@@ -921,8 +1756,8 @@ namespace DataAccess
             updateCMD.Parameters.AddWithValue("@Tag", order.Tag);
             updateCMD.Parameters.AddWithValue("@TradingSymbol", order.Tradingsymbol);
             updateCMD.Parameters.AddWithValue("@TransactionType", order.TransactionType);
-            updateCMD.Parameters.AddWithValue("@Validity", order.Validity);
-            updateCMD.Parameters.AddWithValue("@Variety", order.Variety);
+            updateCMD.Parameters.AddWithValue("@Validity", order.Validity == null ? "DAY": order.Validity);
+            updateCMD.Parameters.AddWithValue("@Variety", order.Variety == null ? "" : order.Variety);
             updateCMD.Parameters.AddWithValue("@TriggerPrice", order.TriggerPrice);
             updateCMD.Parameters.AddWithValue("@AlgoIndex", (int) order.AlgoIndex);
             updateCMD.Parameters.AddWithValue("@AlgoInstance", algoInstance);
@@ -930,7 +1765,11 @@ namespace DataAccess
             try
             {
                 sqlConnection.Open();
-                updateCMD.ExecuteNonQuery();
+                object pnl = updateCMD.ExecuteScalar();
+                if (pnl != null)
+                {
+                    netpnl = Convert.ToDecimal(pnl);
+                }
                 sqlConnection.Close();
             }
             catch (Exception e)
@@ -942,6 +1781,7 @@ namespace DataAccess
                 if (sqlConnection.State == ConnectionState.Open)
                     sqlConnection.Close();
             }
+            return netpnl;
         }
 
         public decimal UpdateTrade(int strategyID, UInt32 instrumentToken, decimal averageTradePrice, DateTime? exchangeTimeStamp, 
@@ -1023,6 +1863,40 @@ namespace DataAccess
                     sqlConnection.Close();
             }
             return netPnL;
+        }
+
+        public void InsertHistoricals(Historical historical, int interval = 0)
+        {
+            SqlConnection sqlConnection = new SqlConnection(Utility.GetConnectionString());
+            SqlCommand updateCMD = new SqlCommand("InsertHistoricals", sqlConnection)
+            {
+                CommandTimeout = 3000,
+                CommandType = CommandType.StoredProcedure
+            };
+            updateCMD.Parameters.AddWithValue("@TimeStamp", historical.TimeStamp);
+            updateCMD.Parameters.AddWithValue("@High", historical.High);
+            updateCMD.Parameters.AddWithValue("@Low", historical.Low);
+            updateCMD.Parameters.AddWithValue("@Close", historical.Close);
+            updateCMD.Parameters.AddWithValue("@Open", historical.Open);
+            updateCMD.Parameters.AddWithValue("@Volume", (Int64) historical.Volume);
+            updateCMD.Parameters.AddWithValue("@InstrumentToken", (Int64) historical.InstrumentToken);
+            updateCMD.Parameters.AddWithValue("@Interval", interval);
+
+            try
+            {
+                sqlConnection.Open();
+                updateCMD.ExecuteNonQuery();
+                sqlConnection.Close();
+            }
+            catch (Exception e)
+            {
+                Logger.LogWrite(e.Message);
+            }
+            finally
+            {
+                if (sqlConnection.State == ConnectionState.Open)
+                    sqlConnection.Close();
+            }
         }
 
         public int StoreBoxData(int boxID, UInt32 firstCallToken, UInt32 secondCallToken, UInt32 firstPutToken, UInt32 secondPutToken,
@@ -1118,6 +1992,55 @@ namespace DataAccess
             sqlConnection.Close();
 
             return dsInstruments;
+        }
+        //0: within day, 1: daily
+        public List<Historical> GetHistoricals(uint token, DateTime fromDate, DateTime toDate, int interval = 0)
+        {
+            SqlConnection sqlConnection = new SqlConnection(Utility.GetConnectionString());
+            SqlCommand selectCMD = new SqlCommand("GetHistoricals", sqlConnection)
+            {
+                CommandTimeout = 3000,
+                CommandType = CommandType.StoredProcedure
+            };
+
+            selectCMD.Parameters.AddWithValue("@InstrumentToken", (Int64)token);
+            selectCMD.Parameters.AddWithValue("@FromDate", fromDate);
+            selectCMD.Parameters.AddWithValue("@ToDate", toDate);
+            selectCMD.Parameters.AddWithValue("@Interval", interval);
+
+            SqlDataAdapter daInstruments = new SqlDataAdapter()
+            {
+                SelectCommand = selectCMD
+            };
+
+            List<Historical> historicals = new List<Historical>();
+
+            try
+            {
+                sqlConnection.Open();
+                DataSet dsInstruments = new DataSet();
+                daInstruments.Fill(dsInstruments);
+                sqlConnection.Close();
+                
+
+                foreach (DataRow data in dsInstruments.Tables[0].Rows)
+                {
+                    Historical historical = new Historical(data);
+                    historicals.Add(historical);
+                }
+                return historicals;
+
+            }
+            catch (Exception e)
+            {
+                Logger.LogWrite(e.Message);
+            }
+            finally
+            {
+                if (sqlConnection.State == ConnectionState.Open)
+                    sqlConnection.Close();
+            }
+            return historicals;
         }
 
         public List<Instrument> RetrieveBaseInstruments()
@@ -1229,7 +2152,7 @@ namespace DataAccess
         }
 
         public SortedList<Decimal, Instrument>[] RetrieveNextStrangleNodes(UInt32 baseInstrumentToken, DateTime expiry,
-            decimal callStrikePrice, decimal putStrikePrice, int updownboth)
+           decimal callStrikePrice, decimal putStrikePrice, int updownboth)
         {
 
             SqlConnection sqlConnection = new SqlConnection(Utility.GetConnectionString());
@@ -1256,10 +2179,92 @@ namespace DataAccess
             daInstruments.Fill(dsInstruments);
             sqlConnection.Close();
 
+           // mappedTokens = new Dictionary<uint, uint>();
             SortedList<Decimal, Instrument>[] dInstruments = new SortedList<decimal, Instrument>[2];
 
             dInstruments[0] = new SortedList<Decimal, Instrument>();
             dInstruments[1] = new SortedList<Decimal, Instrument>();
+
+            dsInstruments.Tables[1].PrimaryKey = new DataColumn[] { dsInstruments.Tables[1].Columns["Token"] };
+            uint kotakToken = 0;
+            foreach (DataRow data in dsInstruments.Tables[0].Rows)
+            {
+                Instrument instrument = new Instrument();
+                instrument.InstrumentToken = Convert.ToUInt32(data["Token"]);
+                instrument.TradingSymbol = Convert.ToString(data["Symbol"]);
+                instrument.Strike = Convert.ToDecimal(data["StrikePrice"]);
+                instrument.Expiry = Convert.ToDateTime(data["ExpiryDate"]);
+                instrument.InstrumentType = Convert.ToString(data["Type"]);
+                instrument.LotSize = Convert.ToUInt32(data["LotSize"]);
+                instrument.BaseInstrumentToken = Convert.ToUInt32(data["BInstrumentToken"]);
+                ///TODO:This field is causing delay. See what you can do.
+                ///Commenting again. Query it from Zerodha as GetLTP for instrument if this is not updated when required
+                // instrument.LastPrice = Convert.ToUInt32(data["LastPrice"]);
+                if (instrument.InstrumentType.Trim().ToLower() == "ce")
+                {
+                    dInstruments[0].Add(instrument.Strike, instrument);
+                }
+                else
+                {
+                    dInstruments[1].Add(instrument.Strike, instrument);
+                }
+
+                //if (data["KToken"] != DBNull.Value)
+                //{
+                //    instrument.KToken = Convert.ToUInt32(data["KToken"]);
+                //}
+                //dsInstruments.Tables[1].PrimaryKey = 
+#if market
+                instrument.KToken = Convert.ToUInt32(dsInstruments.Tables[1].Rows.Find(instrument.InstrumentToken)[1]);
+#elif BACKTEST
+                instrument.KToken = 0;
+#endif
+                //#if market
+                //                                kotakToken = Convert.ToUInt32(dsInstruments.Tables[1].Rows.Find(instrument.InstrumentToken)[1]);
+                //#elif local
+                //                                kotakToken = 0;
+                //#endif
+                //mappedTokens.Add(instrument.InstrumentToken, kotakToken);
+
+            }
+            return dInstruments;
+        }
+
+        public SortedList<Decimal, Instrument>[] RetrieveNextStrangleNodes(UInt32 baseInstrumentToken, DateTime expiry,
+            decimal callStrikePrice, decimal putStrikePrice, int updownboth, out Dictionary<uint, uint> mappedTokens)
+        {
+
+            SqlConnection sqlConnection = new SqlConnection(Utility.GetConnectionString());
+
+            SqlCommand selectCMD = new SqlCommand("GetNextStrangleNodes", sqlConnection)
+            {
+                CommandTimeout = 3000,
+                CommandType = CommandType.StoredProcedure
+            };
+            selectCMD.Parameters.AddWithValue("@BToken", Convert.ToInt64(baseInstrumentToken));
+            selectCMD.Parameters.AddWithValue("@CStrike", callStrikePrice);
+            selectCMD.Parameters.AddWithValue("@PStrike", putStrikePrice);
+            selectCMD.Parameters.AddWithValue("@ExpiryDate", expiry);
+            selectCMD.Parameters.AddWithValue("@UPDOWNBOTH", updownboth);
+
+            SqlDataAdapter daInstruments = new SqlDataAdapter()
+            {
+                SelectCommand = selectCMD
+            };
+
+
+            sqlConnection.Open();
+            DataSet dsInstruments = new DataSet();
+            daInstruments.Fill(dsInstruments);
+            sqlConnection.Close();
+
+            mappedTokens = new Dictionary<uint, uint>();
+            SortedList<Decimal, Instrument>[] dInstruments = new SortedList<decimal, Instrument>[2];
+
+            dInstruments[0] = new SortedList<Decimal, Instrument>();
+            dInstruments[1] = new SortedList<Decimal, Instrument>();
+            uint kotakToken = 0;
+            dsInstruments.Tables[1].PrimaryKey = new DataColumn[] { dsInstruments.Tables[1].Columns["Token"] };
 
             foreach (DataRow data in dsInstruments.Tables[0].Rows)
             {
@@ -1274,7 +2279,7 @@ namespace DataAccess
                 ///TODO:This field is causing delay. See what you can do.
                 ///Commenting again. Query it from Zerodha as GetLTP for instrument if this is not updated when required
                 // instrument.LastPrice = Convert.ToUInt32(data["LastPrice"]);
-                if (instrument.InstrumentType.Trim() == "CE")
+                if (instrument.InstrumentType.Trim().ToLower() == "ce")
                 {
                     dInstruments[0].Add(instrument.Strike, instrument);
                 }
@@ -1283,13 +2288,22 @@ namespace DataAccess
                     dInstruments[1].Add(instrument.Strike, instrument);
                 }
 
+                //kotakToken = Convert.ToUInt32(dsInstruments.Tables[1].Rows.Find(instrument.InstrumentToken)[1]);
+                kotakToken = 0;
+                //#if market
+                //                kotakToken = Convert.ToUInt32(dsInstruments.Tables[1].Rows.Find(instrument.InstrumentToken)[1]);
+                //#elif local
+                //                kotakToken = 0;
+                //#endif
+                mappedTokens.Add(instrument.InstrumentToken, kotakToken);
+
             }
             return dInstruments;
         }
 
 
         public DataSet RetrieveNextNodes(UInt32 baseInstrumentToken, string instrumentType,
-          decimal currentStrikePrice, DateTime expiry, int updownboth, int noOfRecords = 10)
+          decimal currentStrikePrice, DateTime expiry, int updownboth, int noOfRecords = 5)
         {
 
             SqlConnection sqlConnection = new SqlConnection(Utility.GetConnectionString());
@@ -1428,7 +2442,7 @@ namespace DataAccess
             return (int)insertCMD.Parameters["@retValue"].Value;
 
         }
-        public UInt32[] GetInstrumentListToSubscribe(decimal niftyPrice, decimal bankniftyPrice)
+        public Dictionary<UInt32, String> GetInstrumentListToSubscribe(decimal niftyPrice, decimal bankniftyPrice, decimal finniftyPrice, decimal midcpniftyPrice)
         {
             SqlConnection sqlConnection = new SqlConnection(Utility.GetConnectionString());
 
@@ -1439,26 +2453,68 @@ namespace DataAccess
             };
             selectCMD.Parameters.AddWithValue("@NiftyPrice", niftyPrice);
             selectCMD.Parameters.AddWithValue("@BankNiftyPrice", bankniftyPrice);
-            
+            selectCMD.Parameters.AddWithValue("@FINNiftyPrice", finniftyPrice);
+            selectCMD.Parameters.AddWithValue("@MIDCPNiftyPrice", midcpniftyPrice);
+
 
             SqlDataAdapter daInstruments = new SqlDataAdapter()
             {
                 SelectCommand = selectCMD
             };
-           
+
 
             sqlConnection.Open();
             DataSet dsInstruments = new DataSet();
             daInstruments.Fill(dsInstruments);
             sqlConnection.Close();
 
+            Dictionary<UInt32, string> instrumentTokenSymbols = new Dictionary<uint, string>();
 
-            List<UInt32> instrumentTokenList = new List<UInt32>();
+            //List<UInt32> instrumentTokenList = new List<UInt32>();
+            //foreach (DataRow dr in dsInstruments.Tables[0].Rows)
+            //{
+            //    instrumentTokenList.Add(Convert.ToUInt32(dr["InstrumentToken"]));
+            //}
+
             foreach (DataRow dr in dsInstruments.Tables[0].Rows)
             {
-                instrumentTokenList.Add(Convert.ToUInt32(dr["InstrumentToken"]));
+                instrumentTokenSymbols.Add(Convert.ToUInt32(dr["InstrumentToken"]), Convert.ToString(dr["Symbol"]));
             }
-            return instrumentTokenList.ToArray();
+            return instrumentTokenSymbols;//.ToArray();
+        }
+        public List<UInt32> GetInstrumentTokens(uint indexToken, decimal fromStrike, decimal toStrike, DateTime expiry)
+        {
+            SqlConnection sqlConnection = new SqlConnection(Utility.GetConnectionString());
+
+            SqlCommand selectCMD = new SqlCommand("GetInstrumentTokens", sqlConnection)
+            {
+                CommandTimeout = 3000,
+                CommandType = CommandType.StoredProcedure
+            };
+            selectCMD.Parameters.AddWithValue("@IndexToken", (Int64) indexToken);
+            selectCMD.Parameters.AddWithValue("@FromStrike", fromStrike);
+            selectCMD.Parameters.AddWithValue("@ToStrike", toStrike);
+            selectCMD.Parameters.AddWithValue("@Expiry", expiry);
+
+
+            SqlDataAdapter daInstruments = new SqlDataAdapter()
+            {
+                SelectCommand = selectCMD
+            };
+
+
+            sqlConnection.Open();
+            DataSet dsInstruments = new DataSet();
+            daInstruments.Fill(dsInstruments);
+            sqlConnection.Close();
+
+            List<uint> tokens = new List<uint>();
+            foreach(DataRow tokenRow in dsInstruments.Tables[0].Rows)
+            {
+                tokens.Add(Convert.ToUInt32(tokenRow["InstrumentToken"]));
+            }
+
+            return tokens;
         }
 
 
@@ -1933,6 +2989,38 @@ namespace DataAccess
             sqlConnection.Close();
 
         }
+        public int UpdateOrderTrio(uint optionToken, string mainOrderId, string slOrderId, string tpOrderId, decimal targetprofit, decimal stoploss, 
+             DateTime entryTradeTime, decimal baseInstrumentSL, bool tpflag, int algoInstance, bool isActive, int orderTrioId = 0, bool? slflag = null, string indicatorsValue = "")
+        { 
+            SqlConnection sqlConnection = new SqlConnection(Utility.GetConnectionString());
+            SqlCommand updateCMD = new SqlCommand("UpdateOrderTrio", sqlConnection)
+            {
+                CommandTimeout = 3000,
+                CommandType = CommandType.StoredProcedure
+            };
+
+            updateCMD.Parameters.AddWithValue("@InstrumentToken", (Int64) optionToken);
+            updateCMD.Parameters.AddWithValue("@MainOrderId", mainOrderId);
+            updateCMD.Parameters.AddWithValue("@SLOrderId", slOrderId);
+            updateCMD.Parameters.AddWithValue("@TPOrderId", tpOrderId);
+            updateCMD.Parameters.AddWithValue("@StopLoss", stoploss);
+            updateCMD.Parameters.AddWithValue("@TargetProfit", targetprofit);
+            updateCMD.Parameters.AddWithValue("@EntryTradeTime", entryTradeTime);
+            updateCMD.Parameters.AddWithValue("@BaseInstrumentStopLoss", baseInstrumentSL);
+            updateCMD.Parameters.AddWithValue("@TPFlag", tpflag);
+            updateCMD.Parameters.AddWithValue("@SLFlag", slflag);
+            updateCMD.Parameters.AddWithValue("@AlgoInstance", algoInstance);
+            updateCMD.Parameters.AddWithValue("@IsActive", isActive);
+            updateCMD.Parameters.AddWithValue("@IndicatorsValue", indicatorsValue);
+            updateCMD.Parameters.AddWithValue("@ID", orderTrioId).Direction = ParameterDirection.InputOutput; 
+
+            sqlConnection.Open();
+            updateCMD.ExecuteNonQuery();
+            sqlConnection.Close();
+
+            return (int)updateCMD.Parameters["@ID"].Value;
+
+        }
 
         public DataSet GetDailyOHLC(IEnumerable<uint> tokens, DateTime date)
         {
@@ -1971,6 +3059,23 @@ namespace DataAccess
 
             SqlConnection sqlConnection = new SqlConnection(Utility.GetConnectionString());
             SqlCommand insertCMD = new SqlCommand("InsertTicks", sqlConnection)
+            {
+                CommandTimeout = 3000,
+                CommandType = CommandType.StoredProcedure
+            };
+
+            insertCMD.Parameters.AddWithValue("@Ticks", dtLiveTicks);
+
+            sqlConnection.Open();
+            insertCMD.ExecuteNonQuery();
+            sqlConnection.Close();
+        }
+        public void StoreTestTickData(List<Tick> liveTicks, bool shortenedTick)
+        {
+            DataTable dtLiveTicks = ConvertObjectToDataTable(new Queue<Tick>(liveTicks), shortenedTick);
+
+            SqlConnection sqlConnection = new SqlConnection(Utility.GetConnectionString());
+            SqlCommand insertCMD = new SqlCommand("InsertTestTicks", sqlConnection)
             {
                 CommandTimeout = 3000,
                 CommandType = CommandType.StoredProcedure
@@ -2145,8 +3250,10 @@ namespace DataAccess
                 drTick["Volume"] = tick.Volume;
                 drTick["OI"] = tick.OI;
 
-                if (tick.InstrumentToken == NIFTY_TOKEN 
-                    || tick.InstrumentToken == BANK_NIFTY_TOKEN
+                if (tick.InstrumentToken == Convert.ToUInt32(Constants.BANK_NIFTY_TOKEN)
+                    || tick.InstrumentToken == Convert.ToUInt32(Constants.NIFTY_TOKEN)
+                    || tick.InstrumentToken == Convert.ToUInt32(Constants.FINNIFTY_TOKEN)
+                    || tick.InstrumentToken == Convert.ToUInt32(Constants.MIDCPNIFTY_TOKEN)
                     || tick.InstrumentToken == VIX_TOKEN)
                 {
                     tick.LastTradeTime = tick.Timestamp;
@@ -2192,6 +3299,51 @@ namespace DataAccess
             }
 
             return dtTicks;
+        }
+        public Dictionary<uint, List<PriceTime>> GetTickData(uint btoken, DateTime expiry, decimal fromStrike, decimal toStrike, bool optionsData, bool futuresData, DateTime tradeDate)
+        {
+            object[] data = new object[19];
+            DataAccess.MarketDAO dao = new DataAccess.MarketDAO();
+            SqlConnection sqlConnection = new SqlConnection(Utility.GetConnectionString());
+            List<decimal> historicalPrices = new List<decimal>();
+            Dictionary<uint, List<PriceTime>> tokenPrices = new Dictionary<uint, List<PriceTime>>();
+            uint token;
+            SqlCommand command = new SqlCommand("GetTickDataTest", sqlConnection)
+            {
+                CommandTimeout = 300000,
+                CommandType = CommandType.StoredProcedure
+            };
+
+            command.Parameters.AddWithValue("@BToken", Convert.ToInt64(btoken));
+            command.Parameters.AddWithValue("@Date", tradeDate);
+            command.Parameters.AddWithValue("@Expiry", expiry);
+            command.Parameters.AddWithValue("@FromStrike", fromStrike);
+            command.Parameters.AddWithValue("@ToStrike", toStrike);
+            command.Parameters.AddWithValue("@FuturesData", futuresData);
+            command.Parameters.AddWithValue("@OptionsData", optionsData);
+
+            sqlConnection.Open();
+            SqlDataReader reader = command.ExecuteReader();
+
+            while (reader.Read())
+            {
+                reader.GetValues(data);
+                token = Convert.ToUInt32(data[1]);
+                
+                if(tokenPrices.ContainsKey(token))
+                {
+                    //tokenPrices[token] ??= new List<decimal>();
+
+                    tokenPrices[token].Add(new PriceTime() { LastPrice= (decimal)data[2], TradeTime = data[4] != System.DBNull.Value ? Convert.ToDateTime(data[4]) : DateTime.MinValue });
+                }
+                else
+                {
+                    tokenPrices.Add(token, new List<PriceTime> { new PriceTime() { LastPrice = (decimal)data[2], TradeTime = data[4] != System.DBNull.Value ? Convert.ToDateTime(data[4]) : DateTime.MinValue } });
+                }
+            }
+            command.Dispose();
+            sqlConnection.Close();
+            return tokenPrices;
         }
         /// <summary>
         /// -- DepthLevel,B1,BV1,BQ1,A1,AV1,AQ1|DepthLevel,B2,BV2,BQ2,A2,AV2,AQ2|...

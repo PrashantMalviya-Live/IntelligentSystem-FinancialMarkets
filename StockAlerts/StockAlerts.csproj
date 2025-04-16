@@ -1,0 +1,26 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Configurations>Debug;Release;Market;BackTest</Configurations>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="GlobalLayer.csproj" />
+    <None Include="GlobalLayer.csproj.user" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.4.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Algos\Algos.csproj" />
+    <ProjectReference Include="..\FyersConnect\FyersConnect.csproj" />
+    <ProjectReference Include="..\GlobalLayer\GlobalLayer.csproj" />
+    <ProjectReference Include="..\GrpcLoggerService\GrpcLoggerService.csproj" />
+  </ItemGroup>
+
+</Project>

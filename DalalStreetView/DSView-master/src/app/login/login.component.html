@@ -1,0 +1,43 @@
+<div style="display:flex;justify-content:center;align-items:center;height:80%">
+  <div style="width:400px;height:350px">
+    <mat-card>
+      <div style="margin-left:30px;margin-top:30px">
+        <mat-card-title>Kotak Securities Login</mat-card-title>
+        <mat-card-content>
+          <form [formGroup]="loginForm" style="margin-left:10px" (ngSubmit)="submit()">
+            <p>
+              <mat-form-field>
+                <input type="text" matInput placeholder="Username" formControlName="username">
+              </mat-form-field>
+            </p>
+
+            <p>
+              <mat-form-field>
+                <input type="password" matInput placeholder="Password" formControlName="password">
+              </mat-form-field>
+            </p>
+            <p>
+              <mat-form-field>
+                <input type="text" matInput placeholder="AccessToken" formControlName="accessToken">
+              </mat-form-field>
+            </p>
+            <p>
+              <mat-form-field *ngIf="showotp">
+                <input type="text" matInput placeholder="OTP" formControlName="otp">
+              </mat-form-field>
+            </p>
+
+            <p *ngIf="error" class="error">
+              {{ error }}
+            </p>
+
+            <div class="button">
+              <button type="submit" mat-button>Login</button>
+            </div>
+
+          </form>
+        </mat-card-content>
+      </div>
+    </mat-card>
+  </div>
+</div>

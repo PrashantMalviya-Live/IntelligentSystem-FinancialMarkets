@@ -17,6 +17,9 @@ namespace Algorithms.Indicators
 		public DiPlus()
 		{
 		}
+		public DiPlus(int length):base(length)
+		{
+		}
 
 		/// <inheritdoc />
 		protected override decimal GetValue(Candle current, Candle prev)

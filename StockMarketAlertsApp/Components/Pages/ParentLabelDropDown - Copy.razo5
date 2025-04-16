@@ -1,0 +1,332 @@
+﻿@page "/multiple-dropdowns"
+@inject MarketClient MClient
+
+@rendermode InteractiveServer
+
+@* @if (timeFrameOptions == null || indicatorOptions == null || mathoperatorOptions == null || logicaloperatorOptions == null) *@
+
+@if (@EquationComponent.Value == null)
+{
+    <text><em>Loading...</em></text>
+}
+else
+{
+
+@* 
+    {id:1}
+*@
+
+
+
+    <span>
+        @* indicator:{id:"";name:"";indicatorpropertyname:propertyvalues};operator:[operatorid] *@
+        @* <LabelDropDown TItem="string" Items="timeFrameOptions" SelectedItem="@AlertCriterion.LHSTimeInMinutes" SelectedItemChanged="OnSelectedItemChanged1" /> *@
+        @* String format should be  "id:"";name:"";timeinveral;propertyname:value1, value2, value3, value4; propertyname2:value1,value2,value2" *@
+
+        @if (IndicatorType == IndicatorOperatorType.Indicator)
+        {
+            <LabelDropDown TItem="string"
+                           Items="IndicatorOptions"
+                           SelectedItem =  "@EquationComponent.Value.Id.ToString()"
+                           SelectedItemChanged="OnIndicatorChanged" />
+        }
+        
+        @foreach (var p in @EquationComponent.Value.TextComponentProperties)
+        {
+            <span>@p.Name @V </span>
+            <input id="@p.Id", value="@p.Value" /> //Bind with on change property
+        }
+        @foreach (var p in @EquationComponent.Value.DropDownComponentProperties) //propertyid and selected propertyvalueid
+        {
+            if (IndicatorType == IndicatorOperatorType.Indicator)
+            {
+                <span>@p.Name @V </span>
+            }
+            //var indicatorPropertyOptions = @PropertiesOptions[p.Name];
+            @* <LabelDropDown TItem="string" Items="indicatorPropertyOptions" @bind-SelectedItem="@p.Value" /> *@
+            <LabelDropDown TItem="string" Items="@p.Values" @bind-SelectedItem="@p.SelectedValue" />
+            @* SelectedItemChanged = "OnDropDownPropertyChange" *@
+        }
+        @if (@EquationComponent.Value.ChildIndicators != null && @EquationComponent.Value.ChildIndicators.Count != 0)
+        {
+            <span>on (</span>
+            @foreach (var p in @EquationComponent.Value.ChildIndicators)
+            {
+                <CascadingValue Value="@AllIndicators" Name="Indicators">
+                <CascadingValue Value="@p" Name="SelectedIndicator">
+                    <ParentLabelDropDown 
+                        Key="@p.Key"
+                        IndicatorId="@p.Value.Id.ToString()" 
+                        SelectedIndicatorChanged = "OnChildIndicatorChanged"
+                                             IndicatorType="@p.Value.Type"
+                        IndicatorOptions="IndicatorOptions"
+                                             ParentID="@p.Value.Id.ToString()"
+                        ReadOnly=true />
+                </CascadingValue>
+                    </CascadingValue>
+                @* PropertiesOptions = "@Indicators.FirstOrDefault(x => x.Id.ToString() == @p.Id.ToString()).PropertyNameAndValues" *@
+            }
+            <span>)</span>
+        }
+       
+    </span>
+}
+@code {
+    private string selectedOption1 = "select time";
+    private string selectedOption2 = "High";
+    private string selectedOption3 = "Greater than";
+    private string selectedOption4 = "2 min";
+    private string selectedOption5 = "low";
+    private string selectedOption6 = "AND";
+    private const string V = " = ";
+    // public static Dictionary<string, string> instrumentOptions = new Dictionary<string, string> { { "260105", "NIFTY" }, { "256265", "BANKNIFTY" }, { "223432", "TCS" } };
+    // public static Dictionary<string, string> timeFrameOptions = new Dictionary<string, string> { { "0", "1 min" }, { "1", "2 min" }, { "2", "3 min" } };
+    // public static Dictionary<string, string> indicatorOptions = new Dictionary<string, string> { { "0", "Open" }, { "1", "High" }, { "2", "EMA" }, { "3", "RSI" } };
+    // public static Dictionary<string, string> mathoperatorOptions = new Dictionary<string, string> { { "0", "Equals to" }, { "1", "Greater than" }, { "2", "Less than" } };
+    // public static Dictionary<string, string> logicaloperatorOptions = new Dictionary<string, string> { { "0", "AND" }, { "1", "OR" } };
+
+
+    // [Parameter]
+    // public EventCallback<string, string> IndicatorIdChanged { get; set; }
+
+
+    [Parameter]
+    public bool ReadOnly { get; set; }
+
+    [Parameter]
+    public string ParentId { get; set; }
+
+
+    [Parameter]
+    public string IndicatorId { get; set; }
+    // [Parameter]
+    // public string IndicatorId { get; set; }
+
+    [Parameter]
+    public IndicatorOperatorType IndicatorType { get; set; }
+
+
+    //This will hold id of indicator or operator
+    public string ComponentId { get; set; }
+
+    //indicator string format is  id:"name";property1name:"property1value";"property2name:property2value"
+    //in the servercode use reflection to assign property value. This is not very frequent exercise anyways
+    // [Parameter]
+    // public required AlertCriterion AlertCriterion { get; set; }
+
+    [CascadingParameter (Name ="SelectedIndicator")]
+    public required KeyValuePair<string, IndicatorOperator> EquationComponent { get; set; }
+
+
+    [CascadingParameter (Name = "Indicators")]
+    public required IndicatorOperator[] AllIndicators { get; set; }
+
+    [Parameter]
+    public bool EnableLogicalOperator { get; set; } = false;
+
+    // public static Dictionary<string, Dictionary<string, string>>? lhsIndicationProperties;
+    // public static Dictionary<string, Dictionary<string, string>>? rhsIndicationProperties;
+    public static Dictionary<string, string>? timeFrameOptions;
+    @* String format should be  "id:name:timeinveral;propertyname:value1, value2, value3, value4; propertyname2:value1,value2,value2" *@
+
+    [Parameter]
+    public Dictionary<string, string>? IndicatorOptions { get; set; }
+
+    [Parameter]
+    public Dictionary<string, Dictionary<string, string>>? PropertiesOptions { get; set; } //propertyid and propertyvalueid
+
+    [Parameter]
+    public string Key { get; set; }
+
+    [Parameter]
+    public EventCallback<(string, string)> SelectedIndicatorChanged { get; set; }
+
+    //public IndicatorPropertyOptions
+
+    public static Dictionary<string, string>? mathoperatorOptions;
+    public static Dictionary<string, string>? logicaloperatorOptions;
+
+    public static IndicatorOperator IndicatorOperator;
+
+
+    // private Dictionary<string, string> GetIndicatorOptions()
+    // {
+        
+    // }
+    private Task OnIndicatorChanged(string newItemValue)
+    {
+        // selectedOption1 = data.newItemKey;
+        // AlertCriterion.LHSTimeInMinutes = data.newItemKey;
+
+        if (SelectedIndicatorChanged.HasDelegate)
+        {
+            SelectedIndicatorChanged.InvokeAsync((Key, newItemValue)).Wait();
+        }
+
+        return Task.CompletedTask;
+    }
+    private Task OnChildIndicatorChanged((string oldItemKey, string newItemValue)data)
+    {
+        // selectedOption1 = data.newItemKey;
+        // AlertCriterion.LHSTimeInMinutes = data.newItemKey;
+
+        EquationComponent.Value.ChildIndicators = new Dictionary<string, IndicatorOperator>();
+        
+        
+        EquationComponent.Value.ChildIndicators.Add(Guid.NewGuid().ToString(), AllIndicators.First(x => x.Name == data.newItemValue));
+
+
+        return Task.CompletedTask;
+    }
+
+
+    private Task OnSelectedItemChanged2(string newItemKey)
+    {
+        // selectedOption2 = data.newItemValue;
+
+
+        // if (SelectedItemChanged.HasDelegate)
+        // {
+        //     SelectedItemChanged.InvokeAsync(newItemKey).Wait();
+        // }
+
+        // //indicatorOptions
+        // var lhsIndicationProperties = indicator!.PropertyNameAndValues; // Indi AlertCriterion.LHSIndicator.Substring(AlertCriterion.LHSIndicator.IndexOf(";")).Split(";");
+
+        // AlertCriterion.LHSIndicator = $"{data.newItemValue}:{indicator.Name}";
+
+        // foreach (var p in lhsIndicationProperties)
+        // {
+        //     AlertCriterion.LHSIndicator += $";{p.Key}:{p.Value.FirstOrDefault().Key}";
+        // }
+        // if (SelectedItemChanged.HasDelegate)
+        // {
+        //     SelectedItemChanged.InvokeAsync(AlertCriterion).Wait();
+        // }
+        return Task.CompletedTask;
+    }
+
+    private Task OnSelectedItemChanged20((string newItemKey, string newItemValue)data)
+    {
+        //indicator format should be : "id:name;prop1:provalue1;pro2:propvalue2"
+        // var lhsindicatorattributes = AlertCriterion.LHSIndicator.Split(";");
+
+
+        // string propertynamevalueTobeUpdated = lhsindicatorattributes.FirstOrDefault(x => x.Split(":")[0] == data.newItemKey);
+        // string oldItemValue = propertynamevalueTobeUpdated.Split(":")[1];
+        // propertynamevalueTobeUpdated.Split(":")[1] = data.newItemValue;
+        // string updatedPropertyKeyValue = lhsindicatorattributes.First(x => x.Split(":")[0] == data.newItemKey).Replace(oldItemValue, data.newItemValue);
+
+        // AlertCriterion.LHSIndicator = AlertCriterion.LHSIndicator.Replace(propertynamevalueTobeUpdated, updatedPropertyKeyValue);
+        //check if the original string gets updated with string reference
+
+
+        // if (SelectedItemChanged.HasDelegate)
+        // {
+        //     SelectedItemChanged.InvokeAsync(AlertCriterion).Wait();
+        // }
+        return Task.CompletedTask;
+    }
+    private Task OnSelectedItemChanged3((string newItemKey, string newItemValue) data)
+    {
+        // selectedOption3 = data.newItemValue;
+        // AlertCriterion.MathOperator = data.newItemValue;
+        // if (SelectedItemChanged.HasDelegate)
+        // {
+        //     //SelectedItemChanged.InvokeAsync(selectedOption3).Wait();
+        //     SelectedItemChanged.InvokeAsync(AlertCriterion).Wait();
+        // }
+        return Task.CompletedTask;
+    }
+
+    private Task OnSelectedItemChanged4((string newItemKey, string newItemValue)data)
+    {
+        // selectedOption4 = data.newItemValue;
+        // AlertCriterion.RHSTimeInMinutes = data.newItemValue;
+
+        // if (SelectedItemChanged.HasDelegate)
+        // {
+        //     SelectedItemChanged.InvokeAsync(AlertCriterion).Wait();
+        // }
+        return Task.CompletedTask;
+    }
+    private Task OnSelectedItemChanged5((string newItemKey, string newItemValue) data)
+    {
+        // selectedOption5 = data.newItemValue;
+
+        // var indicator = Indicators.FirstOrDefault(i => i.Id.ToString() == data.newItemValue);
+
+        // //indicatorOptions
+        // var rhsIndicationProperties = indicator!.PropertyNameAndValues; // Indi AlertCriterion.LHSIndicator.Substring(AlertCriterion.LHSIndicator.IndexOf(";")).Split(";");
+
+        // AlertCriterion.RHSIndicator = $"{data.newItemValue}:{indicator.Name}";
+
+        // foreach (var p in rhsIndicationProperties)
+        // {
+        //     AlertCriterion.RHSIndicator += $";{p.Key}:{p.Value.FirstOrDefault().Key}";
+        // }
+        // if (SelectedItemChanged.HasDelegate)
+        // {
+        //     SelectedItemChanged.InvokeAsync(AlertCriterion).Wait();
+        // }
+        return Task.CompletedTask;
+    }
+    private Task OnSelectedItemChanged50((string newItemKey, string newItemValue) data)
+    {
+        // var rhsindicatorattributes = AlertCriterion.RHSIndicator.Split(";");
+
+        // string propertynamevalueTobeUpdated = rhsindicatorattributes.FirstOrDefault(x => x.Split(":")[0] == data.newItemKey);
+        // string oldItemValue = propertynamevalueTobeUpdated.Split(":")[1];
+        // propertynamevalueTobeUpdated.Split(":")[1] = data.newItemValue;
+
+        // //string updatedPropertyKeyValue = string.Join(":", propertynamevalueTobeUpdated);
+
+        // string updatedPropertyKeyValue = rhsindicatorattributes.First(x => x.Split(":")[0] == data.newItemKey).Replace(oldItemValue, data.newItemValue);
+
+        // AlertCriterion.RHSIndicator = AlertCriterion.RHSIndicator.Replace(propertynamevalueTobeUpdated, updatedPropertyKeyValue);
+
+        // if (SelectedItemChanged.HasDelegate)
+        // {
+        //     SelectedItemChanged.InvokeAsync(AlertCriterion).Wait();
+        // }
+        return Task.CompletedTask;
+    }
+    private Task OnSelectedItemChanged6((string newItemKey, string newItemValue)data)
+    {
+        // selectedOption6 = data.newItemValue;
+        // AlertCriterion.LogicalCriteria = data.newItemValue;
+
+        // if (SelectedItemChanged.HasDelegate)
+        // {
+        //     SelectedItemChanged.InvokeAsync(AlertCriterion).Wait();
+        // }
+        return Task.CompletedTask;
+    }
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        //here indicators will hhave all the properties and not just name and id
+        //indicator:{indicatorpropertyname:propertyvalues}
+        //indicator={ id:name;property1:propertyvalue1;property2:propertyvalue2}
+        //let this be string array
+        //Indicators = await MClient.GetIndicatorListAsync();
+        //indicatorOptions = Indicators.ToDictionary(x => x.Id.ToString(), x => x.Name);
+        // lhsIndicationProperties = Indicators[Int32.Parse(AlertCriterion.LHSIndicator.Split(":")[0]) - 1].PropertyNameAndValues;
+        // rhsIndicationProperties = Indicators[Int32.Parse(AlertCriterion.LHSIndicator.Split(":")[0]) - 1].PropertyNameAndValues;
+
+        var timeFrames = await MClient.GetCandleTimeFramesAsync();
+        timeFrameOptions = timeFrames.ToDictionary(x => x.Id.ToString(), x => x.Name);
+
+        mathoperatorOptions = MClient.GetMathOperatorOptions();
+        logicaloperatorOptions = MClient.GetLogicalOperatorOptions();
+
+        // var indicatorpropertiesOptions = MClient.GetIndicatorPropertyOptions();
+        // propertiesOptions = Indicators.FirstOrDefault(x => x.Id.ToString() == IndicatorId).PropertyNameAndValues;
+
+        // Properties = Indicators[Int32.Parse(alertCriteria.LHSIndicator.Split(":")[0]) - 1].PropertyNameAndValues;
+        // ComponentId = Properties.First(x=>x.)
+        //RHSIndicatorProperties = Indicators[Int32.Parse(alertCriteria.RHSIndicator.Split(":")[0]) - 1].PropertyNameAndValues;
+    }
+
+}

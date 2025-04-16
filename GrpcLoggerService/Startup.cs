@@ -51,6 +51,12 @@ namespace GrpcLoggerService
                 endpoints.MapGrpcService<OrderService>().EnableGrpcWeb().RequireCors("AllowAll"); //;
                 endpoints.MapGrpcService<PeerOrderService>().EnableGrpcWeb().RequireCors("AllowAll"); //;
 
+                endpoints.MapGrpcService<AlertService>().EnableGrpcWeb().RequireCors("AllowAll"); //;
+                endpoints.MapGrpcService<PeerAlertService>().EnableGrpcWeb().RequireCors("AllowAll"); //;
+
+                endpoints.MapGrpcService<ChartService>().EnableGrpcWeb().RequireCors("AllowAll"); //;
+                endpoints.MapGrpcService<PeerChartService>().EnableGrpcWeb().RequireCors("AllowAll"); //;
+
 
                 endpoints.MapGet("/", async context =>
                 {

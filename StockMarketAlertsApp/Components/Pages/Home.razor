@@ -1,0 +1,43 @@
+﻿@page "/"
+@inject NavigationManager Navigation
+@rendermode InteractiveServer
+
+<PageTitle>Home</PageTitle>
+
+@* <h1 style="color:#72C2DB"> Welcome</h1>
+<h1 style="color:#FECD45"> Welcome</h1>
+<h1 style="color:#2568FB"> Welcome</h1>
+<h1 style="color:#B38B2D"> Welcome</h1>
+
+<h1 style="color:#D4A73A"> Welcome</h1> *@
+<div class="bannerText">
+<h1 style="color:#6A6A6B;text-align:center"> Set <span style="color:#B38B2D">alerts</span> for NSE shares </h1>
+<h2 style="color:#6A6A6B;text-align:center"> and never miss a move</h2>
+<br />
+<button type="button" @onclick="NavigateToAlertPage" class="btn btn-primary" style="display: block; margin: 0 auto;">Start here</button>
+</div>
+@code {
+    private void NavigateToAlertPage()
+    {
+        Navigation.NavigateTo("/alerts"); // Replace with the desired route
+    }
+}
+
+@* 
+@code {
+    private bool _dummy = false;
+    protected override async Task OnInitializedAsync()
+    {
+        _dummy = true;
+        StateHasChanged();
+    }
+
+    private bool _firstRender = true;
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+        }
+    }
+
+} *@

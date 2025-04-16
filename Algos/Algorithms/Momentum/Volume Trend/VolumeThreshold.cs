@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using Algorithms.Utilities;
 using GlobalLayer;
 using KiteConnect;
-using ZConnectWrapper;
+using BrokerConnectWrapper;
 using System.Data;
 using ZMQFacade;
 using System.Collections;
@@ -122,19 +122,19 @@ namespace Algorithms.Algorithms
             //MonitorVolumeThreshold(e);
         }
 
-        private void MonitorVolumeThreshold(Tick[] ticks)
+        private void MonitorVolumeThreshold(Tick tick)
         {
             lock (tokenTradeLevels)
             {
 
-                GetMarketOpenRange(ticks);
-                SetLastPrice(ticks);
-                if (indexOpenZone == MarketOpenRange.NA || ticks[0].InstrumentToken == indexToken)
+                GetMarketOpenRange(tick);
+                SetLastPrice(tick);
+                if (indexOpenZone == MarketOpenRange.NA || tick.InstrumentToken == indexToken)
                 {
                     return;
                 }
-                MonitorCandles(ticks[0]);
-                ExitTrades(ticks);
+                MonitorCandles(tick);
+                ExitTrades(tick);
             }
         }
         
@@ -154,8 +154,9 @@ namespace Algorithms.Algorithms
         }
 
 
-        private void GetMarketOpenRange(Tick[] ticks)
+        private void GetMarketOpenRange(Tick tick)
         {
+            Tick[] ticks = new Tick[] { tick };
             //Check NIFTY GAP UP OR DOWN
             //if (indexOpenZone == MarketOpenRange.NA)
             //{
@@ -282,18 +283,19 @@ namespace Algorithms.Algorithms
             }
             return cl;
         }
-        private void ExitTrades(Tick[] ticks)
+        private void ExitTrades(Tick tick)
         {
             try
             {
-                foreach (Tick tick in ticks)
-                {
+                //foreach (Tick tick in ticks)
+                //{
                     //for (int i = 0; i < tokenTradeLevels.Count; i++)
                     //{
                     
                     if(!tokenTradeLevels.ContainsKey(tick.InstrumentToken))
                     {
-                        continue;
+                        //continue;
+                    return;
                     }
                     var tt = tokenTradeLevels[tick.InstrumentToken];
 
@@ -331,7 +333,7 @@ namespace Algorithms.Algorithms
                         }
                     }
                     //}
-                }
+                //}
             }
             catch (Exception exp)
             {
@@ -339,21 +341,21 @@ namespace Algorithms.Algorithms
             }
         }
         
-        public Task<bool> OnNext(Tick[] ticks)
+        public void OnNext(Tick tick)
         {
-            MonitorVolumeThreshold(ticks);
+            MonitorVolumeThreshold(tick);
 
-            return Task.FromResult(true);
+            return;
         }
-        private void SetLastPrice(Tick[] ticks)
+        private void SetLastPrice(Tick tick)
         {
-            foreach (Tick tick in ticks)
-            {
+            //foreach (Tick tick in ticks)
+            //{
                 if (!tokenLastClose.ContainsKey(tick.InstrumentToken))
                 {
                     tokenLastClose.Add(tick.InstrumentToken, tick.Close);
                 }
-            }
+            //}
         }
         /// <summary>
         /// Check if CPR is near by in the direction of breakout
@@ -452,6 +454,10 @@ namespace Algorithms.Algorithms
             UpdateTradeDetails(strategyID:0, instrument_Token, quantity, trade, Convert.ToInt32(trade.TriggerID));
 
             return trade;
+        }
+        public void StopTrade(bool stop)
+        {
+            //_stopTrade = stop;
         }
         private void UpdateTradeDetails(int strategyID, uint instrumentToken, int tradedLot, ShortTrade trade, int triggerID)
         {

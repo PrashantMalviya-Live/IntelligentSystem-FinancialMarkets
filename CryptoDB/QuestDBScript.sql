@@ -1,0 +1,100 @@
+﻿CREATE TABLE asset (
+    id LONG,
+    symbol STRING,
+    precision INT,
+    deposit_status STRING,
+    withdrawal_status STRING,
+    base_withdrawal_fee DOUBLE,
+    min_withdrawal_amount DOUBLE,
+    timestamp TIMESTAMP
+);
+
+CREATE TABLE product (
+    id LONG,
+    symbol STRING,
+    description STRING,
+    created_at TIMESTAMP,
+    updated_at TIMESTAMP,
+    settlement_time TIMESTAMP,
+    notional_type STRING,
+    impact_size INT,
+    initial_margin DOUBLE,
+    maintenance_margin DOUBLE,
+    contract_value DOUBLE,
+    contract_unit_currency STRING,
+    tick_size DOUBLE,
+    product_specs STRING,
+    state STRING,
+    trading_status STRING,
+    max_leverage_notional DOUBLE,
+    default_leverage DOUBLE,
+    initial_margin_scaling_factor DOUBLE,
+    maintenance_margin_scaling_factor DOUBLE,
+    taker_commission_rate DOUBLE,
+    maker_commission_rate DOUBLE,
+    liquidation_penalty_factor DOUBLE,
+    contract_type STRING,
+    position_size_limit INT,
+    basis_factor_max_limit DOUBLE,
+    is_quanto BOOLEAN,
+    funding_method STRING,
+    annualized_funding DOUBLE,
+    price_band DOUBLE,
+    underlying_asset_id LONG,
+    quoting_asset_id LONG,
+    settling_asset_id LONG,
+    spot_index STRING,
+    timestamp TIMESTAMP
+);
+
+CREATE TABLE CryptoOrder (
+    id LONG,
+    user_id LONG,
+    size INT,
+    unfilled_size INT,
+    side STRING,
+    order_type STRING,
+    limit_price DOUBLE,
+    stop_order_type STRING,
+    stop_price DOUBLE,
+    paid_commission DOUBLE,
+    commission DOUBLE,
+    reduce_only BOOLEAN,
+    client_order_id STRING,
+    state STRING,
+    created_at TIMESTAMP,
+    product_id LONG,
+    product_symbol STRING,
+    timestamp TIMESTAMP,
+    algo_instance_id INT,
+    strategy_id INT
+);
+
+CREATE TABLE position (
+    user_id LONG,
+    size INT,
+    entry_price DOUBLE,
+    margin DOUBLE,
+    liquidation_price DOUBLE,
+    bankruptcy_price DOUBLE,
+    adl_level INT,
+    product_id LONG,
+    product_symbol STRING,
+    commission DOUBLE,
+    realized_pnl DOUBLE,
+    realized_funding DOUBLE,
+    timestamp TIMESTAMP,
+    algo_instance_id INT,
+    strategy_id INT
+);
+
+CREATE TABLE index_table (
+    id LONG,
+    symbol STRING,
+    constituent_exchanges STRING,
+    underlying_asset_id LONG,
+    quoting_asset_id LONG,
+    tick_size DOUBLE,
+    index_type STRING,
+    timestamp TIMESTAMP
+);

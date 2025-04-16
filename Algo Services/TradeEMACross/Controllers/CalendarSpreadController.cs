@@ -1,0 +1,369 @@
+﻿using Microsoft.Extensions.Configuration;
+using System;
+using System.Collections.Generic;
+using ZMQFacade;
+using Algorithms.Algorithms;
+using Algorithms.Utilities;
+using GlobalLayer;
+using Global.Web;
+using GlobalCore;
+using System.Linq;
+using System.Data;
+using System.Threading.Tasks;
+using Algorithms.Utilities.Views;
+using Algos.Utilities.Views;
+using System.Threading;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
+using System.Net.Http;
+using System.Net;
+
+namespace TradeEMACross.Controllers
+{
+    [Route("api/[controller]")]
+    [ApiController]
+    public class CalendarSpreadController : ControllerBase
+    {
+        private readonly IHttpClientFactory _httpClientFactory;
+        private const string okey = "ACTIVE_STRTrade_OPTIONS";
+        private const string ckey = "ACTIVE_CALTrade_OPTIONS";
+
+        IConfiguration configuration;
+        ZMQClient zmqClient;
+        private IMemoryCache _cache;
+        public CalendarSpreadController(IMemoryCache cache, IHttpClientFactory httpClientFactory)
+        {
+            this._cache = cache;
+            this._httpClientFactory = httpClientFactory;
+
+            ServicePointManager.DefaultConnectionLimit = 10;
+        }
+
+        [HttpGet]
+        public IEnumerable<BInstumentView> Get()
+        {
+            DataLogic dl = new DataLogic();
+            List<Instrument> bInstruments = dl.RetrieveBaseInstruments();
+
+            return (from n in bInstruments select new BInstumentView { InstrumentToken = n.InstrumentToken, TradingSymbol = n.TradingSymbol.Trim(' ') }).ToList();
+        }
+
+        [HttpGet("{token}")]
+        public IEnumerable<string> OptionExpiries(uint token)
+        {
+            DataLogic dl = new DataLogic();
+            List<string> expiryList = dl.RetrieveOptionExpiries(token);
+            return expiryList;
+        }
+
+        [HttpGet("activealgos")]
+        public async Task<IEnumerable<ActiveAlgosView>> GetActiveAlgos()
+        {
+            return null;
+            //DataLogic dl = new DataLogic();
+            //DataSet ds = dl.GetActiveAlgos(AlgoIndex.ValueSpreadTrade);
+
+            //List<ActiveAlgosView> activeAlgos = new List<ActiveAlgosView>();
+
+            //DataTable dtActiveAlgos = ds.Tables[0];
+            //DataRelation algo_orders_relation = ds.Relations.Add("Algo_Orders", new DataColumn[] { ds.Tables[0].Columns["Id"] },
+            //    new DataColumn[] { ds.Tables[2].Columns["AlgoInstance"] });
+
+            //foreach (DataRow drAlgo in dtActiveAlgos.Rows)
+            //{
+            //    ActiveAlgosView algosView = new ActiveAlgosView();
+
+            //    OptionBuywithRSIInput algoInput = new OptionBuywithRSIInput
+            //    {
+            //        Expiry = Convert.ToDateTime(drAlgo["Expiry"]),
+            //        CTF = Convert.ToInt32(drAlgo["CandleTimeFrame_Mins"]),
+            //        Qty = Convert.ToInt32(drAlgo["InitialQtyInLotSize"]),
+            //        BToken = Convert.ToUInt32(drAlgo["BToken"]),
+            //        MinDFBI = Convert.ToDecimal(DBNull.Value != drAlgo["Arg5"] ? drAlgo["Arg5"] : 0),
+            //        MaxDFBI = Convert.ToDecimal(DBNull.Value != drAlgo["Arg4"] ? drAlgo["Arg4"] : 0),
+            //        RULX = Convert.ToDecimal(DBNull.Value != drAlgo["UpperLimit"] ? drAlgo["UpperLimit"] : 0),
+            //        RLLE = Convert.ToDecimal(DBNull.Value != drAlgo["LowerLimit"] ? drAlgo["LowerLimit"] : 0),
+            //        EMA = Convert.ToInt32(DBNull.Value != drAlgo["Arg1"] ? drAlgo["Arg1"] : 0),
+            //        //PS = Convert.ToBoolean(DBNull.Value != drAlgo["PositionSizing"] ? drAlgo["PositionSizing"] : false),
+            //        TP = Convert.ToDecimal(DBNull.Value != drAlgo["Arg2"] ? drAlgo["Arg2"] : 0),
+            //        CELL = Convert.ToDecimal(DBNull.Value != drAlgo["Arg3"] ? drAlgo["Arg3"] : 0),
+            //        PEUL = Convert.ToDecimal(DBNull.Value != drAlgo["Arg6"] ? drAlgo["Arg6"] : 0)
+            //    };
+            //    algosView.aid = Convert.ToInt32(drAlgo["AlgoId"]);
+            //    algosView.an = Convert.ToString((AlgoIndex)algosView.aid);
+            //    algosView.ains = Convert.ToInt32(drAlgo["Id"]);
+
+            //    algosView.expiry = Convert.ToDateTime(drAlgo["Expiry"]).ToString("yyyy-MM-dd");
+            //    algosView.mins = Convert.ToInt32(drAlgo["CandleTimeFrame_Mins"]);
+            //    algosView.lotsize = Convert.ToInt32(drAlgo["InitialQtyInLotSize"]);
+            //    algosView.binstrument = Convert.ToString(drAlgo["BToken"]);
+            //    algosView.algodate = Convert.ToDateTime(drAlgo["Timestamp"]).ToString("yyyy-MM-dd");
+
+            //    DataRow[] drOrders = drAlgo.GetChildRows(algo_orders_relation);
+            //    List<Order> orders = new List<Order>();
+            //    foreach (DataRow drOrder in drOrders)
+            //    {
+            //        Order o = ViewUtility.GetOrder(drOrder);
+            //        orders.Add(o);
+            //    }
+
+            //    //var slmOrders = orders.Where(o => o.Status == Constants.ORDER_STATUS_TRIGGER_PENDING && o.OrderType == Constants.ORDER_TYPE_SLM);
+            //    //var completedOrders = orders.Where(o => o.Status == Constants.ORDER_STATUS_COMPLETE);
+
+            //    //var pendingOrders = slmOrders.Where(x => !completedOrders.Any(c => c.OrderId == x.OrderId));
+
+            //    DateTime? lastCallOrderTime = orders.Where(x => x.Tradingsymbol.TakeLast(2).First().ToString().ToLower() == "c").Max(x => x.OrderTimestamp);
+            //    DateTime? lastPutOrderTime = orders.Where(x => x.Tradingsymbol.TakeLast(2).First().ToString().ToLower() == "p").Max(x => x.OrderTimestamp);
+            //    DateTime? lastFutOrderTime = orders.Where(x => x.Tradingsymbol.TakeLast(3).First().ToString().ToLower() == "f").Max(x => x.OrderTimestamp);
+
+            //    var lastCallOrder = orders.Where(x => x.OrderTimestamp == lastCallOrderTime && x.Tradingsymbol.TakeLast(2).First().ToString().ToLower() == "c").FirstOrDefault();
+            //    var lastPutOrder = orders.Where(x => x.OrderTimestamp == lastPutOrderTime && x.Tradingsymbol.TakeLast(2).First().ToString().ToLower() == "p").FirstOrDefault();
+            //    var lastFutOrder = orders.Where(x => x.OrderTimestamp == lastFutOrderTime && x.Tradingsymbol.TakeLast(3).First().ToString().ToLower() == "f").FirstOrDefault();
+
+            //    bool ordersPending = false;
+            //    if (lastCallOrder != null && lastCallOrder.TransactionType.Trim(' ').ToLower() == "buy")
+            //    {
+            //        ordersPending = true;
+            //        algosView.Orders.Add(ViewUtility.GetOrderView(lastCallOrder));
+            //        algoInput.Order = lastCallOrder;
+            //    }
+            //    if (lastPutOrder != null && lastPutOrder.TransactionType.Trim(' ').ToLower() == "buy")
+            //    {
+            //        ordersPending = true;
+            //        algosView.Orders.Add(ViewUtility.GetOrderView(lastPutOrder));
+            //        algoInput.Order = lastPutOrder;
+            //    }
+            //    if (lastFutOrder != null)
+            //    {
+            //        ordersPending = true;
+            //        algosView.Orders.Add(ViewUtility.GetOrderView(lastFutOrder));
+            //        algoInput.Order = lastFutOrder;
+            //    }
+            //    if (ordersPending)
+            //    {
+            //        Trade(algoInput, algosView.ains);
+            //        activeAlgos.Add(algosView);
+            //    }
+            //    //activeAlgos.Add(algosView);
+
+            //    //if (pendingOrders != null && pendingOrders.Count() > 0)
+            //    //{
+            //    //    algoInput.ActiveOrder = pendingOrders.FirstOrDefault();
+            //    //    algosView.Orders.Add(ViewUtility.GetOrderView(pendingOrders.FirstOrDefault()));
+            //    //    if (algoInput.ActiveOrder != null)
+            //    //    {
+            //    //        Trade(algoInput, algosView.ains);
+            //    //    }
+            //    //    activeAlgos.Add(algosView);
+            //    //}
+            //}
+            //return activeAlgos.ToArray();
+        }
+
+
+        [HttpPost]
+        public async Task<ActiveAlgosView> Trade([FromBody] OptionIVSpreadInput optionIVSpreadInput, int algoInstance = 0)
+        {
+            uint instrumentToken = optionIVSpreadInput.BToken;
+            DateTime endDateTime = DateTime.Now;
+
+            DateTime expiry1 = optionIVSpreadInput.Expiry1;
+            DateTime expiry2 = optionIVSpreadInput.Expiry2;
+            int optionQuantity = optionIVSpreadInput.StepQty;
+#if local
+            endDateTime = Convert.ToDateTime("2020-11-09 09:15:00");
+#endif
+            ///FOR ALL STOCKS FUTURE , PASS INSTRUMENTTOKEN AS ZERO. FOR CE/PE ON BNF/NF SEND THE INDEX TOKEN AS INSTRUMENTTOKEN
+
+            //// TEMPORARY TESTING
+            //StraddleSpreadValueScalping straddleSpreadIVScalper1 =
+            //       new StraddleSpreadValueScalping(endDateTime, instrumentToken, expiry1,
+            //       optionQuantity, optionIVSpreadInput.MaxQty, optionIVSpreadInput.StepQty, targetProfit: optionIVSpreadInput.TP, openSpread: optionIVSpreadInput.OpenVar,
+            //       closeSpread: optionIVSpreadInput.CloseVar, stopLoss: 0, // optionIVSpreadInput.SL,
+            //       algoInstance, false, 0, timeBandForExit: optionIVSpreadInput.TO);
+
+            //algoInstance = straddleSpreadIVScalper1.AlgoInstance;
+
+            //straddleSpreadIVScalper1.PlaceTempOrderForTesting();
+
+            //////
+            //var httpClient = _httpClientFactory.CreateClient();
+            if (optionIVSpreadInput.Straddle)
+            {
+                StraddleSpreadValueScalping straddleSpreadIVScalper =
+                   new StraddleSpreadValueScalping(endDateTime, instrumentToken, expiry1,
+                   optionQuantity, optionIVSpreadInput.MaxQty, optionIVSpreadInput.StepQty, targetProfit: optionIVSpreadInput.TP, openSpread: optionIVSpreadInput.OpenVar,
+                   closeSpread: optionIVSpreadInput.CloseVar, stopLoss: optionIVSpreadInput.SL,
+                   algoInstance, false, 0, timeBandForExit: optionIVSpreadInput.TO, _httpClientFactory);// httpClient);
+
+                algoInstance = straddleSpreadIVScalper.AlgoInstance;
+
+                straddleSpreadIVScalper.OnOptionUniverseChange += OptionBuywithRSI_OnOptionUniverseChange;
+                straddleSpreadIVScalper.OnTradeEntry += OptionSellwithRSI_OnTradeEntry;
+                straddleSpreadIVScalper.OnTradeExit += OptionSellwithRSI_OnTradeExit;
+
+                List<StraddleSpreadValueScalping> activeAlgoObjects = _cache.Get<List<StraddleSpreadValueScalping>>(okey);
+
+                if (activeAlgoObjects == null)
+                {
+                    activeAlgoObjects = new List<StraddleSpreadValueScalping>();
+                }
+                activeAlgoObjects.Add(straddleSpreadIVScalper);
+                _cache.Set(okey, activeAlgoObjects);
+
+
+                Task task = Task.Run(() => NMQClientSubscription(straddleSpreadIVScalper, instrumentToken));
+            }
+            else
+            {
+                CalendarSpreadValueScalping calendarSpreadIVScalper =
+                    new CalendarSpreadValueScalping(instrumentToken, expiry1, expiry2,
+                    optionQuantity, uid: optionIVSpreadInput.UID, optionIVSpreadInput.MaxQty, optionIVSpreadInput.StepQty, targetProfit: optionIVSpreadInput.TP, openSpread: optionIVSpreadInput.OpenVar,
+                    closeSpread: optionIVSpreadInput.CloseVar, stopLoss: 0, // optionIVSpreadInput.SL,
+                    algoInstance, false, 0);
+
+                algoInstance = calendarSpreadIVScalper.AlgoInstance;
+
+                calendarSpreadIVScalper.OnOptionUniverseChange += OptionBuywithRSI_OnOptionUniverseChange;
+                calendarSpreadIVScalper.OnTradeEntry += OptionSellwithRSI_OnTradeEntry;
+                calendarSpreadIVScalper.OnTradeExit += OptionSellwithRSI_OnTradeExit;
+
+                List<CalendarSpreadValueScalping> activeAlgoObjects = _cache.Get<List<CalendarSpreadValueScalping>>(ckey);
+
+                if (activeAlgoObjects == null)
+                {
+                    activeAlgoObjects = new List<CalendarSpreadValueScalping>();
+                }
+                activeAlgoObjects.Add(calendarSpreadIVScalper);
+                _cache.Set(ckey, activeAlgoObjects);
+
+
+                Task task = Task.Run(() => NMQClientSubscription(calendarSpreadIVScalper, instrumentToken));
+            }
+            //await task;
+            return new ActiveAlgosView
+            {
+                aid = Convert.ToInt32(AlgoIndex.ValueSpreadTrade),
+                an = Convert.ToString((AlgoIndex)AlgoIndex.ValueSpreadTrade),
+                ains = algoInstance,
+                algodate = endDateTime.ToString("yyyy-MM-dd"),
+                binstrument = instrumentToken.ToString(),
+                expiry = expiry1.ToString("yyyy-MM-dd"),
+                lotsize = optionQuantity,
+                mins = 0
+            };
+        }
+
+        private void OptionSellwithRSI_OnTradeExit(Order st)
+        {
+            //publish trade details and count
+            //Bind with trade token details, use that as an argument
+            OrderCore.PublishOrder(st);
+            Thread.Sleep(100);
+        }
+
+        private void OptionSellwithRSI_OnTradeEntry(Order st)
+        {
+            //publish trade details and count
+            OrderCore.PublishOrder(st);
+            Thread.Sleep(100);
+        }
+
+        private async Task NMQClientSubscription(CalendarSpreadValueScalping buyWithRSI, uint token)
+        {
+            zmqClient = new ZMQClient();
+            zmqClient.AddSubscriber(new List<uint>() { token });
+
+            await zmqClient.Subscribe(buyWithRSI);
+        }
+        private void OptionBuywithRSI_OnOptionUniverseChange(CalendarSpreadValueScalping source)
+        {
+            try
+            {
+                zmqClient.AddSubscriber(source.SubscriptionTokens);
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+        private async Task NMQClientSubscription(StraddleSpreadValueScalping buyWithRSI, uint token)
+        {
+            zmqClient = new ZMQClient();
+            zmqClient.AddSubscriber(new List<uint>() { token });
+
+            await zmqClient.Subscribe(buyWithRSI);
+        }
+        private void OptionBuywithRSI_OnOptionUniverseChange(StraddleSpreadValueScalping source)
+        {
+            try
+            {
+                zmqClient.AddSubscriber(source.SubscriptionTokens);
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        [HttpGet("healthy")]
+        public Task<int> Health()
+        {
+            return Task.FromResult((int)AlgoIndex.ValueSpreadTrade);
+        }
+        [HttpPut("{ain}")]
+        public bool Put(int ain, [FromBody] int start)
+        {
+            List<CalendarSpreadValueScalping> activeAlgoOptions;
+            if (_cache.TryGetValue(ckey, out activeAlgoOptions))
+            {
+                CalendarSpreadValueScalping algoObject = activeAlgoOptions.FirstOrDefault(x => x.AlgoInstance == ain);
+                if (algoObject != null)
+                {
+                    algoObject.StopTrade(!Convert.ToBoolean(start));
+                }
+                _cache.Set(ckey, activeAlgoOptions);
+            }
+            else
+            {
+                List<StraddleSpreadValueScalping> activeAlgoStraddleOptions;
+                if (_cache.TryGetValue(okey, out activeAlgoStraddleOptions))
+                {
+                    StraddleSpreadValueScalping algoObject = activeAlgoStraddleOptions.FirstOrDefault(x => x.AlgoInstance == ain);
+                    if (algoObject != null)
+                    {
+                        algoObject.StopTrade(!Convert.ToBoolean(start));
+                    }
+                    _cache.Set(okey, activeAlgoStraddleOptions);
+                }
+            }
+            return true;
+        }
+      
+
+        //// GET api/<RSICrossController>/5
+        //[HttpGet("{id}")]
+        //public string Get(int id)
+        //{
+        //    return "value";
+        //}
+
+        //// POST api/<RSICrossController>
+        //[HttpPost]
+        //public void Post([FromBody] string value)
+        //{
+        //}
+
+        //// PUT api/<RSICrossController>/5
+        //[HttpPut("{id}")]
+        //public void Put(int id, [FromBody] string value)
+        //{
+        //}
+
+        //// DELETE api/<RSICrossController>/5
+        //[HttpDelete("{id}")]
+        //public void Delete(int id)
+        //{
+        //}
+    }
+}

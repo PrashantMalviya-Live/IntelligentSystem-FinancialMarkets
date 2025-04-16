@@ -1,0 +1,34 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.9.34728.123
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "StockMarketAlertsApp", "StockMarketAlertsApp.csproj", "{30B1C6C7-1FDB-4B04-941C-493A5D2AC901}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		BackTest|Any CPU = BackTest|Any CPU
+		Debug|Any CPU = Debug|Any CPU
+		Local|Any CPU = Local|Any CPU
+		Market|Any CPU = Market|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{30B1C6C7-1FDB-4B04-941C-493A5D2AC901}.BackTest|Any CPU.ActiveCfg = BackTest|Any CPU
+		{30B1C6C7-1FDB-4B04-941C-493A5D2AC901}.BackTest|Any CPU.Build.0 = BackTest|Any CPU
+		{30B1C6C7-1FDB-4B04-941C-493A5D2AC901}.Debug|Any CPU.ActiveCfg = Market|Any CPU
+		{30B1C6C7-1FDB-4B04-941C-493A5D2AC901}.Debug|Any CPU.Build.0 = Market|Any CPU
+		{30B1C6C7-1FDB-4B04-941C-493A5D2AC901}.Local|Any CPU.ActiveCfg = Local|Any CPU
+		{30B1C6C7-1FDB-4B04-941C-493A5D2AC901}.Local|Any CPU.Build.0 = Local|Any CPU
+		{30B1C6C7-1FDB-4B04-941C-493A5D2AC901}.Market|Any CPU.ActiveCfg = Market|Any CPU
+		{30B1C6C7-1FDB-4B04-941C-493A5D2AC901}.Market|Any CPU.Build.0 = Market|Any CPU
+		{30B1C6C7-1FDB-4B04-941C-493A5D2AC901}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{30B1C6C7-1FDB-4B04-941C-493A5D2AC901}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {BB2E741A-54CB-4745-9CCA-4CEE71EACED2}
+	EndGlobalSection
+EndGlobal

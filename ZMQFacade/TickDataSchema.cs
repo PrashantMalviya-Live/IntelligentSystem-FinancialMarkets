@@ -61,8 +61,9 @@ namespace ZMQFacade
                 // data is invalid. This will skip that wrong tick
                 if (IsValid(tick))// && IsConnected && offset <= Count)
                 {
-                    if (shortenedTick)
-                        ShortenTheTick(tick);
+                    //Shorted tick code commented from here and put in the storage logic
+                    //if (shortenedTick)
+                    //    ShortenTheTick(tick);
 
                     //ticks[i] = tick;
                     ticks.Add(tick);
@@ -263,7 +264,7 @@ namespace ZMQFacade
             tick.OIDayHigh = ReadInt(b, ref offset);
             tick.OIDayLow = ReadInt(b, ref offset);
             tick.Timestamp = Utils.UnixToDateTime(ReadInt(b, ref offset));
-
+//#if market
             if (!shortenedTick)
             {
                 tick.Bids = new DepthItem[5];
@@ -284,6 +285,7 @@ namespace ZMQFacade
                     offset += 2;
                 }
             }
+//#endif
             return tick;
         }
         public static void ShortenTheTick(Tick tick)

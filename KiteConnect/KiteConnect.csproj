@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <TargetFramework>net6.0</TargetFramework>
     <Authors>Ajin Asokan</Authors>
     <Company>Zerodha Technology Pvt. Ltd.</Company>
     <PackageId>Tech.Zerodha.KiteConnect</PackageId>
@@ -21,7 +21,7 @@
 
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
 
-    <Configurations>Debug;Release;Local;Market</Configurations>
+    <Configurations>Debug;Release;Local;Market;BackTest</Configurations>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Market|AnyCPU'">
@@ -29,6 +29,10 @@
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Local|AnyCPU'">
+    <WarningLevel>3</WarningLevel>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='BackTest|AnyCPU'">
     <WarningLevel>3</WarningLevel>
   </PropertyGroup>
 
@@ -42,8 +46,10 @@
 
   <ItemGroup>
     <PackageReference Include="CsvTextFieldParser" Version="1.2.1" />
+    <PackageReference Include="Google.Protobuf" Version="3.25.2" />
     <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
-    <PackageReference Include="System.Configuration.ConfigurationManager" Version="4.7.0" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="System.Data.SqlClient" Version="4.8.6" />
     <PackageReference Include="System.Text.Json" Version="4.7.2" />
   </ItemGroup>
 

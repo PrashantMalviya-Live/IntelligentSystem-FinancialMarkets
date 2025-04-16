@@ -1,11 +1,11 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
-    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <TargetFramework>net6.0</TargetFramework>
     <UserSecretsId>4c1859c3-d6f4-4ba6-af0e-6a93f56e99ba</UserSecretsId>
     <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
     <DockerfileContext>..\..</DockerfileContext>
-    <Configurations>Debug;Release;Local;Market</Configurations>
+    <Configurations>Debug;Release;Local;Market;BackTest</Configurations>
   </PropertyGroup>
 
   <ItemGroup>

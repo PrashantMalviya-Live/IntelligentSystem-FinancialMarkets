@@ -125,7 +125,7 @@ namespace KiteConnect
         /// <summary>
         /// ZeroMQ messaging server
         /// </summary>
-        private ZMQServer zmqServer;//, zmqServer2;
+        public ZMQServer zmqServer;//, zmqServer2;
 
         private Storage storage;
 
@@ -146,7 +146,8 @@ namespace KiteConnect
         /// <param name="Reconnect">Enables WebSocket autreconnect in case of network failure/disconnection.</param>
         /// <param name="ReconnectInterval">Interval (in seconds) between auto reconnection attemptes. Defaults to 5 seconds.</param>
         /// <param name="ReconnectTries">Maximum number reconnection attempts. Defaults to 50 attempts.</param>
-        public Ticker(string APIKey, string AccessToken, string Root = null, bool Reconnect = false, int ReconnectInterval = 5, int ReconnectTries = 50, bool Debug = false, IWebSocket CustomWebSocket = null)
+        public Ticker(string APIKey, string AccessToken, string Root = null, bool Reconnect = false, 
+            int ReconnectInterval = 5, int ReconnectTries = 50, bool Debug = false, IWebSocket CustomWebSocket = null)
         {
             _debug = Debug;
             _apiKey = APIKey;
@@ -411,19 +412,23 @@ namespace KiteConnect
 
                     /*zmqServer1.PublishAllTicks(Data);*/
                     #endregion
-                    bool shortenedTick = true;
+                    bool shortenedTick = false;
                     List<Tick> ticks = TickDataSchema.ParseTicks(Data, shortenedTick);
-                    
-                    if(_storeCandles)
-                    {
-                        storage.StoreTimeCandles(ticks);
-                    }
-                    if (_storeTicks)
-                    {
-                        storage.StoreTicks(ticks);
-                    }
 
                     zmqServer.PublishAllTicks(ticks, shortenedTick);
+
+                    //Below code is commented to improve efficiency but it can be open too
+                    //if (_storeCandles)
+                    //{
+                    //    storage.StoreTimeCandles(ticks);
+                    //}
+                    //if (_storeTicks)
+                    //{
+                    shortenedTick = true;
+                    storage.StoreTicks(ticks, shortenedTick);
+                    //}
+
+
                     Interlocked.Increment(ref _healthCounter);
                 }
             }

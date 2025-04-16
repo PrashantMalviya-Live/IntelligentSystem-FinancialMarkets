@@ -1,4 +1,5 @@
-﻿using System.ComponentModel;
+﻿using GlobalLayer;
+using System.ComponentModel;
 using System.Linq;
 
 
@@ -39,9 +40,12 @@ namespace Algorithms.Indicators
 		/// <inheritdoc />
 		protected override IIndicatorValue OnProcess(IIndicatorValue input)
 		{
-			var newValue = input.GetValue<decimal>();
+            //var candle = input.GetValue<Candle>();
+            //var newValue = candle.ClosePrice;// input.GetValue<decimal>();
 
-			if (!_isInitialized)
+            var newValue = input.GetValue<decimal>();
+
+            if (!_isInitialized)
 			{
 				if (input.IsFinal)
 				{

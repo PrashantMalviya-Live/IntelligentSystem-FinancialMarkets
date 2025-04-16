@@ -11,11 +11,14 @@ using System.Dynamic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using ZConnectWrapper;
+using BrokerConnectWrapper;
 using ZMQFacade;
 using System.Timers;
 using System.Threading;
 using System.Net.Sockets;
+using System.Net.Http;
+using System.Runtime.CompilerServices;
+//using WebSocketSharp;
 
 namespace Algorithms.Algorithms
 {
@@ -29,6 +32,11 @@ namespace Algorithms.Algorithms
         public delegate void OnOptionUniverseChangeHandler(PriceVolumeRateOfChange source);
         [field: NonSerialized]
         public event OnOptionUniverseChangeHandler OnOptionUniverseChange;
+
+        [field: NonSerialized]
+        public delegate void OnCriticalEventsHandler(string title, string body);
+        [field: NonSerialized]
+        public event OnCriticalEventsHandler OnCriticalEvents;
 
         [field: NonSerialized]
         public delegate void OnTradeEntryHandler(Order st);
@@ -48,7 +56,9 @@ namespace Algorithms.Algorithms
         private bool _tradeexit;
         private bool _tpHit;
         private OrderTrio _orderTrio;
-
+        private bool _noceTrade = false;
+        private bool _nopeTrade = false;
+        private decimal _pnl = 0;
         public List<Order> _pastOrders;
         private bool _stopTrade;
 
@@ -112,7 +122,7 @@ namespace Algorithms.Algorithms
         public const AlgoIndex algoIndex = AlgoIndex.EMACross;
         CandleManger candleManger;
         Dictionary<uint, List<Candle>> TimeCandles;
-
+        private User _user;
         public readonly decimal _emaBandForExit;
         public readonly decimal _rsiBandForExit;
         public readonly double _timeBandForExit;
@@ -120,11 +130,12 @@ namespace Algorithms.Algorithms
 
         private System.Timers.Timer _healthCheckTimer;
         private int _healthCounter = 0;
-        public PriceVolumeRateOfChange(DateTime endTime, TimeSpan candleTimeSpan, uint baseInstrumentToken,
-            DateTime? expiry, int quantity, decimal targetProfit, decimal stopLoss, int sEMALength,
-            int lEMALength, int signalEMALength = 200, int algoInstance = 0, bool positionSizing = false, decimal maxLossPerTrade = 0)
+        public PriceVolumeRateOfChange(TimeSpan candleTimeSpan, uint baseInstrumentToken,
+            DateTime? expiry, int quantity, string uid, decimal targetProfit, decimal stopLoss, int sEMALength,
+            int lEMALength, int signalEMALength = 200, int algoInstance = 0, bool positionSizing = false, 
+            decimal maxLossPerTrade = 0, IHttpClientFactory httpClientFactory = null)
         {
-            _endDateTime = endTime;
+           // _endDateTime = endTime;
             _candleTimeSpan = candleTimeSpan;
             _expiryDate = expiry;
             _baseInstrumentToken = baseInstrumentToken;
@@ -162,9 +173,12 @@ namespace Algorithms.Algorithms
             _firstCandleOpenPriceNeeded = new Dictionary<uint, bool>();
             CandleSeries candleSeries = new CandleSeries();
 
-            DateTime ydayEndTime = _endDateTime.AddDays(-1).Date + new TimeSpan(15, 30, 00);
+            //DateTime ydayEndTime = _endDateTime.AddDays(-1).Date + new TimeSpan(15, 30, 00);
 
-            _tradeQty = quantity;
+            _minDistanceFromBInstrument = 200;
+            _maxDistanceFromBInstrument = 500;
+
+        _tradeQty = quantity;
             _positionSizing = positionSizing;
             _maxLossPerTrade = maxLossPerTrade;
 
@@ -172,12 +186,14 @@ namespace Algorithms.Algorithms
             candleManger.TimeCandleFinished += CandleManger_TimeCandleFinished;
 
             _algoInstance = algoInstance != 0 ? algoInstance :
-                Utility.GenerateAlgoInstance(algoIndex, baseInstrumentToken, endTime,
+                Utility.GenerateAlgoInstance(algoIndex, baseInstrumentToken, DateTime.Now,
                 expiry.GetValueOrDefault(DateTime.Now), quantity, candleTimeFrameInMins:
                 (float)candleTimeSpan.TotalMinutes, Arg1: _sEMALength, Arg2: lEMALength,
                 Arg3: _targetProfit, Arg4: _stopLoss, Arg5: _signalEMALength);
 
             ZConnect.Login();
+            //KoConnect.Login(userId:uid);
+            _user = KoConnect.GetUser(userId: uid);
 
             //health check after 1 mins
             _healthCheckTimer = new System.Timers.Timer(interval: 1 * 60 * 1000);
@@ -226,6 +242,13 @@ namespace Algorithms.Algorithms
                     UpdateInstrumentSubscription(currentTime);
                     MonitorCandles(tick, currentTime);
 
+
+                    if (token != _baseInstrumentToken && !_EMALoaded.Any(x => x == token))
+                    {
+                        _EMALoaded.Add(token);
+                        LoadHistoricalEMAs(currentTime);
+                    }
+
                     if (TimeCandles.ContainsKey(token) && ActiveOptions.All(x => x != null) && ActiveOptions.Any(x => x.InstrumentToken == token))
                     {
                         Instrument option = ActiveOptions.Find(x => x.InstrumentToken == token);
@@ -239,16 +262,23 @@ namespace Algorithms.Algorithms
                         //check after 1 min from start of new candle
                         if (orderTrio == null 
                             && TimeCandles[token].Count > 5
-                            && (currentTime - ct.OpenTime).TotalMinutes >= 1
-                            && (currentTime - ct.OpenTime).TotalMinutes < 1.2
-                            && tick.LastPrice > ct.OpenPrice
-                            && ct.TotalVolume > TimeCandles[token].SkipLast(1).TakeLast(5).Average(x => x.TotalVolume) * 1.05m / 5)
+                          //  && (currentTime - ct.OpenTime).TotalMinutes >= 1
+                            && (currentTime - ct.OpenTime).TotalMinutes < _candleTimeSpan.Minutes/3 // 0.5//1.2
+                            && tick.LastPrice < ct.OpenPrice
+                            && (lTokenEMA.ContainsKey(token) && lTokenEMA[token].IsFormed && tick.LastPrice < lTokenEMA[token].GetValue<decimal>(0))
+                            && (sTokenEMA[token].GetValue<decimal>(0) < lTokenEMA[token].GetValue<decimal>(0))
+                            //&& tick.LastPrice < signalTokenEMA[token].GetValue<decimal>(0)
+                            && ct.TotalVolume > TimeCandles[token].SkipLast(1).TakeLast(5).Average(x => x.TotalVolume) * 1.5m / 1
+                            && currentTime.TimeOfDay <= new TimeSpan(15, 00, 00)
+                            //&& (currentTime.TimeOfDay <= new TimeSpan(11, 00, 00) || currentTime.TimeOfDay >= new TimeSpan(12, 30, 00))
+                            //&& ((isOptionCall && !_noceTrade) || (!isOptionCall && !_nopeTrade))
+                            )
                         {
-                            orderTrio = TradeEntry(option, currentTime, tick.LastPrice, _tradeQty, true);
+                            orderTrio = TradeEntry(option, currentTime, tick.LastPrice, _tradeQty, false);
                         }
                         if (orderTrio != null)
                         {
-                            _tradeexit = CheckExit(orderTrio, tick.LastPrice, pt.LowPrice, currentTime);
+                            _tradeexit = CheckExit(orderTrio, tick.LastPrice, pt.LowPrice, currentTime, true);
 
                             if (_tradeexit)
                             {
@@ -266,7 +296,7 @@ namespace Algorithms.Algorithms
                         }
 
                         //Put a hedge at 3:15 PM
-                        //TriggerEODPositionClose(tick.LastTradeTime);
+                        TriggerEODPositionClose(tick.LastTradeTime, tick.LastPrice, tick.InstrumentToken, true);
                     }
 
                     //Put a hedge at 3:15 PM
@@ -286,28 +316,36 @@ namespace Algorithms.Algorithms
                 //Environment.Exit(0);
             }
         }
-        //private void TriggerEODPositionClose(DateTime? currentTime)
-        //{
-        //    if (currentTime.GetValueOrDefault(DateTime.Now).TimeOfDay >= new TimeSpan(15, 29, 00))
-        //    {
-        //        OrderLinkedListNode orderNode = orderList.FirstOrderNode;
+        private void TriggerEODPositionClose(DateTime? currentTime, decimal currentPrice, uint token, bool buyOrder)
+        {
+            if (currentTime.GetValueOrDefault(DateTime.Now).TimeOfDay >= new TimeSpan(15, 15, 00))
+            {
+                if(_putOrderTrio != null && _putOrderTrio.Option.InstrumentToken == token)
+                {
+                    _putOrderTrio.TPOrder = MarketOrders.CancelOrder(_algoInstance, algoIndex, _putOrderTrio.TPOrder, currentTime.Value).Result;
+                    OnTradeExit(_putOrderTrio.TPOrder);
+                    TradeExit(_putOrderTrio.Option, currentTime.Value, currentPrice, _tradeQty, buyOrder);
+                    _putOrderTrio = null;
+                    _tpHit = false;
+                }
+                if (_callOrderTrio != null && _callOrderTrio.Option.InstrumentToken == token)
+                {
+                    _callOrderTrio.TPOrder = MarketOrders.CancelOrder(_algoInstance, algoIndex, _callOrderTrio.TPOrder, currentTime.Value).Result;
+                    OnTradeExit(_callOrderTrio.TPOrder);
+                    TradeExit(_callOrderTrio.Option, currentTime.Value, currentPrice, _tradeQty, buyOrder);
+                    _callOrderTrio = null;
+                    _tpHit = false;
+                }
+                if (_callOrderTrio == null && _putOrderTrio == null)
+                {
+                    DataLogic dl = new DataLogic();
+                    dl.UpdateAlgoPnl(_algoInstance, _pnl);
 
-        //        if (orderNode != null)
-        //            while (orderNode != null)
-        //            {
-        //                Order slOrder = orderNode.SLOrder;
-        //                if (slOrder != null)
-        //                {
-        //                    MarketOrders.ModifyOrder(_algoInstance, algoIndex, 0, slOrder, currentTime.Value);
-        //                    slOrder = null;
-        //                }
-
-        //                orderNode = orderNode.NextOrderNode;
-        //            }
-
-        //        Environment.Exit(0);
-        //    }
-        //}
+                    _stopTrade = true;
+                    _pnl = 0;
+                }
+            }
+        }
         private void MonitorCandles(Tick tick, DateTime currentTime)
         {
             try
@@ -328,8 +366,10 @@ namespace Algorithms.Algorithms
 
                     if (candleStartTime.HasValue)
                     {
+#if !BACKTEST
                         LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Info, currentTime,
                             String.Format("Starting first Candle now for token: {0}", tick.InstrumentToken), "MonitorCandles");
+#endif
                         //candle starts from there
                         candleManger.StreamingTimeFrameCandle(tick, token, _candleTimeSpan, true, candleStartTime); // TODO: USING LOCAL VERSION RIGHT NOW
 
@@ -348,33 +388,50 @@ namespace Algorithms.Algorithms
                 //Environment.Exit(0);
             }
         }
-        private bool CheckExit(OrderTrio _orderTrio, decimal currentPrice, decimal thresholdPrice, DateTime currentTime)
+        private bool CheckExit(OrderTrio _orderTrio, decimal currentPrice, decimal thresholdPrice, DateTime currentTime, bool buyOrder)
         {
             bool exit = false;
             //check for target profit
-            if (currentPrice >= _orderTrio.Order.AveragePrice + _targetProfit)
+            if (currentPrice <= _orderTrio.Order.AveragePrice - _targetProfit)
             {
 #if market
-                   _orderTrio.TPOrder = MarketOrders.GetOrder(_orderTrio.TPOrder.OrderId, _algoInstance, algoIndex, Constants.ORDER_STATUS_COMPLETE);
+               _orderTrio.TPOrder = MarketOrders.GetOrder(_orderTrio.TPOrder.OrderId, _algoInstance, algoIndex, Constants.ORDER_STATUS_COMPLETE);
 #elif local
                 _orderTrio.TPOrder.Status = Constants.ORDER_STATUS_COMPLETE;
                 _orderTrio.TPOrder.AveragePrice = currentPrice;
+                _orderTrio.TPOrder.OrderTimestamp = currentTime;
+                _orderTrio.TPOrder.ExchangeTimestamp = currentTime;
 #endif
                 MarketOrders.UpdateOrderDetails(_algoInstance, algoIndex, _orderTrio.TPOrder);
                 OnTradeExit(_orderTrio.TPOrder);
+
+                _pnl += _orderTrio.TPOrder.Quantity * _orderTrio.TPOrder.AveragePrice * (buyOrder? -1: 1);
+
                 exit = true;
                 _tpHit = true;
                 _orderTrio = null;
+                
             }
             //check for stoploss
-            else if (currentPrice <= _orderTrio.Order.AveragePrice - _stopLoss
-                //|| ((currentTime - _orderTrio.EntryTradeTime).TotalMinutes >= 5 && currentPrice < _orderTrio.Order.AveragePrice && currentPrice < thresholdPrice))
-                || (currentPrice < thresholdPrice))
+            else if (currentPrice >= _orderTrio.Order.AveragePrice + _stopLoss
+                //|| ((currentTime - _orderTrio.EntryTradeTime).TotalMinutes >= 15 )
+                //|| (currentPrice < thresholdPrice)
+                )
             //else if (currentPrice < _orderTrio.Order.AveragePrice)
             {
+
                 _orderTrio.TPOrder = MarketOrders.CancelOrder(_algoInstance, algoIndex, _orderTrio.TPOrder, currentTime).Result;
                 OnTradeExit(_orderTrio.TPOrder);
-                TradeExit(_orderTrio.Option, currentTime, currentPrice, _tradeQty, false);
+                TradeExit(_orderTrio.Option, currentTime, currentPrice, _tradeQty, buyOrder);
+                
+                if(_orderTrio.Option.InstrumentType.ToLower() == "ce")
+                {
+                    _noceTrade = true;
+                }
+                else
+                {
+                    _nopeTrade = true;
+                }
                 _orderTrio = null;
                 _tpHit = false;
                 exit = true;
@@ -398,17 +455,22 @@ namespace Algorithms.Algorithms
                     return orderTrio;
                 }
 
+#if !BACKTEST
                 LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Info, order.OrderTimestamp.Value,
                    string.Format("TRADE!! {3} {0} lots of {1} @ {2}", tradeQty / _tradeQty,
                    option.TradingSymbol, order.AveragePrice, buyOrder ? "Bought" : "Sold"), "TradeEntry");
+#endif
 
                 Order tpOrder = MarketOrders.PlaceOrder(_algoInstance, option.TradingSymbol, option.InstrumentType, Math.Round((lastPrice + _targetProfit) * 20) / 20,
                     option.InstrumentToken, !buyOrder, tradeQty * Convert.ToInt32(option.LotSize), algoIndex, currentTime, Constants.ORDER_TYPE_LIMIT);
 
+#if !BACKTEST
                 LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Info, tpOrder.OrderTimestamp.Value,
                     string.Format("Placed Target Profit for {0} @ {1}", option.TradingSymbol, tpOrder.AveragePrice), "TradeEntry");
+#endif
 
 
+                _pnl += order.Quantity * order.AveragePrice * (buyOrder ? -1 : 1);
                 orderTrio = new OrderTrio();
                 orderTrio.Order = order;
                 orderTrio.TPOrder = tpOrder;
@@ -437,10 +499,13 @@ namespace Algorithms.Algorithms
                     option.InstrumentToken, buyOrder, tradeQty * Convert.ToInt32(option.LotSize),
                     algoIndex, currentTime, Constants.ORDER_TYPE_MARKET);
 
+#if !BACKTEST
                 LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Info, order.OrderTimestamp.Value,
                    string.Format("EXIT!! {3} {0} lots of {1} @ {2}", tradeQty / _tradeQty,
                    option.TradingSymbol, order.AveragePrice, buyOrder ? "Bought" : "Sold"), "TradeExit");
+#endif
 
+                _pnl += order.Quantity * order.AveragePrice * (buyOrder ? -1 : 1);
                 OnTradeExit(order);
             }
             catch (Exception ex)
@@ -615,9 +680,11 @@ namespace Algorithms.Algorithms
                         decimal lema = lTokenEMA[e.InstrumentToken].GetValue<decimal>(0);
                         decimal signalema = signalTokenEMA[e.InstrumentToken].GetValue<decimal>(0);
 
+#if !BACKTEST
                         LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Info, e.CloseTime,
                             String.Format("Candle ({4}) OHLC: {0} | {1} | {2} | {3}. sEMA:{6}. lEMA:{5}. Signal EMA: {7}", e.OpenPrice, e.HighPrice, e.LowPrice, e.ClosePrice
                             , option.TradingSymbol, Decimal.Round(sema, 2), Decimal.Round(lema, 2), Decimal.Round(signalema, 2)), "CandleManger_TimeCandleFinished");
+#endif
                     }
                 }
             }
@@ -967,7 +1034,7 @@ namespace Algorithms.Algorithms
 
                 //}
                 DataLogic dl = new DataLogic();
-
+                Dictionary<uint, uint> mappedTokens;
                 if (OptionUniverse == null ||
                 (OptionUniverse[(int)InstrumentType.PE].Keys.Last() <= _baseInstrumentPrice + _minDistanceFromBInstrument
                 || OptionUniverse[(int)InstrumentType.PE].Keys.First() >= _baseInstrumentPrice + _maxDistanceFromBInstrument)
@@ -975,11 +1042,30 @@ namespace Algorithms.Algorithms
                    || OptionUniverse[(int)InstrumentType.CE].Keys.Last() <= _baseInstrumentPrice - _maxDistanceFromBInstrument)
                     )
                 {
+#if !BACKTEST
                     LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Info, currentTime, " Loading Tokens from database...", "LoadOptionsToTrade");
+#endif
                     //Load options asynchronously
-                    OptionUniverse = dl.LoadCloseByOptions(_expiryDate, _baseInstrumentToken, _baseInstrumentPrice, _maxDistanceFromBInstrument);
+                    OptionUniverse = dl.LoadCloseByOptions(_expiryDate, _baseInstrumentToken, _baseInstrumentPrice, _maxDistanceFromBInstrument, out mappedTokens);
 
+
+                    foreach (var option in OptionUniverse[(int)InstrumentType.PE])
+                    {
+                        lTokenEMA.TryAdd(option.Value.InstrumentToken, new ExponentialMovingAverage(_lEMALength));
+                        sTokenEMA.TryAdd(option.Value.InstrumentToken, new ExponentialMovingAverage(_sEMALength));
+                        signalTokenEMA.TryAdd(option.Value.InstrumentToken, new ExponentialMovingAverage(_signalEMALength));
+                    }
+                    foreach (var option in OptionUniverse[(int)InstrumentType.CE])
+                    {
+                        lTokenEMA.TryAdd(option.Value.InstrumentToken, new ExponentialMovingAverage(_lEMALength));
+                        sTokenEMA.TryAdd(option.Value.InstrumentToken, new ExponentialMovingAverage(_sEMALength));
+                        signalTokenEMA.TryAdd(option.Value.InstrumentToken, new ExponentialMovingAverage(_signalEMALength));
+                    }
+
+
+#if !BACKTEST
                     LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Info, currentTime, " Tokens Loaded", "LoadOptionsToTrade");
+#endif
                 }
 
                 var activePE = OptionUniverse[(int)InstrumentType.PE].FirstOrDefault(x => x.Key >= _baseInstrumentPrice + _minDistanceFromBInstrument);
@@ -1181,7 +1267,9 @@ namespace Algorithms.Algorithms
                     }
                     if (dataUpdated)
                     {
+#if !BACKTEST
                         LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Info, currentTime, "Subscribing to new tokens", "UpdateInstrumentSubscription");
+#endif
                         Task task = Task.Run(() => OnOptionUniverseChange(this));
                     }
                 }
@@ -1301,16 +1389,16 @@ namespace Algorithms.Algorithms
             return nodeData;
         }
 
-        public Task<bool> OnNext(Tick[] ticks)
+        public void OnNext(Tick tick)
         {
             try
             {
-                if (_stopTrade || !ticks[0].Timestamp.HasValue)
+                if (_stopTrade || !tick.Timestamp.HasValue)
                 {
-                    return Task.FromResult(false);
+                    return;
                 }
-                ActiveTradeIntraday(ticks[0]);
-                return Task.FromResult(true);
+                ActiveTradeIntraday(tick);
+                return;
             }
             catch (Exception ex)
             {
@@ -1319,10 +1407,10 @@ namespace Algorithms.Algorithms
                 Logger.LogWrite("Trading Stopped as algo encountered an error");
                 //throw new Exception("Trading Stopped as algo encountered an error. Check log file for details");
                 LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Error,
-                    ticks[0].Timestamp.GetValueOrDefault(DateTime.UtcNow), String.Format(@"Error occurred! Trading has stopped. \r\n {0}", ex.Message), "OnNext");
+                    tick.Timestamp.GetValueOrDefault(DateTime.UtcNow), String.Format(@"Error occurred! Trading has stopped. \r\n {0}", ex.Message), "OnNext");
                 Thread.Sleep(100);
                 // Environment.Exit(0);
-                return Task.FromResult(false);
+                return;
             }
         }
 
@@ -1332,11 +1420,15 @@ namespace Algorithms.Algorithms
             if (_healthCounter >= 30)
             {
                 _healthCounter = 0;
+#if !BACKTEST
                 LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Health, e.SignalTime, "1", "CheckHealth");
+#endif
             }
             else
             {
+#if !BACKTEST
                 LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Health, e.SignalTime, "0", "CheckHealth");
+#endif
             }
         }
 
@@ -1360,7 +1452,7 @@ namespace Algorithms.Algorithms
         {
             try
             {
-                Order order = MarketOrders.ModifyOrder(_algoInstance, algoIndex, 0, tpOrder, currentTime, lastPrice).Result;
+                Order order = MarketOrders.ModifyOrder(_algoInstance, algoIndex, 0, tpOrder, currentTime, currentmarketPrice: lastPrice);
 
                 OnTradeEntry(order);
                 return order;

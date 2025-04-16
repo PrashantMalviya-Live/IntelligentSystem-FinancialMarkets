@@ -1,14 +1,18 @@
-﻿using System;
+﻿using Algorithm.Algorithm;
+using Algorithms.Indicators;
+using Algos.Utilities.Views.ModelViews;
+//using Algorithms.Utils;
+using BrokerConnectWrapper;
+using DataAccess;
+using GlobalLayer;
+using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
-using GlobalLayer;
-using DataAccess;
-using System.Data;
-//using Algorithms.Utils;
-using Algorithms.Utils;
-using ZConnectWrapper;
 
 namespace Algorithms.Utilities
 {
@@ -19,23 +23,391 @@ namespace Algorithms.Utilities
             MarketDAO marketDAO = new MarketDAO();
             return marketDAO.UpdateUser(activeUser);
         }
+
+        public void InsertHistoricals(Historical historical, int interval = 0)
+        {
+            MarketDAO marketDAO = new MarketDAO();
+            marketDAO.InsertHistoricals(historical, interval);
+        }
+
+        public List<Historical> GetHistoricals(uint token, DateTime fromDate, DateTime toDate, int interval = 0)
+        {
+            MarketDAO marketDAO = new MarketDAO();
+            return marketDAO.GetHistoricals(token, fromDate, toDate, interval);
+        }
+
+        public void UpdateAlgoParamaters(int algoInstance, decimal upperLimit = 0, decimal lowerLimit = 0, decimal arg1 = 0, decimal arg2 = 0,
+            decimal arg3 = 0, decimal arg4 = 0, decimal arg5 = 0, decimal arg6 = 0, decimal arg7 = 0, decimal arg8 = 0, string arg9 = "")
+        {
+            MarketDAO marketDAO = new MarketDAO();
+            marketDAO.UpdateAlgoParamaters(algoInstance, upperLimit, lowerLimit, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9);
+        }
+
+        public List<InstrumentListView> GetInstrumentList()
+        {
+            MarketDAO marketDAO = new MarketDAO();
+            DataSet dsInstrument = marketDAO.GetInstrumentList();
+
+            List<InstrumentListView> instruments = new List<InstrumentListView>();
+
+            foreach (DataRow dr in dsInstrument.Tables[0].Rows)
+            {
+                InstrumentListView listView = new() { InstrumentToken = Convert.ToUInt32(dr["InstrumentToken"]), TradingSymbol = (string)dr["TradingSymbol"] };
+                instruments.Add(listView);
+            }
+            return instruments;
+        }
+        public List<IndicatorOperatorView> GetIndicatorList()
+        {
+            MarketDAO marketDAO = new MarketDAO();
+            DataSet dsIndicator = marketDAO.GetIndicatorList();
+
+            List<IndicatorOperatorView> indcatorList = new List<IndicatorOperatorView>();
+
+            DataRelation algo_indicator_properties_relation = dsIndicator.Relations.Add("Indicator_Properties", new DataColumn[] { dsIndicator.Tables[0].Columns["Id"] },
+                    new DataColumn[] { dsIndicator.Tables[1].Columns["IndicatorId"] });
+
+            DataRelation algo_indicator_property_values_relation = dsIndicator.Relations.Add("Indicator_Property_Values", [dsIndicator.Tables[1].Columns["Id"]],
+                    [dsIndicator.Tables[2].Columns["PropertyId"]], createConstraints: false);
+
+            foreach (DataRow dr in dsIndicator.Tables[0].Rows)
+            {
+                List<DropDownComponentProperty> dropDownComponentProperties = new List<DropDownComponentProperty>();
+                List<TextComponentProperty> textComponentProperties = new List<TextComponentProperty>();
+
+                foreach (var drProperties in dr.GetChildRows(algo_indicator_properties_relation))
+                {
+                    DropDownComponentProperty dropDownComponentProperty;
+                    Dictionary<string, string> indicatorProperties;
+                    TextComponentProperty textComponentProperty;
+
+                    var drArry = drProperties.GetChildRows(algo_indicator_property_values_relation);
+                    if (drArry.Length > 0)
+                    {
+                        indicatorProperties = new Dictionary<string, string>();
+                        foreach (var drpropertyValues in drArry)
+                        {
+                            indicatorProperties.Add(drpropertyValues["Id"].ToString(), (string)drpropertyValues["PropertyDisplayValue"]);
+                        }
+
+                        dropDownComponentProperty = new()
+                        {
+                            Id = Convert.ToString(drProperties["Id"]),
+                            Name = (string)drProperties["DisplayName"], //Display Name
+                            Values = indicatorProperties,
+                            SelectedValue = indicatorProperties.ElementAt(0).Key,
+                        };
+
+                        dropDownComponentProperties.Add(dropDownComponentProperty);
+                    }
+                    else
+                    {
+                        textComponentProperty = new()
+                        {
+                            Id = Convert.ToString(drProperties["Id"]),
+                            Name = (string)drProperties["DisplayName"], //Display Name
+                            Value = String.Empty
+                        };
+
+                        textComponentProperties.Add(textComponentProperty);
+                    }
+                }
+                IndicatorOperatorView indicatorOperatorView = new()
+                {
+                    Id = Convert.ToInt32(dr["Id"]),
+                    Name = (string)dr["Name"],
+                    DropDownComponentProperties = dropDownComponentProperties,
+                    TextComponentProperties = textComponentProperties,
+                    Type = (IndicatorOperatorType)(byte)dr["Type"],
+
+                };
+
+                indcatorList.Add(indicatorOperatorView);
+            }
+
+            IndicatorOperatorView ioView = indcatorList.FirstOrDefault(x => x.Id == Constants.CANDLE_INDICATOR_ID);
+
+            indcatorList.ForEach(x =>
+            {
+                if (x.Id != Constants.CANDLE_INDICATOR_ID && x.Type == IndicatorOperatorType.Indicator)
+                {
+                    x.ChildIndicators.Add(Guid.NewGuid().ToString(), ioView);
+                }
+            });
+
+            return indcatorList;
+        }
+
+        //public List<IndcatorListView> GetIndicatorList()
+        //{
+        //    MarketDAO marketDAO = new MarketDAO();
+        //    DataSet dsIndicator = marketDAO.GetIndicatorList();
+
+        //    List<IndcatorListView> indcatorList = new List<IndcatorListView>();
+
+        //    DataRelation algo_indicator_properties_relation = dsIndicator.Relations.Add("Indicator_Properties", new DataColumn[] { dsIndicator.Tables[0].Columns["Id"] },
+        //            new DataColumn[] { dsIndicator.Tables[1].Columns["IndicatorId"] });
+
+        //    DataRelation algo_indicator_property_values_relation = dsIndicator.Relations.Add("Indicator_Property_Values", new DataColumn[] { dsIndicator.Tables[1].Columns["Id"] },
+        //            new DataColumn[] { dsIndicator.Tables[2].Columns["PropertyId"] });
+
+
+
+        //    foreach (DataRow dr in dsIndicator.Tables[0].Rows)
+        //    {
+        //        Dictionary<string, string> indicatorProperties;//= new Dictionary<string, string>();
+        //        Dictionary<string, Dictionary<string, string>> indicatorPropertyvalues = new Dictionary<string, Dictionary<string, string>>();
+        //        foreach (var drProperties in dr.GetChildRows(algo_indicator_properties_relation))
+        //        {
+        //            indicatorProperties = new Dictionary<string, string>();
+        //            foreach (var drpropertyValues in drProperties.GetChildRows(algo_indicator_property_values_relation))
+        //            {
+        //                indicatorProperties.Add(drpropertyValues["Id"].ToString(), (string)drpropertyValues["PropertyDisplayValue"]);
+        //            }
+
+        //            indicatorPropertyvalues.Add((string) drProperties["DisplayName"], indicatorProperties);
+        //        }
+
+
+
+        //        IndcatorListView listView = new()
+        //        {
+        //            Id = (int)dr["Id"],
+        //            Name = (string)dr["Name"],
+        //            PropertyNameAndValues = indicatorPropertyvalues
+        //        };
+
+        //        indcatorList.Add(listView);
+        //    }
+        //    return indcatorList;
+        //}
+
+
+        public Dictionary<int, KeyValuePair<string, dynamic>> GetIndicatorProperties(int indicatorId)
+        {
+            MarketDAO marketDAO = new MarketDAO();
+            DataSet dsIndicator = marketDAO.GetIndicatorProperties(indicatorId);
+
+            Dictionary<int, KeyValuePair<string, dynamic>> indcatorProperties = new Dictionary<int, KeyValuePair<string, dynamic>>();
+
+            foreach (DataRow dr in dsIndicator.Tables[0].Rows)
+            {
+                indcatorProperties.Add((int)dr["Id"], new KeyValuePair<string, dynamic>((string)dr["PropertyName"], dr["PropertyValue"]));
+            }
+
+            return indcatorProperties;
+        }
+        public List<CandleTimeFramesView> GetCandleTimeFrameList()
+        {
+            MarketDAO marketDAO = new MarketDAO();
+            DataSet dsInstrument = marketDAO.GetCandleTimeFrames();
+
+            List<CandleTimeFramesView> ctfs = new List<CandleTimeFramesView>();
+
+            foreach (DataRow dr in dsInstrument.Tables[0].Rows)
+            {
+                CandleTimeFramesView listView = new()
+                {
+                    Id = (int)dr["Id"],
+                    Name = (string)dr["Name"],
+                };
+                ctfs.Add(listView);
+            }
+            return ctfs;
+        }
+
+        public List<AlertTriggerView> GetAlertTriggersForUser(string userId)
+        {
+            MarketDAO marketDAO = new MarketDAO();
+
+            DataSet dsAlertTriggers = marketDAO.GetAlertTriggersforUser(userId);
+
+            Dictionary<int, Dictionary<string, string>> ioPropertyOptions = new Dictionary<int, Dictionary<string, string>>();
+
+            foreach (DataRow drPropertyOptions in dsAlertTriggers.Tables[1].Rows)
+            {
+                int propertyId = Convert.ToInt32(drPropertyOptions["PropertyId"]);
+
+                if (ioPropertyOptions.ContainsKey(propertyId))
+                {
+                    ioPropertyOptions[propertyId].Add(drPropertyOptions["Id"].ToString(), drPropertyOptions["PropertyDisplayValue"].ToString());
+                }
+                else
+                {
+                    var propertyValues = new Dictionary<string, string>
+                    {
+                        { drPropertyOptions["Id"].ToString(), drPropertyOptions["PropertyDisplayValue"].ToString() }
+                    };
+
+                    ioPropertyOptions.Add(Convert.ToInt32(drPropertyOptions["PropertyId"]), propertyValues);
+                }
+            }
+
+            List<AlertTriggerView> alertTriggers = new List<AlertTriggerView>();
+
+            foreach (DataRow alertTriggerRow in dsAlertTriggers.Tables[0].Rows)
+            {
+                AlertTriggerView alertTriggerView = new AlertTriggerView()
+                {
+
+                    ID = Convert.ToInt32(alertTriggerRow["Id"]),
+                    InstrumentToken = Convert.ToUInt32(alertTriggerRow["InstrumentToken"]),
+                    TradingSymbol = Convert.ToString(alertTriggerRow["TradingSymbol"]),
+                    SetupDate = Convert.ToDateTime(alertTriggerRow["SetupDate"]),
+                    StartDate = Convert.ToDateTime(alertTriggerRow["StartDate"]),
+                    EndDate = Convert.ToDateTime(alertTriggerRow["EndDate"]),
+                    NumberOfTriggersPerInterval = Convert.ToByte(alertTriggerRow["NumberOfTriggersPerInterval"]),
+                    TotalNumberOfTriggers = Convert.ToByte(alertTriggerRow["TotalNumberOfTriggers"]),
+                    UserId = Convert.ToString(alertTriggerRow["UserId"]),
+                    TriggerFrequency = Convert.ToByte(alertTriggerRow["TriggerFrequency"]),
+                    Criteria = JsonConvert.DeserializeObject<Dictionary<string, IndicatorOperator>>((string)alertTriggerRow["AlertCriteria"])
+                };
+                alertTriggerView.Criteria = alertTriggerView.Unlean(ioPropertyOptions);
+
+                alertTriggers.Add(alertTriggerView);
+            }
+            return alertTriggers;
+
+        }
+
+        public List<Alert> GetGeneratedAlerts(string userid)
+        {
+            MarketDAO marketDAO = new MarketDAO();
+
+            DataSet dsAlertTriggers = marketDAO.GetGeneratedAlerts(userid);
+
+            List<Alert> alerts = new List<Alert>();
+
+            foreach (DataRow alertTriggerRow in dsAlertTriggers.Tables[0].Rows)
+            {
+                alerts.Add(new()
+                {
+                   ID = Guid.Parse(Convert.ToString(alertTriggerRow["AlertId"])),
+                   AlertTriggerID = Convert.ToInt32(alertTriggerRow["AlertTriggerId"]),
+                    AlertModes = Convert.ToString(alertTriggerRow["AlertModes"]),
+                    InstrumentToken = Convert.ToUInt32(alertTriggerRow["InstrumentToken"]),
+                    TradingSymbol = Convert.ToString(alertTriggerRow["TradingSymbol"]),
+                    TriggeredDateTime = Convert.ToDateTime(alertTriggerRow["TriggerDateTime"]),
+                    Message = Convert.ToString(alertTriggerRow["Message"] == DBNull.Value?"": alertTriggerRow["Message"]),
+                    Criteria = Convert.ToString(alertTriggerRow["AlertCriteria"]),
+                });
+            }
+            return alerts;
+        }
+
+        public List<AlertTriggerView> GetAlertsbyAlertId(int alertId)
+        {
+            MarketDAO marketDAO = new MarketDAO();
+
+            DataSet dsAlertTriggers = marketDAO.GetAlertsbyAlertId(alertId);
+
+            List<AlertTriggerView> alertTriggers = new List<AlertTriggerView>();
+
+            foreach (DataRow alertTriggerRow in dsAlertTriggers.Tables[0].Rows)
+            {
+                alertTriggers.Add(new()
+                {
+                    ID = Convert.ToInt32(alertTriggerRow["Id"]),
+                    InstrumentToken = Convert.ToUInt32(alertTriggerRow["InstrumentToken"]),
+                    TradingSymbol = Convert.ToString(alertTriggerRow["TradingSymbol"]),
+                    SetupDate = Convert.ToDateTime(alertTriggerRow["SetupDae"]),
+                    StartDate = Convert.ToDateTime(alertTriggerRow["StartDate"]),
+                    EndDate = Convert.ToDateTime(alertTriggerRow["EndDate"]),
+                    NumberOfTriggersPerInterval = Convert.ToByte(alertTriggerRow["NumberOfTriggersPerInterval"]),
+                    TotalNumberOfTriggers = Convert.ToByte(alertTriggerRow["TotalNumberOfTriggers"]),
+                    UserId = Convert.ToString(alertTriggerRow["UserId"]),
+                    TriggerFrequency = Convert.ToByte(alertTriggerRow["TriggerFrequency"]),
+                    Criteria = System.Text.Json. JsonSerializer.Deserialize<Dictionary<string, IndicatorOperator>>((string)alertTriggerRow["AlertCriteria"])
+                });
+            }
+            return alertTriggers;
+        }
+        
+        public async Task<decimal> GetUserCreditsAsync (string userId)
+        {
+            MarketDAO marketDAO = new MarketDAO();
+            return await marketDAO.GetUserCreditsAsync(userId);
+        }
+        public async Task<int> UpdateAlertTriggerAsync(AlertTriggerView alertTrigger)
+        {
+            MarketDAO marketDAO = new MarketDAO();
+            return await marketDAO.UpdateAlertTriggerAsync(alertTrigger.ID,
+                alertTrigger.InstrumentToken,
+                alertTrigger.TradingSymbol,
+                alertTrigger.UserId,
+                alertTrigger.SetupDate,
+                alertTrigger.StartDate,
+                alertTrigger.EndDate,
+                alertTrigger.NumberOfTriggersPerInterval,
+                alertTrigger.TriggerFrequency,
+                alertTrigger.TotalNumberOfTriggers,
+                JsonConvert.SerializeObject(alertTrigger.LeanCriteria));
+        }
+        
+        public void UpdateCandleScore(int algoInstance, DateTime candleTime, Decimal candlePrice, int score)
+        {
+            MarketDAO marketDAO = new MarketDAO();
+            marketDAO.UpdateCandleScore(algoInstance, candleTime, candlePrice, score);
+        }
+        public void UpdateArg8(int algoInstance, decimal arg8)
+        {
+            MarketDAO marketDAO = new MarketDAO();
+            marketDAO.UpdateArg8(algoInstance, arg8);
+        }
+
+        
         public OHLC GetPreviousDayRange(uint token, DateTime dateTime)
         {
             MarketDAO marketDAO = new MarketDAO();
             return marketDAO.GetPreviousDayRange(token, dateTime);
+        }
+        public DateTime GetPreviousTradingDate(DateTime tradeDate, int numberOfDaysPrior = 1, uint token = 256265) //NIFTY
+        {
+            MarketDAO marketDAO = new MarketDAO();
+            return marketDAO.GetPreviousTradingDate(tradeDate, numberOfDaysPrior, token);
+        }
+        public DateTime GetPreviousWeeklyExpiry(DateTime tradeDate, int numberofWeeksPrior = 1)
+        {
+            MarketDAO marketDAO = new MarketDAO();
+            return marketDAO.GetPreviousWeeklyExpiry(tradeDate, numberofWeeksPrior);
+        }
+        
+        public DateTime GetCurrentMonthlyExpiry(DateTime tradeDate, uint binstrument)
+        {
+            MarketDAO marketDAO = new MarketDAO();
+            return marketDAO.GetCurrentMonthlyExpiry(tradeDate, binstrument);
+        }
+        public DateTime GetCurrentWeeklyExpiry(DateTime tradeDate, uint binstrument)
+        {
+            MarketDAO marketDAO = new MarketDAO();
+            return marketDAO.GetCurrentWeeklyExpiry(tradeDate, binstrument);
+        }
+
+        public List<string> GetActiveTradingDays(DateTime fromDate, DateTime toDate)
+        {
+            MarketDAO marketDAO = new MarketDAO();
+            return marketDAO.GetActiveTradingDays(fromDate, toDate);
         }
         public OHLC GetPriceRange(uint token, DateTime _startDateTime, DateTime _endDateTime)
         {
             MarketDAO marketDAO = new MarketDAO();
             return marketDAO.GetPriceRange(token, _startDateTime, _endDateTime);
         }
-        public User GetActiveUser()
+        public User GetActiveUser(int brokerId, string userid)
         {
             MarketDAO marketDAO = new MarketDAO();
-            DataSet dsUser = marketDAO.GetActiveUser();
+            DataSet dsUser = marketDAO.GetActiveUser(brokerId, userid);
 
             return new User(dsUser.Tables[0]);
         }
+        public AspNetUser GetActiveApplicationUser(string userid)
+        {
+            MarketDAO marketDAO = new MarketDAO();
+            DataSet dsUser = marketDAO.GetActiveApplicationUser(userid);
+
+            return new AspNetUser(dsUser.Tables[0]);
+        }
+        
         public void SaveCandle(Candle candle)
         {
             MarketDAO marketDAO = new MarketDAO();
@@ -59,6 +431,11 @@ namespace Algorithms.Utilities
                 marketDAO.SaveCandlePriceLevels(candleId, candlePriceLevel.BuyCount, candlePriceLevel.BuyVolume, candlePriceLevel.Money, candlePriceLevel.Price,
                 candlePriceLevel.SellCount, candlePriceLevel.SellVolume, candlePriceLevel.TotalVolume);
             }
+        }
+        public DataSet LoadAlgoInputs(AlgoIndex algoindex, DateTime fromDate, DateTime toDate)
+        {
+            MarketDAO marketDAO = new MarketDAO();
+            return marketDAO.LoadAlgoInputs(algoindex, fromDate, toDate);
         }
 
         public void LoadTokens()
@@ -102,7 +479,35 @@ namespace Algorithms.Utilities
             MarketDAO marketDAO = new MarketDAO();
             return marketDAO.GetDailyOHLC(tokens, date);
         }
-        public Instrument GetInstrument(DateTime expiry, uint bInstrumentToken, decimal strike, string instrumentType)
+        public Instrument GetOTMInstrument(DateTime? expiry, uint bToken, decimal bInstrumentPrice, string instrumentType)
+        {
+            MarketDAO marketDAO = new MarketDAO();
+            DataSet dsInstrument = marketDAO.GetOTMInstrument(expiry, bToken, bInstrumentPrice, instrumentType);
+            DataRow data = dsInstrument.Tables[0].Rows[0];
+
+            Instrument instrument = new Instrument();
+            instrument.InstrumentToken = Convert.ToUInt32(data["Instrument_Token"]);
+            instrument.TradingSymbol = Convert.ToString(data["TradingSymbol"]);
+            instrument.Strike = Convert.ToDecimal(data["Strike"]);
+            if (data["Expiry"] != DBNull.Value)
+            {
+                instrument.Expiry = Convert.ToDateTime(data["Expiry"]);
+            }
+            instrument.InstrumentType = Convert.ToString(data["Instrument_Type"]);
+            instrument.LotSize = Convert.ToUInt32(data["Lot_Size"]);
+            instrument.Exchange = Convert.ToString(data["Exchange"]);
+            instrument.Segment = Convert.ToString(data["Segment"]);
+            if (data["BToken"] != DBNull.Value)
+            {
+                instrument.BaseInstrumentToken = Convert.ToUInt32(data["BToken"]);
+            }
+            if (data["KToken"] != DBNull.Value)
+            {
+                instrument.KToken = Convert.ToUInt32(data["KToken"]);
+            }
+            return instrument;
+        }
+        public Instrument GetInstrument(DateTime? expiry, uint bInstrumentToken, decimal strike, string instrumentType)
         {
             MarketDAO marketDAO = new MarketDAO();
             DataSet dsInstrument = marketDAO.GetInstrument(expiry, bInstrumentToken, strike, instrumentType);
@@ -124,8 +529,13 @@ namespace Algorithms.Utilities
             {
                 instrument.BaseInstrumentToken = Convert.ToUInt32(data["BToken"]);
             }
+            if (data["KToken"] != DBNull.Value)
+            {
+                instrument.KToken = Convert.ToUInt32(data["KToken"]);
+            }
             return instrument;
         }
+
         public Instrument GetInstrument(uint instrumentToken, DateTime expiry)
         {
             MarketDAO marketDAO = new MarketDAO();
@@ -148,8 +558,13 @@ namespace Algorithms.Utilities
             {
                 instrument.BaseInstrumentToken = Convert.ToUInt32(data["BToken"]);
             }
+            if (data["KToken"] != DBNull.Value)
+            {
+                instrument.KToken = Convert.ToUInt32(data["KToken"]);
+            }
             return instrument;
         }
+
         public Instrument GetInstrument(string tradingSymbol)
         {
             MarketDAO marketDAO = new MarketDAO();
@@ -210,16 +625,61 @@ namespace Algorithms.Utilities
             }
             return activeInstruments;
         }
+        public List<Option> LoadSpreadOptions(DateTime? nearExpiry, DateTime? farExpiry,
+            uint baseInstrumentToken, string instrumentType1, string instrumentType2, decimal strike1, decimal strike2)
+        {
+            string strikeList = string.Format("{0},{1}", strike1, strike2);
+
+            MarketDAO marketDAO = new MarketDAO();
+            DataSet dsInstruments = marketDAO.LoadSpreadOptions(nearExpiry, farExpiry, baseInstrumentToken, strikeList);
+
+            List<Option> options = new List<Option>();
+            //SortedList<decimal, Option[]> optionList = new SortedList<decimal, Option[]>();
+
+            foreach (DataRow data in dsInstruments.Tables[0].Rows)
+            {
+                Option instrument = new Option();
+                instrument.InstrumentToken = Convert.ToUInt32(data["Instrument_Token"]);
+                instrument.TradingSymbol = Convert.ToString(data["TradingSymbol"]);
+                instrument.Strike = Convert.ToDecimal(data["Strike"]);
+                if (data["Expiry"] != DBNull.Value)
+                {
+                    instrument.Expiry = Convert.ToDateTime(data["Expiry"]) + new TimeSpan(15, 30, 0);
+                }
+                instrument.InstrumentType = Convert.ToString(data["Instrument_Type"]);
+                instrument.LotSize = Convert.ToUInt32(data["Lot_Size"]);
+                instrument.Exchange = Convert.ToString(data["Exchange"]);
+                instrument.Segment = Convert.ToString(data["Segment"]);
+                if (data["BToken"] != DBNull.Value)
+                {
+                    instrument.BaseInstrumentToken = Convert.ToUInt32(data["BToken"]);
+                }
+
+                options.Add(instrument);
+                //if (instrument.InstrumentType.Trim(' ').ToLower() == instrumentType1.Trim(' ').ToLower() && instrument.Strike == strike1)
+                //{
+                //    options.Add(instrument);
+                //}
+                //else if (instrument.InstrumentType.Trim(' ').ToLower() == instrumentType2.Trim(' ').ToLower() && instrument.Strike == strike2)
+                //{
+                //    options.Add(instrument);
+                //}
+
+                //activeInstruments.Add(String.Format("{0}{1}", instrument.InstrumentType, instrument.Strike) , instrument);
+                //options.Add(instrument);
+            }
+            return options;
+        }
 
         public SortedList<decimal, Option[]> LoadSpreadOptions(DateTime? nearExpiry, DateTime? farExpiry,
-            uint baseInstrumentToken, string strikeList)
+            uint baseInstrumentToken, string strikeList, out Dictionary<uint, Option> optionDictionary)
         {
             MarketDAO marketDAO = new MarketDAO();
             DataSet dsInstruments = marketDAO.LoadSpreadOptions(nearExpiry, farExpiry, baseInstrumentToken, strikeList);
 
             List<Option> options = new List<Option>();
             SortedList<decimal, Option[]> optionList = new SortedList<decimal, Option[]>();
-
+            optionDictionary = new Dictionary<uint, Option>();
             foreach (DataRow data in dsInstruments.Tables[0].Rows)
             {
                 Option instrument = new Option();
@@ -238,7 +698,7 @@ namespace Algorithms.Utilities
                 {
                     instrument.BaseInstrumentToken = Convert.ToUInt32(data["BToken"]);
                 }
-                if (instrument.InstrumentType.Trim(' ').ToLower() == "ce")
+                if (instrument.InstrumentType.Trim(' ').ToLower() == "pe")
                 {
                     if (optionList.ContainsKey(instrument.Strike))
                     {
@@ -248,6 +708,97 @@ namespace Algorithms.Utilities
                     {
                         optionList.Add(instrument.Strike, new Option[2] { instrument, null });
                     }
+                    optionDictionary.Add(instrument.InstrumentToken, instrument);
+                }
+                //activeInstruments.Add(String.Format("{0}{1}", instrument.InstrumentType, instrument.Strike) , instrument);
+                //options.Add(instrument);
+            }
+            return optionList;
+        }
+        public SortedList<decimal, Option[][]> LoadOptionsForSpread(DateTime? nearExpiry, DateTime? farExpiry,
+           uint baseInstrumentToken, string strikeList, out Dictionary<uint, Option> optionDictionary)
+        {
+            MarketDAO marketDAO = new MarketDAO();
+            DataSet dsInstruments = marketDAO.LoadSpreadOptions(nearExpiry, farExpiry, baseInstrumentToken, strikeList);
+
+            List<Option> options = new List<Option>();
+            SortedList<decimal, Option[][]> optionList = new SortedList<decimal, Option[][]>();
+            optionDictionary = new Dictionary<uint, Option>();
+            foreach (DataRow data in dsInstruments.Tables[0].Rows)
+            {
+                Option instrument = new Option();
+                instrument.InstrumentToken = Convert.ToUInt32(data["Instrument_Token"]);
+                instrument.TradingSymbol = Convert.ToString(data["TradingSymbol"]);
+                instrument.Strike = Convert.ToDecimal(data["Strike"]);
+                if (data["Expiry"] != DBNull.Value)
+                {
+                    instrument.Expiry = Convert.ToDateTime(data["Expiry"]) + new TimeSpan(15, 30, 0);
+                }
+                instrument.InstrumentType = Convert.ToString(data["Instrument_Type"]);
+                instrument.LotSize = Convert.ToUInt32(data["Lot_Size"]);
+                instrument.Exchange = Convert.ToString(data["Exchange"]);
+                instrument.Segment = Convert.ToString(data["Segment"]);
+                if (data["BToken"] != DBNull.Value)
+                {
+                    instrument.BaseInstrumentToken = Convert.ToUInt32(data["BToken"]);
+                }
+                //if (instrument.InstrumentType.Trim(' ').ToLower() == "pe")
+                //{
+                //    if (optionList.ContainsKey(instrument.Strike))
+                //    {
+                //        optionList[instrument.Strike] = new Option[2][] { new Option[] { optionList[instrument.Strike][0][0], instrument }, new Option[] { optionList[instrument.Strike][1][0], instrument } };
+                //    }
+                //    else
+                //    {
+                //        optionList.Add(instrument.Strike, new Option[2][] { new Option[] { instrument, null }, new Option[] { instrument, null } });
+                //    }
+                //    optionDictionary.Add(instrument.InstrumentToken, instrument);
+                //}
+
+                //InstrumentType.PE = 1
+
+                if (optionList.ContainsKey(instrument.Strike))
+                {
+                    if (instrument.InstrumentType.Trim(' ').ToLower() == "pe")
+                    {
+                        if(optionList[instrument.Strike][1][0] == null)
+                        {
+                            optionList[instrument.Strike] = new Option[2][] { new Option[] { optionList[instrument.Strike][0][0], optionList[instrument.Strike][0][1] }, new Option[] { instrument, null } };
+                        }
+                        else
+                        {
+                            optionList[instrument.Strike] = new Option[2][] { new Option[] { optionList[instrument.Strike][0][0], optionList[instrument.Strike][0][1] }, new Option[] { optionList[instrument.Strike][1][0], instrument } };
+                        }
+                    }
+                    if (instrument.InstrumentType.Trim(' ').ToLower() == "ce")
+                    {
+                        if (optionList[instrument.Strike][0][0] == null)
+                        {
+                            optionList[instrument.Strike] = new Option[2][] { new Option[] { instrument, null }, new Option[] { optionList[instrument.Strike][1][0], optionList[instrument.Strike][1][1] } };
+                        }
+                        else
+                        {
+                            optionList[instrument.Strike] = new Option[2][] { new Option[] { optionList[instrument.Strike][0][0], instrument }, new Option[] { optionList[instrument.Strike][1][0], optionList[instrument.Strike][1][1] } };
+                        }
+                    }
+
+                    optionList[instrument.Strike] = new Option[2][] { new Option[] { optionList[instrument.Strike][0][0], optionList[instrument.Strike][0][1] }, new Option[] { optionList[instrument.Strike][1][0], instrument } };
+                }
+                else
+                {
+                    if (instrument.InstrumentType.Trim(' ').ToLower() == "pe")
+                    {
+                        optionList.Add(instrument.Strike, new Option[2][] { new Option[] { null, null }, new Option[] { instrument, null } });
+                    }
+                    else
+                    {
+                        optionList.Add(instrument.Strike, new Option[2][] { new Option[] { instrument, null }, new Option[] { null, null } });
+                    }
+                     
+                }
+                if (!optionDictionary.ContainsKey(instrument.InstrumentToken))
+                {
+                    optionDictionary.Add(instrument.InstrumentToken, instrument);
                 }
 
                 //activeInstruments.Add(String.Format("{0}{1}", instrument.InstrumentType, instrument.Strike) , instrument);
@@ -255,18 +806,53 @@ namespace Algorithms.Utilities
             }
             return optionList;
         }
-
-        public SortedList<decimal, Instrument>[] LoadCloseByOptions(DateTime? expiry,
-        uint baseInstrumentToken, decimal baseInstrumentPrice, decimal maxDistanceFromBInstrument)
+        public List<Instrument> LoadIndexStocks(uint indexToken)
         {
             MarketDAO marketDAO = new MarketDAO();
-            DataSet dsInstruments = marketDAO.LoadCloseByOptions(expiry, baseInstrumentToken, baseInstrumentPrice,
+            DataSet dsInstruments = marketDAO.LoadIndexStocks(indexToken);
+            List<Instrument> allStocks = new List<Instrument>();
+            UInt32 kotakToken = 0;
+            foreach (DataRow data in dsInstruments.Tables[0].Rows)
+            {
+                Instrument instrument = new Instrument();
+                instrument.InstrumentToken = Convert.ToUInt32(data["InstrumentToken"]);
+                instrument.TradingSymbol = Convert.ToString(data["TradingSymbol"]);
+                
+                //Just for cehcking with stocks order
+                instrument.LotSize = 10;// Convert.ToUInt32(data["LotSize"]);
+
+                //instrument.Strike = Convert.ToDecimal(data["Strike"]);
+                if (data["KTokens"] != DBNull.Value)
+                {
+                    instrument.KToken = Convert.ToUInt32(data["KTokens"]);
+                }
+                instrument.InstrumentType = Convert.ToString(data["InstrumentType"]);
+                instrument.BaseInstrumentToken = indexToken;
+                allStocks.Add(instrument);
+
+#if market
+                //dsInstruments.Tables[1].PrimaryKey = new DataColumn[] { dsInstruments.Tables[1].Columns["Instrument_Token"] };
+                //kotakToken = Convert.ToUInt32(dsInstruments.Tables[1].Rows.Find(instrument.InstrumentToken)[1]);
+#elif local
+                //kotakToken = 0;
+#endif
+                //instrument.KToken = kotakToken;
+            }
+            return allStocks;
+        }
+
+        public List<Instrument> LoadOptions(DateTime? expiry, uint baseInstrumentToken,
+            decimal baseInstrumentPrice, decimal maxDistanceFromBInstrument, out SortedList<decimal, Instrument> ceList,
+            out SortedList<decimal, Instrument> peList, out Dictionary<uint, uint> mappedTokens)
+        {
+            MarketDAO marketDAO = new MarketDAO();
+            DataSet dsInstruments = marketDAO.LoadOptions(expiry, baseInstrumentToken, baseInstrumentPrice,
                 maxDistanceFromBInstrument);
-
-            List<Instrument> options = new List<Instrument>();
-            SortedList<decimal, Instrument> ceList = new SortedList<decimal, Instrument>();
-            SortedList<decimal, Instrument> peList = new SortedList<decimal, Instrument>();
-
+            mappedTokens = new Dictionary<uint, uint>();
+            ceList = new SortedList<decimal, Instrument>();
+            peList = new SortedList<decimal, Instrument>();
+            uint kotakToken = 0;
+            List<Instrument> allOptions = new List<Instrument>();
             foreach (DataRow data in dsInstruments.Tables[0].Rows)
             {
                 Instrument instrument = new Instrument();
@@ -286,6 +872,119 @@ namespace Algorithms.Utilities
                     instrument.BaseInstrumentToken = Convert.ToUInt32(data["BToken"]);
                 }
 
+                if (instrument.InstrumentType.Trim(' ').ToLower() == "ce")
+                {
+                    ceList.TryAdd(instrument.Strike, instrument);
+                }
+                else if (instrument.InstrumentType.Trim(' ').ToLower() == "pe")
+                {
+                    peList.TryAdd(instrument.Strike, instrument);
+                }
+                allOptions.Add(instrument);
+
+#if market
+                dsInstruments.Tables[1].PrimaryKey = new DataColumn[] { dsInstruments.Tables[1].Columns["Instrument_Token"] };
+                kotakToken = Convert.ToUInt32(dsInstruments.Tables[1].Rows.Find(instrument.InstrumentToken)[1]);
+#elif local
+                kotakToken = 0;
+#endif
+
+                //kotakToken = Convert.ToUInt32(dsInstruments.Tables[1].Rows.Find(instrument.InstrumentToken)[1]);
+                //kotakToken = 0;
+                instrument.KToken = kotakToken;
+                mappedTokens.TryAdd(instrument.InstrumentToken, kotakToken);
+            }
+            return allOptions;
+        }
+        public List<Instrument> LoadCloseByOptions(DateTime? expiry, uint baseInstrumentToken, 
+            decimal baseInstrumentPrice, decimal maxDistanceFromBInstrument, out SortedList<decimal, Instrument> ceList, 
+            out SortedList<decimal, Instrument> peList, out Dictionary<uint, uint> mappedTokens)
+        {
+            MarketDAO marketDAO = new MarketDAO();
+            DataSet dsInstruments = marketDAO.LoadCloseByOptions(expiry, baseInstrumentToken, baseInstrumentPrice,
+                maxDistanceFromBInstrument);
+            mappedTokens = new Dictionary<uint, uint>();
+            ceList = new SortedList<decimal, Instrument>();
+            peList = new SortedList<decimal, Instrument>();
+            uint kotakToken = 0;
+            List<Instrument> allOptions = new List<Instrument>();
+            foreach (DataRow data in dsInstruments.Tables[0].Rows)
+            {
+                Instrument instrument = new Instrument();
+                instrument.InstrumentToken = Convert.ToUInt32(data["Instrument_Token"]);
+                instrument.TradingSymbol = Convert.ToString(data["TradingSymbol"]);
+                instrument.Strike = Convert.ToDecimal(data["Strike"]);
+                if (data["Expiry"] != DBNull.Value)
+                {
+                    instrument.Expiry = Convert.ToDateTime(data["Expiry"]);
+                }
+                instrument.InstrumentType = Convert.ToString(data["Instrument_Type"]);
+                instrument.LotSize = Convert.ToUInt32(data["Lot_Size"]);
+                instrument.Exchange = Convert.ToString(data["Exchange"]);
+                instrument.Segment = Convert.ToString(data["Segment"]);
+                if (data["BToken"] != DBNull.Value)
+                {
+                    instrument.BaseInstrumentToken = Convert.ToUInt32(data["BToken"]);
+                }
+
+                if (instrument.InstrumentType.Trim(' ').ToLower() == "ce")
+                {
+                    ceList.TryAdd(instrument.Strike, instrument);
+                }
+                else if (instrument.InstrumentType.Trim(' ').ToLower() == "pe")
+                {
+                    peList.TryAdd(instrument.Strike, instrument);
+                }
+                allOptions.Add(instrument);
+
+#if market
+                dsInstruments.Tables[1].PrimaryKey = new DataColumn[] { dsInstruments.Tables[1].Columns["Instrument_Token"] };
+                kotakToken = 0; // Convert.ToUInt32(dsInstruments.Tables[1].Rows.Find(instrument.InstrumentToken)[1]);
+                instrument.KToken = kotakToken;
+#elif local
+                kotakToken = 0;
+#endif
+
+                //kotakToken = Convert.ToUInt32(dsInstruments.Tables[1].Rows.Find(instrument.InstrumentToken)[1]);
+                //kotakToken = 0;
+                mappedTokens.TryAdd(instrument.InstrumentToken, kotakToken);
+            }
+            return allOptions;
+        }
+
+        public SortedList<decimal, Instrument>[] LoadCloseByOptions(DateTime? expiry,
+        uint baseInstrumentToken, decimal baseInstrumentPrice, decimal maxDistanceFromBInstrument, out Dictionary<uint, uint> mappedTokens)
+        {
+            MarketDAO marketDAO = new MarketDAO();
+            DataSet dsInstruments = marketDAO.LoadCloseByOptions(expiry, baseInstrumentToken, baseInstrumentPrice,
+                maxDistanceFromBInstrument);
+
+            List<Instrument> options = new List<Instrument>();
+            SortedList<decimal, Instrument> ceList = new SortedList<decimal, Instrument>();
+            SortedList<decimal, Instrument> peList = new SortedList<decimal, Instrument>();
+            mappedTokens = new Dictionary<uint, uint>();
+            uint kotakToken = 0;
+            dsInstruments.Tables[1].PrimaryKey = new DataColumn[] { dsInstruments.Tables[1].Columns[0] };
+            foreach (DataRow data in dsInstruments.Tables[0].Rows)
+            {
+                Instrument instrument = new Instrument();
+                instrument.InstrumentToken = Convert.ToUInt32(data["Instrument_Token"]);
+                instrument.TradingSymbol = Convert.ToString(data["TradingSymbol"]);
+                instrument.Strike = Convert.ToDecimal(data["Strike"]);
+                if (data["Expiry"] != DBNull.Value)
+                {
+                    instrument.Expiry = Convert.ToDateTime(data["Expiry"]);
+                    instrument.Expiry += new TimeSpan(15, 30, 0);
+                }
+                instrument.InstrumentType = Convert.ToString(data["Instrument_Type"]);
+                instrument.LotSize = Convert.ToUInt32(data["Lot_Size"]);
+                instrument.Exchange = Convert.ToString(data["Exchange"]);
+                instrument.Segment = Convert.ToString(data["Segment"]);
+                if (data["BToken"] != DBNull.Value)
+                {
+                    instrument.BaseInstrumentToken = Convert.ToUInt32(data["BToken"]);
+                }
+
 
                 if (instrument.InstrumentType.Trim(' ').ToLower() == "ce")
                 {
@@ -294,6 +993,18 @@ namespace Algorithms.Utilities
                 else if (instrument.InstrumentType.Trim(' ').ToLower() == "pe")
                 {
                     peList.Add(instrument.Strike, instrument);
+                }
+#if market
+                dsInstruments.Tables[1].PrimaryKey = new DataColumn[] { dsInstruments.Tables[1].Columns["Instrument_Token"] };
+                kotakToken = 0;// Convert.ToUInt32(dsInstruments.Tables[1].Rows.Find(instrument.InstrumentToken)[1]);
+
+#elif local
+                kotakToken = 0;
+#endif
+                instrument.KToken = kotakToken;
+                if (!mappedTokens.ContainsKey(instrument.InstrumentToken))
+                {
+                    mappedTokens.Add(instrument.InstrumentToken, kotakToken);
                 }
 
                 //activeInstruments.Add(String.Format("{0}{1}", instrument.InstrumentType, instrument.Strike) , instrument);
@@ -305,6 +1016,125 @@ namespace Algorithms.Utilities
             optionUniverse[(int)InstrumentType.PE] = peList;
 
             return optionUniverse;
+        }
+        public Dictionary<uint, Instrument> LoadOptionsChain(DateTime? expiry,
+       uint baseInstrumentToken, decimal baseInstrumentPrice, decimal maxDistanceFromBInstrument, 
+       out Dictionary<uint, uint> mappedTokens, out SortedDictionary<decimal, Instrument> ceList, 
+       out SortedDictionary<decimal, Instrument> peList)
+        {
+            MarketDAO marketDAO = new MarketDAO();
+            DataSet dsInstruments = marketDAO.LoadCloseByOptions(expiry, baseInstrumentToken, baseInstrumentPrice,
+                maxDistanceFromBInstrument);
+            ceList = new SortedDictionary<decimal, Instrument>();
+            peList = new SortedDictionary<decimal, Instrument>();
+            List<Instrument> options = new List<Instrument>();
+            Dictionary<uint, Instrument> allOptions = new Dictionary<uint, Instrument>();
+            mappedTokens = new Dictionary<uint, uint>();
+            uint kotakToken = 0;
+            dsInstruments.Tables[1].PrimaryKey = new DataColumn[] { dsInstruments.Tables[1].Columns[0] };
+            foreach (DataRow data in dsInstruments.Tables[0].Rows)
+            {
+                Instrument instrument = new Instrument();
+                instrument.InstrumentToken = Convert.ToUInt32(data["Instrument_Token"]);
+                instrument.TradingSymbol = Convert.ToString(data["TradingSymbol"]);
+                instrument.Strike = Convert.ToDecimal(data["Strike"]);
+                if (data["Expiry"] != DBNull.Value)
+                {
+                    instrument.Expiry = Convert.ToDateTime(data["Expiry"]);
+                    instrument.Expiry += new TimeSpan(15, 30, 0);
+                }
+                instrument.InstrumentType = Convert.ToString(data["Instrument_Type"]);
+                instrument.LotSize = Convert.ToUInt32(data["Lot_Size"]);
+                instrument.Exchange = Convert.ToString(data["Exchange"]);
+                instrument.Segment = Convert.ToString(data["Segment"]);
+                if (data["BToken"] != DBNull.Value)
+                {
+                    instrument.BaseInstrumentToken = Convert.ToUInt32(data["BToken"]);
+                }
+
+
+                if (instrument.InstrumentType.Trim(' ').ToLower() == "ce")
+                {
+                    ceList.TryAdd(instrument.Strike, instrument);
+                }
+                else if (instrument.InstrumentType.Trim(' ').ToLower() == "pe")
+                {
+                    peList.TryAdd(instrument.Strike, instrument);
+                }
+#if market
+                dsInstruments.Tables[1].PrimaryKey = new DataColumn[] { dsInstruments.Tables[1].Columns["Instrument_Token"] };
+                kotakToken = 0;// Convert.ToUInt32(dsInstruments.Tables[1].Rows.Find(instrument.InstrumentToken)[1]);
+#elif local
+                kotakToken = 0;
+#endif
+                mappedTokens.TryAdd(instrument.InstrumentToken, kotakToken);
+                //mappedTokens.TryAdd(instrument.InstrumentToken, instrument.InstrumentToken);
+                allOptions.TryAdd(instrument.InstrumentToken, instrument);
+
+                //activeInstruments.Add(String.Format("{0}{1}", instrument.InstrumentType, instrument.Strike) , instrument);
+                //options.Add(instrument);
+            }
+            return allOptions;
+            //SortedList<decimal, Instrument>[] optionUniverse = new SortedList<decimal, Instrument>[2];
+            //optionUniverse[(int)InstrumentType.CE] = ceList;
+            //optionUniverse[(int)InstrumentType.PE] = peList;
+        }
+        public SortedList<decimal, Instrument[]> LoadCloseByStraddleOptions(DateTime? expiry,
+        uint baseInstrumentToken, decimal baseInstrumentPrice, decimal maxDistanceFromBInstrument, 
+        out Dictionary<uint, Instrument>  optionDictionary, out Dictionary<uint, uint> mappedTokens)
+        {
+            MarketDAO marketDAO = new MarketDAO();
+            DataSet dsInstruments = marketDAO.LoadCloseByStraddleOptions(expiry, baseInstrumentToken, baseInstrumentPrice,
+                maxDistanceFromBInstrument);
+
+            SortedList<decimal, Instrument[]> straddleList = new SortedList<decimal, Instrument[]>();
+            optionDictionary = new Dictionary<uint, Instrument>();
+            mappedTokens = new Dictionary<uint, uint>();
+            uint kotakToken = 0;
+
+            dsInstruments.Tables[1].PrimaryKey = new DataColumn[] { dsInstruments.Tables[1].Columns[0] };
+            foreach (DataRow data in dsInstruments.Tables[0].Rows)
+            {
+                Instrument instrument = new Instrument();
+                instrument.InstrumentToken = Convert.ToUInt32(data["Instrument_Token"]);
+                instrument.TradingSymbol = Convert.ToString(data["TradingSymbol"]);
+                instrument.Strike = Convert.ToDecimal(data["Strike"]);
+                if (data["Expiry"] != DBNull.Value)
+                {
+                    instrument.Expiry = Convert.ToDateTime(data["Expiry"]);
+                }
+                instrument.InstrumentType = Convert.ToString(data["Instrument_Type"]);
+                instrument.LotSize = Convert.ToUInt32(data["Lot_Size"]);
+                instrument.Exchange = Convert.ToString(data["Exchange"]);
+                instrument.Segment = Convert.ToString(data["Segment"]);
+                if (data["BToken"] != DBNull.Value)
+                {
+                    instrument.BaseInstrumentToken = Convert.ToUInt32(data["BToken"]);
+                }
+
+                if (!straddleList.ContainsKey(instrument.Strike))
+                {
+                    straddleList.Add(instrument.Strike, new Instrument[2]);
+                }
+
+                if (instrument.InstrumentType.Trim(' ').ToLower() == "ce")
+                {
+                    straddleList[instrument.Strike][(int)InstrumentType.CE] = instrument;
+                }
+                else if (instrument.InstrumentType.Trim(' ').ToLower() == "pe")
+                {
+                    straddleList[instrument.Strike][(int)InstrumentType.PE] = instrument;
+                }
+                optionDictionary.Add(instrument.InstrumentToken, instrument);
+#if market
+                dsInstruments.Tables[1].PrimaryKey = new DataColumn[] { dsInstruments.Tables[1].Columns["Instrument_Token"] };
+                kotakToken = Convert.ToUInt32(dsInstruments.Tables[1].Rows.Find(instrument.InstrumentToken)[1]);
+#elif local
+                kotakToken = 0;
+#endif
+                mappedTokens.Add(instrument.InstrumentToken, kotakToken);
+            }
+            return straddleList;
         }
         public SortedList<decimal, Instrument>[] LoadCloseByExpiryOptions(uint baseInstrumentToken, 
             decimal baseInstrumentPrice, decimal maxDistanceFromBInstrument, DateTime currentTime)
@@ -368,11 +1198,11 @@ namespace Algorithms.Utilities
         }
         
         public Dictionary<uint, List<decimal>> GetHistoricalCandlePrices(int candlesCount, DateTime lastCandleEndTime, string tokenList,
-            TimeSpan _candleTimeSpan, bool isBaseInstrument = false, CandleType candleType = CandleType.Time, uint vThreshold = 0)
+            TimeSpan _candleTimeSpan, bool isBaseInstrument = false, CandleType candleType = CandleType.Time, uint vThreshold = 0, uint bToken = 256265)
         {
             MarketDAO marketDAO = new MarketDAO();
             DataSet ds = marketDAO.GetHistoricalCandlePrices(candlesCount, lastCandleEndTime, tokenList, 
-                _candleTimeSpan, isBaseInstrument, candleType, vThreshold);
+                _candleTimeSpan, isBaseInstrument, candleType, vThreshold, bToken);
 
             Dictionary<uint, List<decimal>> tokenPrices = new Dictionary<uint, List<decimal>>();
             foreach(DataRow dr in ds.Tables[0].Rows)
@@ -516,10 +1346,10 @@ namespace Algorithms.Utilities
             MarketDAO marketDAO = new MarketDAO();
             return marketDAO.RetrieveActiveData(algoIndex);
         }
-        public DataSet GetActiveAlgos(AlgoIndex algoIndex)
+        public DataSet GetActiveAlgos(AlgoIndex algoIndex, string userId="")
         {
             MarketDAO marketDAO = new MarketDAO();
-            return marketDAO.GetActiveAlgos(algoIndex);
+            return marketDAO.GetActiveAlgos(algoIndex, userId);
         }
         //public DataSet GetInstrument(decimal strikePrice, string InstrumentType)
         //{
@@ -560,6 +1390,12 @@ namespace Algorithms.Utilities
             return marketDAO.UpdateTrade(strategyID, instrumentToken, trade.AveragePrice, trade.ExchangeTimestamp, 
                 trade.OrderId, trade.Quantity, trade.TransactionType, algoIndex, tradedLot, triggerID);
         }
+        public decimal UpdateTrade(int strategyID, UInt32 instrumentToken, Order order, AlgoIndex algoIndex, int tradedLot = 0, int triggerID = 0)
+        {
+            MarketDAO marketDAO = new MarketDAO();
+            return marketDAO.UpdateTrade(strategyID, instrumentToken, order.AveragePrice, order.ExchangeTimestamp,
+                order.OrderId, order.Quantity, order.TransactionType, algoIndex, tradedLot, triggerID);
+        }
 
         public decimal InsertOptionIV(uint token1, uint token2, decimal _baseInstrumentPrice, decimal? iv1, decimal lastPrice1, DateTime lastTradeTime1,
             decimal? iv2, decimal lastPrice2, DateTime lastTradeTime2)
@@ -569,10 +1405,26 @@ namespace Algorithms.Utilities
         }
 
 
-        public void UpdateOrder(int algoInstance, Order order, int strategyId = 0)
+        public decimal UpdateOrder(int algoInstance, Order order, int strategyId = 0)
         {
             MarketDAO marketDAO = new MarketDAO();
-            marketDAO.UpdateOrder(order, algoInstance);
+            return marketDAO.UpdateOrder(order, algoInstance);
+        }
+        public void UpdateAlgoPnl(int algoInstance, decimal pnl)
+        {
+            MarketDAO marketDAO = new MarketDAO();
+            marketDAO.UpdateAlgoPnl(algoInstance, pnl);
+        }
+        public void DeActivateAlgo(int algoInstance)
+        {
+            MarketDAO marketDAO = new MarketDAO();
+            marketDAO.DeActivateAlgo(algoInstance);
+        }
+
+        public void DeActivateOrderTrio(OrderTrio orderTrio)
+        {
+            MarketDAO marketDAO = new MarketDAO();
+            marketDAO.DeActivateOrderTrio(orderTrio);
         }
 
         public int StoreBoxData(int boxID, UInt32 firstCallToken, UInt32 secondCallToken, UInt32 firstPutToken, UInt32 secondPutToken,
@@ -658,6 +1510,21 @@ namespace Algorithms.Utilities
             return marketDAO.RetrieveNextStrangleNodes(baseInstrumentToken, expiry, callStrikePrice, putStrikePrice, updownboth);
         }
 
+        public SortedList<Decimal, Instrument>[] RetrieveNextStrangleNodes(UInt32 baseInstrumentToken,
+           DateTime expiry, decimal callStrikePrice, decimal putStrikePrice, int updownboth, out Dictionary<uint, uint> mappedTokens)
+        {
+
+            MarketDAO marketDAO = new MarketDAO();
+            return marketDAO.RetrieveNextStrangleNodes(baseInstrumentToken, expiry, callStrikePrice, putStrikePrice, updownboth, out mappedTokens);
+        }
+
+        public Dictionary<uint, List<PriceTime>> RetrieveTicksFromDB(uint btoken, DateTime expiry, decimal fromStrike, decimal toStrike,
+            bool futuresData, bool optionsData, DateTime tradeDate)
+        {
+            MarketDAO marketDAO = new MarketDAO();
+
+            return marketDAO.GetTickData(btoken, expiry, fromStrike, toStrike, optionsData, futuresData, tradeDate);
+        }
         public void UpdateListData(int strangleId, UInt32 instrumentToken, int instrumentIndex,int previousInstrumentIndex, string instrumentType, 
             UInt32 previousInstrumentToken, decimal currentNodePrice, decimal previousNodePrice, AlgoIndex algoIndex)
         {
@@ -677,6 +1544,14 @@ namespace Algorithms.Utilities
         {
             MarketDAO marketDAO = new MarketDAO();
             marketDAO.UpdateOptionData(strategyId, instrumentToken, instrumentType, lastPrice, currentPrice, algoIndex);
+        }
+
+        public int UpdateOrderTrio(OrderTrio orderTrio, int algoInstance)
+        {
+            MarketDAO marketDAO = new MarketDAO();
+            return marketDAO.UpdateOrderTrio(orderTrio.Order.InstrumentToken, orderTrio.Order.OrderId, orderTrio.SLOrder != null? orderTrio.SLOrder.OrderId:"",
+                orderTrio.TPOrder != null?orderTrio.TPOrder.OrderId: "", orderTrio.TargetProfit, orderTrio.StopLoss, orderTrio.EntryTradeTime, orderTrio.BaseInstrumentStopLoss, 
+                orderTrio.TPFlag, algoInstance, orderTrio.isActive, orderTrio.Id, orderTrio.SLFlag, orderTrio.IndicatorsValue == null?"": JsonConvert.SerializeObject(orderTrio.IndicatorsValue) );
         }
 
         ///// <summary>

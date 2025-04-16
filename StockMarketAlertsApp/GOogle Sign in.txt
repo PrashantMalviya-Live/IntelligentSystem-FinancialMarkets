@@ -1,0 +1,26 @@
+<script src="https://apis.google.com/js/platform.js" async defer></script>
+
+Client Id
+429609068889-lo997fqbhp73elojaq30ddrbn4gj9lj9.apps.googleusercontent.com
+
+Client Secret
+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
+
+
+
+<meta name="google-signin-client_id" content="YOUR_CLIENT_ID.apps.googleusercontent.com">
+
+
+
+Add google signin button
+<div class="g-signin2" data-onsuccess="onSignIn"></div>
+
+
+Get profile information
+function onSignIn(googleUser) {
+  var profile = googleUser.getBasicProfile();
+  console.log('ID: ' + profile.getId()); // Do not send to your backend! Use an ID token instead.
+  console.log('Name: ' + profile.getName());
+  console.log('Image URL: ' + profile.getImageUrl());
+  console.log('Email: ' + profile.getEmail()); // This is null if the 'email' scope is not present.
+}

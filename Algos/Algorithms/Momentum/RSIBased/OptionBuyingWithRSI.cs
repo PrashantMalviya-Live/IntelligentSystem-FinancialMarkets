@@ -11,7 +11,7 @@ using System.Dynamic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using ZConnectWrapper;
+using BrokerConnectWrapper;
 using ZMQFacade;
 using System.Timers;
 using System.Threading;
@@ -954,7 +954,7 @@ namespace Algorithms.Algorithms
 
                 //}
                 DataLogic dl = new DataLogic();
-
+                Dictionary<uint, uint> mappedTokens;
                 if (OptionUniverse == null ||
                 (OptionUniverse[(int)InstrumentType.PE].Keys.Last() <= _baseInstrumentPrice + _minDistanceFromBInstrument
                 || OptionUniverse[(int)InstrumentType.PE].Keys.First() >= _baseInstrumentPrice +_maxDistanceFromBInstrument)
@@ -964,7 +964,7 @@ namespace Algorithms.Algorithms
                 {
                     LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Info, currentTime, " Loading Tokens from database...", "LoadOptionsToTrade");
                     //Load options asynchronously
-                    var closeOptions = dl.LoadCloseByOptions(_expiryDate, _baseInstrumentToken, _baseInstrumentPrice, Math.Max(_maxDistanceFromBInstrument, 600)); //loading at least 600 tokens each side
+                    var closeOptions = dl.LoadCloseByOptions(_expiryDate, _baseInstrumentToken, _baseInstrumentPrice, Math.Max(_maxDistanceFromBInstrument, 600), out mappedTokens); //loading at least 600 tokens each side
 
                     UpsertOptionUniverse(closeOptions);
 
@@ -1320,16 +1320,16 @@ namespace Algorithms.Algorithms
             return nodeData;
         }
 
-        public Task<bool> OnNext(Tick[] ticks)
+        public void OnNext(Tick tick)
         {
             try
             {
-                if (_stopTrade || !ticks[0].Timestamp.HasValue)
+                if (_stopTrade || !tick.Timestamp.HasValue)
                 {
-                    return Task.FromResult(false);
+                    return;
                 }
-                ActiveTradeIntraday(ticks[0]);
-                return Task.FromResult(true);
+                ActiveTradeIntraday(tick);
+                return;
             }
             catch (Exception ex)
             {
@@ -1338,10 +1338,10 @@ namespace Algorithms.Algorithms
                 Logger.LogWrite("Trading Stopped as algo encountered an error");
                 //throw new Exception("Trading Stopped as algo encountered an error. Check log file for details");
                 LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Error, 
-                    ticks[0].Timestamp.GetValueOrDefault(DateTime.UtcNow), String.Format(@"Error occurred! Trading has stopped. \r\n {0}", ex.Message), "OnNext");
+                    tick.Timestamp.GetValueOrDefault(DateTime.UtcNow), String.Format(@"Error occurred! Trading has stopped. \r\n {0}", ex.Message), "OnNext");
                 Thread.Sleep(100);
                // Environment.Exit(0);
-                return Task.FromResult(false);
+                return;
             }
         }
 
@@ -1391,7 +1391,7 @@ namespace Algorithms.Algorithms
         {
             try
             {
-                Order order = MarketOrders.ModifyOrder(_algoInstance, algoIndex, 0, tpOrder, currentTime, lastPrice).Result;
+                Order order = MarketOrders.ModifyOrder(_algoInstance, algoIndex, 0, tpOrder, currentTime, currentmarketPrice: lastPrice);
 
                 OnTradeEntry(order);
                 return order;

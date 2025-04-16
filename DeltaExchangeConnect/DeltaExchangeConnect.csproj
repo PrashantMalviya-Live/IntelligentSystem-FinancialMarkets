@@ -1,0 +1,24 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <Configurations>Debug;Release;Market;BackTest;Local</Configurations>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="WebSocketClient.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.Net.WebSockets.Client" Version="4.3.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\DBAccess\DBAccess.csproj" />
+    <ProjectReference Include="..\GlobalLayer\GlobalLayer.csproj" />
+    <ProjectReference Include="..\ZMQFacade\ZMQFacade.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,160 @@
+﻿@page "/multiple-dropdowns"
+@inject MarketClient MClient
+
+@rendermode InteractiveServer
+
+@if (timeFrameOptions == null || indicatorOptions == null || mathoperatorOptions == null || logicaloperatorOptions == null)
+{
+    <text><em>Loading...</em></text>
+}
+else
+{
+    <div>
+        <LabelDropDown TItem="string" Items="timeFrameOptions" SelectedItem="@AlertCriterion.LHSTimeInMinutes" SelectedItemChanged="OnSelectedItemChanged1" />
+        <LabelDropDown TItem="string" Items="indicatorOptions" SelectedItem="@AlertCriterion.LHSIndicator" SelectedItemChanged="OnSelectedItemChanged2" />
+       @*  @for (int i = 0; i <  *@
+        @* <LabelDropDown TItem="string" Items="indicatorOptions" SelectedItem="@LHSIndicat" SelectedItemChanged="OnSelectedItemChanged2" /> *@
+        
+        is
+        <LabelDropDown TItem="string" Items="mathoperatorOptions" SelectedItem="@AlertCriterion.MathOperator" SelectedItemChanged="OnSelectedItemChanged3" />
+        <LabelDropDown TItem="string" Items="timeFrameOptions" SelectedItem="@AlertCriterion.RHSTimeInMinutes" SelectedItemChanged="OnSelectedItemChanged4" />
+        <LabelDropDown TItem="string" Items="indicatorOptions" SelectedItem="@AlertCriterion.RHSIndicator" SelectedItemChanged="OnSelectedItemChanged5" />
+
+        @if (@AlertCriterion.LogicalCriteria != "-1")
+        {
+            <br />
+            <LabelDropDown TItem="string" Items="logicaloperatorOptions" SelectedItem="@AlertCriterion.LogicalCriteria" SelectedItemChanged="OnSelectedItemChanged6" />
+        }
+    </div>
+}
+@code {
+    private string selectedOption1 = "select time";
+    private string selectedOption2 = "High";
+    private string selectedOption3 = "Greater than";
+    private string selectedOption4 = "2 min";
+    private string selectedOption5 = "low";
+    private string selectedOption6 = "AND";
+
+    // public static Dictionary<string, string> instrumentOptions = new Dictionary<string, string> { { "260105", "NIFTY" }, { "256265", "BANKNIFTY" }, { "223432", "TCS" } };
+    // public static Dictionary<string, string> timeFrameOptions = new Dictionary<string, string> { { "0", "1 min" }, { "1", "2 min" }, { "2", "3 min" } };
+    // public static Dictionary<string, string> indicatorOptions = new Dictionary<string, string> { { "0", "Open" }, { "1", "High" }, { "2", "EMA" }, { "3", "RSI" } };
+    // public static Dictionary<string, string> mathoperatorOptions = new Dictionary<string, string> { { "0", "Equals to" }, { "1", "Greater than" }, { "2", "Less than" } };
+    // public static Dictionary<string, string> logicaloperatorOptions = new Dictionary<string, string> { { "0", "AND" }, { "1", "OR" } };
+
+
+    [Parameter]
+    public EventCallback<AlertCriterion> SelectedItemChanged { get; set; }
+
+    [Parameter]
+    public required AlertCriterion AlertCriterion { get; set; }
+
+
+    [Parameter]
+    public bool EnableLogicalOperator { get; set; } = false;
+
+    public static string[] lhsIndicationProperties;
+    public static string[] rhsIndicationProperties;
+    public static Dictionary<string, string>? timeFrameOptions;
+    public static Dictionary<string, string>? indicatorOptions;
+    public static Dictionary<string, string>? mathoperatorOptions;
+    public static Dictionary<string, string>? logicaloperatorOptions;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var indicators = await MClient.GetIndicatorListAsync();
+        indicatorOptions = indicators.ToDictionary(x => x.Id.ToString(), x => x.Name);
+
+        var timeFrames = await MClient.GetCandleTimeFramesAsync();
+        timeFrameOptions = timeFrames.ToDictionary(x => x.Id.ToString(), x => x.Name);
+
+        mathoperatorOptions = MClient.GetMathOperatorOptions();
+        logicaloperatorOptions = MClient.GetLogicalOperatorOptions();
+    }
+
+    private Task OnSelectedItemChanged1(string newItem)
+    {
+        selectedOption1 = newItem;
+        AlertCriterion.LHSTimeInMinutes = newItem;
+
+        if (SelectedItemChanged.HasDelegate)
+        {
+            SelectedItemChanged.InvokeAsync(AlertCriterion).Wait();
+        }
+
+        return Task.CompletedTask;
+    }
+
+    private Task OnSelectedItemChanged20(string newItem)
+    {
+        selectedOption2 = newItem;
+
+        indicatorOptions
+        lhsIndicationProperties = AlertCriterion.LHSIndicator.Substring(AlertCriterion.LHSIndicator.IndexOf(";")).Split(";");
+
+        AlertCriterion.LHSIndicator = newItem;
+
+        if (SelectedItemChanged.HasDelegate)
+        {
+            SelectedItemChanged.InvokeAsync(AlertCriterion).Wait();
+        }
+        return Task.CompletedTask;
+    }
+
+    private Task OnSelectedItemChanged2(string newItem)
+    {
+        selectedOption2 = newItem;
+        AlertCriterion.LHSIndicator = newItem;
+
+        if (SelectedItemChanged.HasDelegate)
+        {
+            SelectedItemChanged.InvokeAsync(AlertCriterion).Wait();
+        }
+        return Task.CompletedTask;
+    }
+    private Task OnSelectedItemChanged3(string newItem)
+    {
+        selectedOption3 = newItem;
+        AlertCriterion.MathOperator = newItem;
+        if (SelectedItemChanged.HasDelegate)
+        {
+            //SelectedItemChanged.InvokeAsync(selectedOption3).Wait();
+            SelectedItemChanged.InvokeAsync(AlertCriterion).Wait();
+        }
+        return Task.CompletedTask;
+    }
+
+    private Task OnSelectedItemChanged4(string newItem)
+    {
+        selectedOption4 = newItem;
+        AlertCriterion.RHSTimeInMinutes = newItem;
+
+        if (SelectedItemChanged.HasDelegate)
+        {
+            SelectedItemChanged.InvokeAsync(AlertCriterion).Wait();
+        }
+        return Task.CompletedTask;
+    }
+    private Task OnSelectedItemChanged5(string newItem)
+    {
+        selectedOption5 = newItem;
+        AlertCriterion.RHSIndicator = newItem;
+
+        if (SelectedItemChanged.HasDelegate)
+        {
+            SelectedItemChanged.InvokeAsync(AlertCriterion).Wait();
+        }
+        return Task.CompletedTask;
+    }
+    private Task OnSelectedItemChanged6(string newItem)
+    {
+        selectedOption6 = newItem;
+        AlertCriterion.LogicalCriteria = newItem;
+
+        if (SelectedItemChanged.HasDelegate)
+        {
+            SelectedItemChanged.InvokeAsync(AlertCriterion).Wait();
+        }
+        return Task.CompletedTask;
+    }
+
+}

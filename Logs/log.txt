@@ -1,317 +1,167 @@
 
-11/8/2020 9:21:27 AM : User logged In
+4/4/2025 1:03:34 PM : Reconnecting Ticker
 
-11/8/2020 10:27:59 AM : User logged In
+4/4/2025 1:03:35 PM : Error: Lost ticker connection.
 
-11/8/2020 10:28:51 AM : User logged In
+4/4/2025 1:03:35 PM : Connected ticker
 
-11/8/2020 10:54:30 AM : Starting Market Data Service
+4/4/2025 3:30:49 PM : Reconnecting Ticker
 
-11/8/2020 10:54:30 AM : Market Data Service Started
+4/4/2025 3:31:07 PM : Error: Error while connecting. Message: Unable to connect to the remote server
 
-11/8/2020 10:59:49 AM : User logged In
+4/4/2025 3:31:07 PM : Error: Error while connecting. Message: No such host is known. (ws.kite.trade:443)
 
-11/8/2020 10:59:52 AM : User logged In
+4/4/2025 3:31:07 PM : Error: Error while connecting. Message: No such host is known.
 
-11/8/2020 11:05:39 AM : User logged In
+4/4/2025 3:31:07 PM : Error: Error while connecting. Message: Unable to connect to the remote server
 
-11/8/2020 11:05:53 AM : User logged In
+4/4/2025 3:31:07 PM : Error: Error while connecting. Message: No such host is known. (ws.kite.trade:443)
 
-11/8/2020 11:42:22 AM : Invalid column name 'BackLogs'.
+4/4/2025 3:31:07 PM : Error: Error while connecting. Message: No such host is known.
 
-11/8/2020 11:42:22 AM :    at System.Data.SqlClient.SqlConnection.OnError(SqlException exception, Boolean breakConnection, Action`1 wrapCloseInAction)
-   at System.Data.SqlClient.SqlInternalConnection.OnError(SqlException exception, Boolean breakConnection, Action`1 wrapCloseInAction)
-   at System.Data.SqlClient.TdsParser.ThrowExceptionAndWarning(TdsParserStateObject stateObj, Boolean callerHasConnectionLock, Boolean asyncClose)
-   at System.Data.SqlClient.TdsParser.TryRun(RunBehavior runBehavior, SqlCommand cmdHandler, SqlDataReader dataStream, BulkCopySimpleResultSet bulkCopyHandler, TdsParserStateObject stateObj, Boolean& dataReady)
-   at System.Data.SqlClient.SqlDataReader.TryConsumeMetaData()
-   at System.Data.SqlClient.SqlDataReader.get_MetaData()
-   at System.Data.SqlClient.SqlCommand.FinishExecuteReader(SqlDataReader ds, RunBehavior runBehavior, String resetOptionsString)
-   at System.Data.SqlClient.SqlCommand.RunExecuteReaderTds(CommandBehavior cmdBehavior, RunBehavior runBehavior, Boolean returnStream, Boolean async, Int32 timeout, Task& task, Boolean asyncWrite, SqlDataReader ds)
-   at System.Data.SqlClient.SqlCommand.RunExecuteReader(CommandBehavior cmdBehavior, RunBehavior runBehavior, Boolean returnStream, TaskCompletionSource`1 completion, Int32 timeout, Task& task, Boolean asyncWrite, String method)
-   at System.Data.SqlClient.SqlCommand.RunExecuteReader(CommandBehavior cmdBehavior, RunBehavior runBehavior, Boolean returnStream, String method)
-   at System.Data.SqlClient.SqlCommand.ExecuteScalar()
-   at DataAccess.MarketDAO.RetrieveLastPrice(UInt32 token, Nullable`1 time, Boolean buyOrder) in D:\Prashant\IntelligentSoftware\2020\DBAccess\DAOs.cs:line 964
-   at Algorithms.Utilities.DataLogic.RetrieveLastPrice(UInt32 token, Nullable`1 time, Boolean buyOrder) in D:\Prashant\IntelligentSoftware\2020\Algos\Utilities\DataLogic.cs:line 420
-   at Algorithms.Utilities.MarketOrders.PlaceOrder(Int32 algoInstance, String tradingSymbol, String instrumenttype, Decimal instrument_currentPrice, UInt32 instrument_Token, Boolean buyOrder, Int32 quantity, AlgoIndex algoIndex, Nullable`1 tickTime, String orderType, String Tag) in D:\Prashant\IntelligentSoftware\2020\Algos\Utilities\MarketOrders.cs:line 80
-   at Algos.TLogics.OptionSellOnRSICross.PlaceTrailingOrder(Instrument option, Instrument newInstrument, Decimal lastPrice, DateTime currentTime, OrderTrio orderTrio) in D:\Prashant\IntelligentSoftware\2020\Algos\Algorithms\Managed Strangle\OptionSellOnRSICross.cs:line 430
+4/4/2025 3:31:08 PM : Error: Lost ticker connection.
 
-11/8/2020 11:42:22 AM : Trading Stopped
+4/4/2025 3:31:30 PM : Reconnecting Ticker
 
-11/8/2020 12:38:40 PM : User logged In
+4/4/2025 3:31:30 PM : Error: Error while connecting. Message: Unable to connect to the remote server
 
-11/8/2020 5:55:24 PM : Starting Market Data Service
+4/4/2025 3:31:30 PM : Error: Error while connecting. Message: No such host is known. (ws.kite.trade:443)
 
-11/8/2020 5:55:24 PM : Market Data Service Started
+4/4/2025 3:31:30 PM : Error: Error while connecting. Message: No such host is known.
 
-11/8/2020 6:03:19 PM : User logged In
+4/5/2025 11:13:32 AM : Starting Crypto Data Service
 
-11/8/2020 6:04:58 PM : Nullable object must have a value.   at System.Nullable`1.get_Value()
-   at Algorithms.Algorithms.OptionBuyingWithRSI.MonitorCandles(Tick tick) in D:\Prashant\IntelligentSoftware\2020\Algos\Algorithms\Momentum\Volume Trend\OptionBuyingWithRSI.cs:line 316
+4/5/2025 11:16:15 AM : Starting Crypto Data Service
 
-11/8/2020 6:04:58 PM : Trading Stopped as algo encountered an error
+4/5/2025 11:28:17 AM : Starting Crypto Data Service
 
-11/8/2020 6:05:06 PM : Nullable object must have a value.   at System.Nullable`1.get_Value()
-   at Algorithms.Algorithms.OptionBuyingWithRSI.ActiveTradeIntraday(Tick tick) in D:\Prashant\IntelligentSoftware\2020\Algos\Algorithms\Momentum\Volume Trend\OptionBuyingWithRSI.cs:line 205
+4/5/2025 11:30:06 AM : Starting Crypto Data Service
 
-11/8/2020 6:05:06 PM : Trading Stopped as algo encountered an error
+4/5/2025 11:33:25 AM : Starting Crypto Data Service
 
-11/8/2020 6:05:44 PM : Nullable object must have a value.   at System.Nullable`1.get_Value()
-   at Algorithms.Algorithms.OptionBuyingWithRSI.MonitorCandles(Tick tick) in D:\Prashant\IntelligentSoftware\2020\Algos\Algorithms\Momentum\Volume Trend\OptionBuyingWithRSI.cs:line 316
+4/5/2025 11:37:30 AM : Starting Crypto Data Service
 
-11/8/2020 6:05:44 PM : Trading Stopped as algo encountered an error
+4/5/2025 1:12:40 PM : Starting Crypto Data Service
 
-11/8/2020 6:06:05 PM : Nullable object must have a value.   at System.Nullable`1.get_Value()
-   at Algorithms.Algorithms.OptionBuyingWithRSI.ActiveTradeIntraday(Tick tick) in D:\Prashant\IntelligentSoftware\2020\Algos\Algorithms\Momentum\Volume Trend\OptionBuyingWithRSI.cs:line 205
+4/5/2025 1:52:48 PM : Starting Market Data Service
 
-11/8/2020 6:06:05 PM : Trading Stopped as algo encountered an error
+4/5/2025 1:56:30 PM : Market Data Service Started
 
-11/9/2020 8:57:11 AM : User logged In
+4/5/2025 2:04:26 PM : Starting Market Data Service
 
-11/9/2020 8:58:40 AM : Starting Market Data Service
+4/5/2025 2:05:59 PM : Market Data Service Started
 
-11/9/2020 8:58:41 AM : User logged In
+4/5/2025 2:06:27 PM : Starting Market Data Service
 
-11/9/2020 8:58:42 AM : Connected ticker
+4/5/2025 2:06:30 PM : Market Data Service Started
 
-11/9/2020 8:58:42 AM : Market Data Service Started
+4/5/2025 2:07:40 PM : Starting Market Data Service
 
-11/9/2020 8:59:11 AM : User logged In
+4/5/2025 2:08:46 PM : Starting Market Data Service
 
-11/9/2020 9:00:33 AM : User logged In
+4/5/2025 2:14:44 PM : Starting Market Data Service
 
-11/9/2020 9:01:01 AM : User logged In
+4/5/2025 2:15:30 PM : Sequence contains no elements,    at System.Linq.ThrowHelper.ThrowNoElementsException()
+   at System.Linq.Enumerable.First[TSource](IEnumerable`1 source)
+   at Algorithms.Algorithms.OptionSellOnEMA.LoadOptionsToTrade(DateTime currentTime, Boolean forceReload) in D:\Prashant\IntelligentSoftware\2020\Algos\Algorithms\Managed Strangle\OptionSellOnEMA.cs:line 564
 
-11/9/2020 9:15:29 AM : Reconnecting Ticker
+4/5/2025 2:15:30 PM : Closing Application
 
-11/9/2020 9:15:29 AM : Error: Lost ticker connection.
+4/5/2025 2:15:58 PM : Sequence contains no elements,    at System.Linq.ThrowHelper.ThrowNoElementsException()
+   at System.Linq.Enumerable.First[TSource](IEnumerable`1 source)
+   at Algorithms.Algorithms.OptionSellOnEMA.LoadOptionsToTrade(DateTime currentTime, Boolean forceReload) in D:\Prashant\IntelligentSoftware\2020\Algos\Algorithms\Managed Strangle\OptionSellOnEMA.cs:line 564
 
-11/9/2020 9:15:30 AM : Connected ticker
+4/5/2025 2:15:58 PM : Closing Application
 
-11/9/2020 9:45:02 AM :    at System.Collections.Generic.Dictionary`2.get_Item(TKey key)
-   at Algorithms.Algorithms.OptionSellingWithRSI.TradeEntry(UInt32 token, DateTime currentTime, Decimal lastPrice) in D:\Prashant\IntelligentSoftware\2020\Algos\Algorithms\Managed Strangle\OptionSellingWithRSI.cs:line 659
+4/5/2025 2:16:29 PM : Sequence contains no elements,    at System.Linq.ThrowHelper.ThrowNoElementsException()
+   at System.Linq.Enumerable.First[TSource](IEnumerable`1 source)
+   at Algorithms.Algorithms.OptionSellOnEMA.LoadOptionsToTrade(DateTime currentTime, Boolean forceReload) in D:\Prashant\IntelligentSoftware\2020\Algos\Algorithms\Managed Strangle\OptionSellOnEMA.cs:line 564
 
-11/9/2020 9:45:02 AM : Closing Application
+4/5/2025 2:16:29 PM : Closing Application
 
-11/9/2020 9:50:24 AM : User logged In
+4/5/2025 2:17:17 PM : Sequence contains no elements,    at System.Linq.ThrowHelper.ThrowNoElementsException()
+   at System.Linq.Enumerable.First[TSource](IEnumerable`1 source)
+   at Algorithms.Algorithms.OptionSellOnEMA.LoadOptionsToTrade(DateTime currentTime, Boolean forceReload) in D:\Prashant\IntelligentSoftware\2020\Algos\Algorithms\Managed Strangle\OptionSellOnEMA.cs:line 564
 
-11/9/2020 9:53:00 AM : User logged In
+4/5/2025 2:17:17 PM : Closing Application
 
-11/9/2020 9:53:20 AM : User logged In
+4/5/2025 2:20:53 PM : Starting Market Data Service
 
-11/9/2020 10:15:01 AM :    at System.Collections.Generic.Dictionary`2.get_Item(TKey key)
-   at Algorithms.Algorithms.OptionSellingWithRSI.TradeEntry(UInt32 token, DateTime currentTime, Decimal lastPrice) in D:\Prashant\IntelligentSoftware\2020\Algos\Algorithms\Managed Strangle\OptionSellingWithRSI.cs:line 659
+4/5/2025 2:28:40 PM : Starting Market Data Service
 
-11/9/2020 10:15:01 AM : Closing Application
+4/5/2025 2:55:20 PM : Market Data Service Started
 
-11/9/2020 10:20:15 AM : User logged In
+4/5/2025 3:00:12 PM : Starting Market Data Service
 
-11/9/2020 10:20:36 AM : User logged In
+4/5/2025 3:21:57 PM : Starting Market Data Service
 
-11/9/2020 10:43:57 AM : User logged In
+4/5/2025 3:28:15 PM : Starting Market Data Service
 
-11/9/2020 11:48:42 AM : Reconnecting Ticker
+4/5/2025 3:45:46 PM : Starting Market Data Service
 
-11/9/2020 11:48:42 AM : Error: Lost ticker connection.
+4/5/2025 3:47:17 PM : Starting Market Data Service
 
-11/9/2020 11:48:48 AM : Reconnecting Ticker
+4/5/2025 4:39:33 PM : Starting Market Data Service
 
-11/9/2020 11:48:53 AM : Error: Error while connecting. Message: Unable to connect to the remote server
+4/5/2025 4:46:28 PM : Starting Market Data Service
 
-11/9/2020 11:48:53 AM : Error: Error while connecting. Message: No such host is known.
+4/5/2025 7:38:00 PM : Starting Market Data Service
 
-11/9/2020 11:48:53 AM : Error: Error while connecting. Message: No such host is known.
+4/5/2025 7:39:17 PM : Starting Crypto Data Service
 
-11/9/2020 11:48:53 AM : Error: Error while connecting. Message: No such host is known.
+4/5/2025 7:51:50 PM : Starting Crypto Data Service
 
-11/9/2020 11:49:14 AM : Reconnecting Ticker
+4/5/2025 7:56:53 PM : Market Crypto Service Started
 
-11/9/2020 11:49:14 AM : Error: Error while connecting. Message: Unable to connect to the remote server
+4/5/2025 7:57:38 PM : Starting Crypto Data Service
 
-11/9/2020 11:49:14 AM : Error: Error while connecting. Message: No such host is known.
+4/5/2025 7:57:45 PM : Market Crypto Service Started
 
-11/9/2020 11:49:14 AM : Error: Error while connecting. Message: No such host is known.
+4/5/2025 8:00:46 PM : Starting Crypto Data Service
 
-11/9/2020 11:49:55 AM : Reconnecting Ticker
+4/5/2025 8:00:52 PM : Market Crypto Service Started
 
-11/9/2020 11:49:55 AM : Error: Error while connecting. Message: Unable to connect to the remote server
+4/5/2025 8:01:46 PM : Starting Crypto Data Service
 
-11/9/2020 11:49:55 AM : Error: Error while connecting. Message: No such host is known.
+4/5/2025 8:01:52 PM : Market Crypto Service Started
 
-11/9/2020 11:49:55 AM : Error: Error while connecting. Message: No such host is known.
+4/5/2025 8:02:34 PM : Starting Crypto Data Service
 
-11/9/2020 11:50:56 AM : Reconnecting Ticker
+4/5/2025 8:02:40 PM : Market Crypto Service Started
 
-11/9/2020 11:50:57 AM : Connected ticker
+4/5/2025 8:02:58 PM : Starting Crypto Data Service
 
-11/9/2020 11:51:12 AM : Reconnecting Ticker
+4/5/2025 8:03:04 PM : Market Crypto Service Started
 
-11/9/2020 11:51:12 AM : Error: Lost ticker connection.
+4/5/2025 8:03:18 PM : Starting Crypto Data Service
 
-11/9/2020 11:51:13 AM : Connected ticker
+4/5/2025 8:03:25 PM : Market Crypto Service Started
 
-11/9/2020 11:53:26 AM : Reconnecting Ticker
+4/5/2025 8:03:50 PM : Starting Crypto Data Service
 
-11/9/2020 11:53:26 AM : Error: Lost ticker connection.
+4/5/2025 8:03:56 PM : Market Crypto Service Started
 
-11/9/2020 11:53:27 AM : Connected ticker
+4/5/2025 8:04:22 PM : Starting Crypto Data Service
 
-11/9/2020 11:56:50 AM : Reconnecting Ticker
+4/5/2025 8:04:31 PM : Market Crypto Service Started
 
-11/9/2020 11:56:50 AM : Error: Lost ticker connection.
+4/5/2025 8:06:04 PM : Starting Crypto Data Service
 
-11/9/2020 11:56:51 AM : Connected ticker
+4/5/2025 8:06:13 PM : Market Crypto Service Started
 
-11/9/2020 11:57:45 AM : Reconnecting Ticker
+4/5/2025 8:07:00 PM : Starting Crypto Data Service
 
-11/9/2020 11:57:45 AM : Error: Lost ticker connection.
+4/5/2025 8:07:06 PM : Market Crypto Service Started
 
-11/9/2020 11:57:46 AM : Connected ticker
+4/6/2025 10:55:11 AM : Starting Market Data Service
 
-11/9/2020 11:59:59 AM : Reconnecting Ticker
+4/6/2025 10:57:48 AM : Starting Market Data Service
 
-11/9/2020 11:59:59 AM : Error: Lost ticker connection.
+4/6/2025 11:03:06 AM : Starting Market Data Service
 
-11/9/2020 12:00:00 PM : Connected ticker
+4/6/2025 11:55:12 AM : Starting Market Data Service
 
-11/9/2020 12:01:08 PM : Reconnecting Ticker
-
-11/9/2020 12:01:08 PM : Error: Lost ticker connection.
-
-11/9/2020 12:01:09 PM : Connected ticker
-
-11/9/2020 12:02:49 PM : Reconnecting Ticker
-
-11/9/2020 12:02:49 PM : Error: Lost ticker connection.
-
-11/9/2020 12:02:50 PM : Connected ticker
-
-11/9/2020 12:25:33 PM : Reconnecting Ticker
-
-11/9/2020 12:25:33 PM : Error: Lost ticker connection.
-
-11/9/2020 12:25:39 PM : Reconnecting Ticker
-
-11/9/2020 12:25:39 PM : Error: Error while connecting. Message: Unable to connect to the remote server
-
-11/9/2020 12:25:39 PM : Error: Error while connecting. Message: No such host is known.
-
-11/9/2020 12:25:39 PM : Error: Error while connecting. Message: No such host is known.
-
-11/9/2020 12:25:45 PM : Error: Error while connecting. Message: Unable to connect to the remote server
-
-11/9/2020 12:25:45 PM : Error: Error while connecting. Message: No such host is known.
-
-11/9/2020 12:25:45 PM : Error: Error while connecting. Message: No such host is known.
-
-11/9/2020 12:26:05 PM : Reconnecting Ticker
-
-11/9/2020 12:26:06 PM : Connected ticker
-
-11/9/2020 12:26:11 PM : Reconnecting Ticker
-
-11/9/2020 12:26:11 PM : Error: Lost ticker connection.
-
-11/9/2020 12:26:11 PM : Error: Error while connecting. Message: Unable to connect to the remote server
-
-11/9/2020 12:26:11 PM : Error: Error while connecting. Message: No such host is known.
-
-11/9/2020 12:26:11 PM : Error: Error while connecting. Message: No such host is known.
-
-11/9/2020 12:26:22 PM : Reconnecting Ticker
-
-11/9/2020 12:26:23 PM : Connected ticker
-
-11/9/2020 1:35:09 PM : User logged In
-
-11/9/2020 1:35:36 PM : User logged In
-
-11/9/2020 1:36:25 PM : User logged In
-
-11/9/2020 1:39:14 PM : User logged In
-
-11/9/2020 1:41:03 PM : User logged In
-
-11/9/2020 1:42:19 PM : User logged In
-
-11/9/2020 1:43:20 PM : User logged In
-
-11/9/2020 1:50:41 PM : Reconnecting Ticker
-
-11/9/2020 1:50:41 PM : Error: Lost ticker connection.
-
-11/9/2020 1:50:42 PM : Connected ticker
-
-11/9/2020 2:07:53 PM : Reconnecting Ticker
-
-11/9/2020 2:07:53 PM : Error: Lost ticker connection.
-
-11/9/2020 2:07:59 PM : Reconnecting Ticker
-
-11/9/2020 2:08:05 PM : Error: Error while connecting. Message: Unable to connect to the remote server
-
-11/9/2020 2:08:05 PM : Error: Error while connecting. Message: No such host is known.
-
-11/9/2020 2:08:05 PM : Error: Error while connecting. Message: No such host is known.
-
-11/9/2020 2:08:05 PM : Error: Error while connecting. Message: No such host is known.
-
-11/9/2020 2:08:05 PM : Error: Error while connecting. Message: No such host is known.
-
-11/9/2020 2:08:25 PM : Reconnecting Ticker
-
-11/9/2020 2:08:26 PM : Error: Error while connecting. Message: Unable to connect to the remote server
-
-11/9/2020 2:08:26 PM : Error: Error while connecting. Message: No such host is known.
-
-11/9/2020 2:08:26 PM : Error: Error while connecting. Message: No such host is known.
-
-11/9/2020 2:09:06 PM : Reconnecting Ticker
-
-11/9/2020 2:09:07 PM : Error: Error while connecting. Message: Unable to connect to the remote server
-
-11/9/2020 2:09:07 PM : Error: Error while connecting. Message: No such host is known.
-
-11/9/2020 2:09:07 PM : Error: Error while connecting. Message: No such host is known.
-
-11/9/2020 2:10:08 PM : Reconnecting Ticker
-
-11/9/2020 2:10:08 PM : Error: Error while connecting. Message: Unable to connect to the remote server
-
-11/9/2020 2:10:08 PM : Error: Error while connecting. Message: No such host is known.
-
-11/9/2020 2:10:08 PM : Error: Error while connecting. Message: No such host is known.
-
-11/9/2020 2:11:09 PM : Reconnecting Ticker
-
-11/9/2020 2:11:09 PM : Connected ticker
-
-11/9/2020 2:23:31 PM : User logged In
-
-11/9/2020 2:23:43 PM : User logged In
-
-11/9/2020 2:24:52 PM : User logged In
-
-11/9/2020 3:31:37 PM : Reconnecting Ticker
-
-11/9/2020 3:31:37 PM : Error: Lost ticker connection.
-
-11/9/2020 3:31:39 PM : Connected ticker
-
-11/9/2020 5:57:04 PM : Starting Market Data Service
-
-11/9/2020 5:57:05 PM : Market Data Service Started
-
-11/9/2020 6:06:16 PM : User logged In
-
-11/9/2020 6:13:15 PM : User logged In
-
-11/9/2020 6:24:19 PM : User logged In
-
-11/9/2020 7:07:02 PM : User logged In
-
-11/9/2020 7:09:12 PM : User logged In
-
-11/9/2020 7:17:55 PM : Timeout expired.  The timeout period elapsed prior to completion of the operation or the server is not responding.   at System.Data.SqlClient.SqlConnection.OnError(SqlException exception, Boolean breakConnection, Action`1 wrapCloseInAction)
+4/6/2025 11:55:25 AM : Procedure or function 'GetCandleClosePrices' expects parameter '@BInstrument', which was not supplied.,    at System.Data.SqlClient.SqlConnection.OnError(SqlException exception, Boolean breakConnection, Action`1 wrapCloseInAction)
    at System.Data.SqlClient.SqlInternalConnection.OnError(SqlException exception, Boolean breakConnection, Action`1 wrapCloseInAction)
    at System.Data.SqlClient.TdsParser.ThrowExceptionAndWarning(TdsParserStateObject stateObj, Boolean callerHasConnectionLock, Boolean asyncClose)
    at System.Data.SqlClient.TdsParser.TryRun(RunBehavior runBehavior, SqlCommand cmdHandler, SqlDataReader dataStream, BulkCopySimpleResultSet bulkCopyHandler, TdsParserStateObject stateObj, Boolean& dataReady)
@@ -323,134 +173,259 @@
    at System.Data.SqlClient.SqlCommand.RunExecuteReader(CommandBehavior cmdBehavior, RunBehavior runBehavior, Boolean returnStream, String method)
    at System.Data.SqlClient.SqlCommand.ExecuteReader(CommandBehavior behavior)
    at System.Data.SqlClient.SqlCommand.ExecuteDbDataReader(CommandBehavior behavior)
-   at System.Data.Common.DbCommand.System.Data.IDbCommand.ExecuteReader(CommandBehavior behavior)
    at System.Data.Common.DbDataAdapter.FillInternal(DataSet dataset, DataTable[] datatables, Int32 startRecord, Int32 maxRecords, String srcTable, IDbCommand command, CommandBehavior behavior)
    at System.Data.Common.DbDataAdapter.Fill(DataSet dataSet, Int32 startRecord, Int32 maxRecords, String srcTable, IDbCommand command, CommandBehavior behavior)
    at System.Data.Common.DbDataAdapter.Fill(DataSet dataSet)
-   at DataAccess.MarketDAO.LoadCloseByOptions(Nullable`1 expiry, UInt32 baseInstrumentToken, Decimal baseInstrumentPrice) in D:\Prashant\IntelligentSoftware\2020\DBAccess\DAOs.cs:line 319
-   at Algorithms.Utilities.DataLogic.LoadCloseByOptions(Nullable`1 expiry, UInt32 baseInstrumentToken, Decimal baseInstrumentPrice) in D:\Prashant\IntelligentSoftware\2020\Algos\Utilities\DataLogic.cs:line 182
-   at Algorithms.Algorithms.OptionBuyingWithRSI.LoadOptionsToTrade(DateTime currentTime) in D:\Prashant\IntelligentSoftware\2020\Algos\Algorithms\Momentum\Volume Trend\OptionBuyingWithRSI.cs:line 838
+   at DataAccess.MarketDAO.GetHistoricalCandlePrices(Int32 numberofCandles, DateTime endDateTime, String tokenList, TimeSpan timeFrame, Boolean isBaseInstrument, CandleType candleType, UInt32 vThreshold) in D:\Prashant\IntelligentSoftware\2020\DBAccess\DAOs.cs:line 1301
+   at Algorithms.Utilities.DataLogic.GetHistoricalCandlePrices(Int32 candlesCount, DateTime lastCandleEndTime, String tokenList, TimeSpan _candleTimeSpan, Boolean isBaseInstrument, CandleType candleType, UInt32 vThreshold) in D:\Prashant\IntelligentSoftware\2020\Algos\Utilities\DataLogic.cs:line 1203
+   at Algorithms.Algorithms.OptionSellOnEMA.LoadHistoricalCandlesForHT(String tokenList, Int32 candlesCount, DateTime lastCandleEndTime, TimeSpan timeSpan) in D:\Prashant\IntelligentSoftware\2020\Algos\Algorithms\Managed Strangle\OptionSellOnEMA.cs:line 837
+   at Algorithms.Algorithms.OptionSellOnEMA.LoadHistoricalCandlesForHT(String tokenList, Int32 candlesCount, DateTime lastCandleEndTime) in D:\Prashant\IntelligentSoftware\2020\Algos\Algorithms\Managed Strangle\OptionSellOnEMA.cs:line 821
+   at Algorithms.Algorithms.OptionSellOnEMA.LoadHistoricalDataForIndicators(DateTime currentTime) in D:\Prashant\IntelligentSoftware\2020\Algos\Algorithms\Managed Strangle\OptionSellOnEMA.cs:line 760
 
-11/9/2020 7:17:55 PM : Closing Application
+4/6/2025 11:55:25 AM : Closing Application
 
-11/9/2020 10:30:57 PM : Issue with starting market data service
+4/6/2025 11:55:35 AM : Procedure or function 'GetCandleClosePrices' expects parameter '@BInstrument', which was not supplied.,    at System.Data.SqlClient.SqlConnection.OnError(SqlException exception, Boolean breakConnection, Action`1 wrapCloseInAction)
+   at System.Data.SqlClient.SqlInternalConnection.OnError(SqlException exception, Boolean breakConnection, Action`1 wrapCloseInAction)
+   at System.Data.SqlClient.TdsParser.ThrowExceptionAndWarning(TdsParserStateObject stateObj, Boolean callerHasConnectionLock, Boolean asyncClose)
+   at System.Data.SqlClient.TdsParser.TryRun(RunBehavior runBehavior, SqlCommand cmdHandler, SqlDataReader dataStream, BulkCopySimpleResultSet bulkCopyHandler, TdsParserStateObject stateObj, Boolean& dataReady)
+   at System.Data.SqlClient.SqlDataReader.TryConsumeMetaData()
+   at System.Data.SqlClient.SqlDataReader.get_MetaData()
+   at System.Data.SqlClient.SqlCommand.FinishExecuteReader(SqlDataReader ds, RunBehavior runBehavior, String resetOptionsString)
+   at System.Data.SqlClient.SqlCommand.RunExecuteReaderTds(CommandBehavior cmdBehavior, RunBehavior runBehavior, Boolean returnStream, Boolean async, Int32 timeout, Task& task, Boolean asyncWrite, SqlDataReader ds)
+   at System.Data.SqlClient.SqlCommand.RunExecuteReader(CommandBehavior cmdBehavior, RunBehavior runBehavior, Boolean returnStream, TaskCompletionSource`1 completion, Int32 timeout, Task& task, Boolean asyncWrite, String method)
+   at System.Data.SqlClient.SqlCommand.RunExecuteReader(CommandBehavior cmdBehavior, RunBehavior runBehavior, Boolean returnStream, String method)
+   at System.Data.SqlClient.SqlCommand.ExecuteReader(CommandBehavior behavior)
+   at System.Data.SqlClient.SqlCommand.ExecuteDbDataReader(CommandBehavior behavior)
+   at System.Data.Common.DbDataAdapter.FillInternal(DataSet dataset, DataTable[] datatables, Int32 startRecord, Int32 maxRecords, String srcTable, IDbCommand command, CommandBehavior behavior)
+   at System.Data.Common.DbDataAdapter.Fill(DataSet dataSet, Int32 startRecord, Int32 maxRecords, String srcTable, IDbCommand command, CommandBehavior behavior)
+   at System.Data.Common.DbDataAdapter.Fill(DataSet dataSet)
+   at DataAccess.MarketDAO.GetHistoricalCandlePrices(Int32 numberofCandles, DateTime endDateTime, String tokenList, TimeSpan timeFrame, Boolean isBaseInstrument, CandleType candleType, UInt32 vThreshold) in D:\Prashant\IntelligentSoftware\2020\DBAccess\DAOs.cs:line 1301
+   at Algorithms.Utilities.DataLogic.GetHistoricalCandlePrices(Int32 candlesCount, DateTime lastCandleEndTime, String tokenList, TimeSpan _candleTimeSpan, Boolean isBaseInstrument, CandleType candleType, UInt32 vThreshold) in D:\Prashant\IntelligentSoftware\2020\Algos\Utilities\DataLogic.cs:line 1203
+   at Algorithms.Algorithms.OptionSellOnEMA.LoadHistoricalCandlesForHT(String tokenList, Int32 candlesCount, DateTime lastCandleEndTime, TimeSpan timeSpan) in D:\Prashant\IntelligentSoftware\2020\Algos\Algorithms\Managed Strangle\OptionSellOnEMA.cs:line 837
+   at Algorithms.Algorithms.OptionSellOnEMA.LoadHistoricalCandlesForHT(String tokenList, Int32 candlesCount, DateTime lastCandleEndTime) in D:\Prashant\IntelligentSoftware\2020\Algos\Algorithms\Managed Strangle\OptionSellOnEMA.cs:line 821
+   at Algorithms.Algorithms.OptionSellOnEMA.LoadHistoricalDataForIndicators(DateTime currentTime) in D:\Prashant\IntelligentSoftware\2020\Algos\Algorithms\Managed Strangle\OptionSellOnEMA.cs:line 760
 
-11/9/2020 10:30:57 PM :    at System.ServiceProcess.ServiceController.GetServiceHandle(Int32 desiredAccess)
-   at System.ServiceProcess.ServiceController.Start(String[] args)
-   at System.ServiceProcess.ServiceController.Start()
-   at MarketView.Controllers.WSController.StartService(String serviceName, Int32 timeoutMilliseconds) in D:\Prashant\IntelligentSoftware\2020\Algo Services\MarketView\Controllers\WSController.cs:line 110
+4/6/2025 11:55:37 AM : Closing Application
 
-11/9/2020 10:32:36 PM : User logged In
+4/6/2025 11:58:33 AM : Starting Market Data Service
 
-11/9/2020 10:48:15 PM : User logged In
+4/6/2025 11:58:42 AM : The parameter data type of UInt32 is invalid.,    at System.Data.SqlClient.MetaType.GetMetaTypeFromValue(Type dataType, Object value, Boolean inferLen, Boolean streamAllowed)
+   at System.Data.SqlClient.MetaType.GetMetaTypeFromType(Type dataType)
+   at System.Data.SqlClient.SqlParameter.GetMetaTypeOnly()
+   at System.Data.SqlClient.SqlParameter.Validate(Int32 index, Boolean isCommandProc)
+   at System.Data.SqlClient.SqlCommand.SetUpRPCParameters(_SqlRPC rpc, Boolean inSchema, SqlParameterCollection parameters)
+   at System.Data.SqlClient.SqlCommand.BuildRPC(Boolean inSchema, SqlParameterCollection parameters, _SqlRPC& rpc)
+   at System.Data.SqlClient.SqlCommand.RunExecuteReaderTds(CommandBehavior cmdBehavior, RunBehavior runBehavior, Boolean returnStream, Boolean async, Int32 timeout, Task& task, Boolean asyncWrite, SqlDataReader ds)
+   at System.Data.SqlClient.SqlCommand.RunExecuteReader(CommandBehavior cmdBehavior, RunBehavior runBehavior, Boolean returnStream, TaskCompletionSource`1 completion, Int32 timeout, Task& task, Boolean asyncWrite, String method)
+   at System.Data.SqlClient.SqlCommand.RunExecuteReader(CommandBehavior cmdBehavior, RunBehavior runBehavior, Boolean returnStream, String method)
+   at System.Data.SqlClient.SqlCommand.ExecuteReader(CommandBehavior behavior)
+   at System.Data.SqlClient.SqlCommand.ExecuteDbDataReader(CommandBehavior behavior)
+   at System.Data.Common.DbDataAdapter.FillInternal(DataSet dataset, DataTable[] datatables, Int32 startRecord, Int32 maxRecords, String srcTable, IDbCommand command, CommandBehavior behavior)
+   at System.Data.Common.DbDataAdapter.Fill(DataSet dataSet, Int32 startRecord, Int32 maxRecords, String srcTable, IDbCommand command, CommandBehavior behavior)
+   at System.Data.Common.DbDataAdapter.Fill(DataSet dataSet)
+   at DataAccess.MarketDAO.GetHistoricalCandlePrices(Int32 numberofCandles, DateTime endDateTime, String tokenList, TimeSpan timeFrame, Boolean isBaseInstrument, CandleType candleType, UInt32 vThreshold, UInt32 bToken) in D:\Prashant\IntelligentSoftware\2020\DBAccess\DAOs.cs:line 1302
+   at Algorithms.Utilities.DataLogic.GetHistoricalCandlePrices(Int32 candlesCount, DateTime lastCandleEndTime, String tokenList, TimeSpan _candleTimeSpan, Boolean isBaseInstrument, CandleType candleType, UInt32 vThreshold, UInt32 bToken) in D:\Prashant\IntelligentSoftware\2020\Algos\Utilities\DataLogic.cs:line 1203
+   at Algorithms.Algorithms.OptionSellOnEMA.LoadHistoricalCandlesForHT(String tokenList, Int32 candlesCount, DateTime lastCandleEndTime, TimeSpan timeSpan) in D:\Prashant\IntelligentSoftware\2020\Algos\Algorithms\Managed Strangle\OptionSellOnEMA.cs:line 837
+   at Algorithms.Algorithms.OptionSellOnEMA.LoadHistoricalCandlesForHT(String tokenList, Int32 candlesCount, DateTime lastCandleEndTime) in D:\Prashant\IntelligentSoftware\2020\Algos\Algorithms\Managed Strangle\OptionSellOnEMA.cs:line 821
+   at Algorithms.Algorithms.OptionSellOnEMA.LoadHistoricalDataForIndicators(DateTime currentTime) in D:\Prashant\IntelligentSoftware\2020\Algos\Algorithms\Managed Strangle\OptionSellOnEMA.cs:line 760
 
-11/9/2020 10:56:42 PM : Starting Market Data Service
+4/6/2025 11:58:42 AM : Closing Application
 
-11/9/2020 10:56:42 PM : Market Data Service Started
+4/6/2025 12:00:09 PM : Starting Market Data Service
 
-11/9/2020 11:43:51 PM : User logged In
+4/6/2025 12:02:08 PM : Starting Market Data Service
 
-11/10/2020 12:35:22 AM : User logged In
+4/6/2025 12:09:57 PM : Starting Market Data Service
 
-11/10/2020 12:37:41 AM : Starting Market Data Service
+4/6/2025 12:11:34 PM : Starting Market Data Service
 
-11/10/2020 12:37:42 AM : Market Data Service Started
+4/6/2025 12:13:32 PM : Starting Market Data Service
 
-11/10/2020 12:40:11 AM : User logged In
+4/6/2025 12:14:45 PM : Starting Market Data Service
 
-11/10/2020 8:59:21 AM : User logged In
+4/6/2025 12:16:38 PM : Starting Market Data Service
 
-11/10/2020 8:59:48 AM : Starting Market Data Service
+4/6/2025 12:20:41 PM : Starting Market Data Service
 
-11/10/2020 8:59:48 AM : User logged In
+4/6/2025 12:23:17 PM : Starting Market Data Service
 
-11/10/2020 8:59:49 AM : Connected ticker
+4/6/2025 12:26:18 PM : Starting Market Data Service
 
-11/10/2020 8:59:50 AM : Market Data Service Started
+4/6/2025 12:27:58 PM : Starting Market Data Service
 
-11/10/2020 9:01:46 AM : User logged In
+4/6/2025 12:32:57 PM : Starting Market Data Service
 
-11/10/2020 9:02:08 AM : User logged In
+4/6/2025 12:41:14 PM : Starting Market Data Service
 
-11/10/2020 9:03:01 AM : User logged In
+4/6/2025 12:51:17 PM : Starting Market Data Service
 
-11/10/2020 9:05:23 AM : User logged In
+4/6/2025 1:01:01 PM : Starting Market Data Service
 
-11/10/2020 9:15:15 AM : One or more errors occurred. (Couldn't find that `order_id`.)   at System.Threading.Tasks.Task.ThrowIfExceptional(Boolean includeTaskCanceledExceptions)
-   at System.Threading.Tasks.Task`1.GetResultCore(Boolean waitCompletionNotification)
-   at Algorithms.Utilities.MarketOrders.PlaceOrder(Int32 algoInstance, String tradingSymbol, String instrumenttype, Decimal instrument_currentPrice, UInt32 instrument_Token, Boolean buyOrder, Int32 quantity, AlgoIndex algoIndex, Nullable`1 tickTime, String orderType, String Tag) in D:\Prashant\IntelligentSoftware\2020\Algos\Utilities\MarketOrders.cs:line 65
-   at Algorithms.Algorithms.OptionBuyingWithRSI.TradeEntry(UInt32 token, Decimal lastPrice, DateTime currentTime) in D:\Prashant\IntelligentSoftware\2020\Algos\Algorithms\Momentum\Volume Trend\OptionBuyingWithRSI.cs:line 653
+4/6/2025 1:43:22 PM : Starting Market Data Service
 
-11/10/2020 9:15:16 AM : Trading stopped
+4/6/2025 2:02:44 PM : Starting Market Data Service
 
-11/10/2020 9:39:36 AM : User logged In
+4/6/2025 2:35:06 PM : Starting Market Data Service
 
-11/10/2020 9:54:27 AM : One or more errors occurred. (The operation has timed out.)   at System.Threading.Tasks.Task.ThrowIfExceptional(Boolean includeTaskCanceledExceptions)
-   at System.Threading.Tasks.Task`1.GetResultCore(Boolean waitCompletionNotification)
-   at Algorithms.Utilities.MarketOrders.PlaceOrder(Int32 algoInstance, String tradingSymbol, String instrumenttype, Decimal instrument_currentPrice, UInt32 instrument_Token, Boolean buyOrder, Int32 quantity, AlgoIndex algoIndex, Nullable`1 tickTime, String orderType, String Tag) in D:\Prashant\IntelligentSoftware\2020\Algos\Utilities\MarketOrders.cs:line 65
-   at Algorithms.Algorithms.OptionBuyingWithRSI.TradeEntry(UInt32 token, Decimal lastPrice, DateTime currentTime) in D:\Prashant\IntelligentSoftware\2020\Algos\Algorithms\Momentum\Volume Trend\OptionBuyingWithRSI.cs:line 668
+4/6/2025 2:42:46 PM : Starting Market Data Service
 
-11/10/2020 9:54:27 AM : Trading stopped
+4/6/2025 3:23:43 PM : Starting Market Data Service
 
-11/10/2020 9:55:58 AM : User logged In
+4/6/2025 4:30:22 PM : Starting Market Data Service
 
-11/10/2020 10:11:05 AM : order did not execute properly. Waited for 10 minutes
+4/7/2025 8:28:01 AM : Message:Index was out of range. Must be non-negative and less than the size of the collection. (Parameter 'index') 
+ Trace:   at System.Collections.Generic.List`1.get_Item(Int32 index)
+   at NetMQ.Core.Patterns.Utils.ArrayExtensions.Swap[T](List`1 items, Int32 index1, Int32 index2)
+   at NetMQ.Core.Patterns.Utils.FairQueueing.RecvPipe(Msg& msg, Pipe& pipe)
+   at NetMQ.Core.Patterns.Utils.FairQueueing.Recv(Msg& msg)
+   at NetMQ.Core.Patterns.XSub.XRecv(Msg& msg)
+   at NetMQ.Core.SocketBase.TryRecv(Msg& msg, TimeSpan timeout, CancellationToken cancellationToken)
+   at NetMQ.NetMQSocket.TryReceive(Msg& msg, TimeSpan timeout)
+   at NetMQ.ReceivingSocketExtensions.Receive(IReceivingSocket socket, Msg& msg)
+   at NetMQ.ReceivingSocketExtensions.ReceiveMultipartMessage(IReceivingSocket socket, Int32 expectedFrameCount)
+   at ZMQFacade.ZMQClient.Subscribe(IZMQ algoObject) in D:\Prashant\IntelligentSoftware\2020\ZMQFacade\ZMQClient.cs:line 48
 
-11/10/2020 10:30:02 AM :    at System.Collections.Generic.Dictionary`2.get_Item(TKey key)
-   at Algos.TLogics.OptionSellOnRSICross.CandleManger_TimeCandleFinished(Object sender, Candle e) in D:\Prashant\IntelligentSoftware\2020\Algos\Algorithms\Managed Strangle\OptionSellOnRSICross.cs:line 932
+4/7/2025 8:32:55 AM : Starting Market Data Service
 
-11/10/2020 10:30:02 AM : Closing Application
+4/7/2025 8:32:58 AM : Connected ticker
 
-11/10/2020 12:30:17 PM : User logged In
+4/7/2025 9:09:30 AM : Starting Market Data Service
 
-11/10/2020 12:30:28 PM : User logged In
+4/7/2025 9:09:39 AM : Starting Market Data Service
 
-11/10/2020 12:31:27 PM : User logged In
+4/7/2025 9:09:59 AM : Starting Market Data Service
 
-11/10/2020 12:31:43 PM : User logged In
+4/7/2025 9:10:35 AM : Starting Market Data Service
 
-11/10/2020 12:32:18 PM : User logged In
+4/7/2025 9:11:38 AM : Starting Market Data Service
 
-11/10/2020 2:15:02 PM : The given key '12225794' was not present in the dictionary.,    at System.Collections.Generic.Dictionary`2.get_Item(TKey key)
-   at Algos.TLogics.OptionSellOnRSICross.CandleManger_TimeCandleFinished(Object sender, Candle e) in D:\Prashant\IntelligentSoftware\2020\Algos\Algorithms\Managed Strangle\OptionSellOnRSICross.cs:line 932
+4/7/2025 9:11:43 AM : Connected ticker
 
-11/10/2020 2:15:02 PM : Closing Application
+4/8/2025 8:35:32 AM : Starting Market Data Service
 
-11/10/2020 2:42:36 PM : Reconnecting Ticker
+4/8/2025 8:35:37 AM : Connected ticker
 
-11/10/2020 2:42:36 PM : Error: Lost ticker connection.
+4/8/2025 9:00:40 AM : Starting Market Data Service
 
-11/10/2020 2:42:36 PM : Connected ticker
+4/8/2025 9:00:59 AM : Starting Market Data Service
 
-11/10/2020 2:44:33 PM : User logged In
+4/8/2025 9:02:04 AM : Starting Market Data Service
 
-11/10/2020 2:44:37 PM : User logged In
+4/8/2025 9:02:59 AM : Starting Market Data Service
 
-11/10/2020 2:45:10 PM : User logged In
+4/8/2025 9:03:00 AM : Connected ticker
 
-11/10/2020 2:45:13 PM : User logged In
+4/9/2025 9:49:20 AM : Message:Index was out of range. Must be non-negative and less than the size of the collection. (Parameter 'index') 
+ Trace:   at System.Collections.Generic.List`1.get_Item(Int32 index)
+   at NetMQ.Core.Patterns.Utils.ArrayExtensions.Swap[T](List`1 items, Int32 index1, Int32 index2)
+   at NetMQ.Core.Patterns.Utils.FairQueueing.RecvPipe(Msg& msg, Pipe& pipe)
+   at NetMQ.Core.Patterns.Utils.FairQueueing.Recv(Msg& msg)
+   at NetMQ.Core.Patterns.XSub.XRecv(Msg& msg)
+   at NetMQ.Core.SocketBase.TryRecv(Msg& msg, TimeSpan timeout, CancellationToken cancellationToken)
+   at NetMQ.NetMQSocket.TryReceive(Msg& msg, TimeSpan timeout)
+   at NetMQ.ReceivingSocketExtensions.Receive(IReceivingSocket socket, Msg& msg)
+   at NetMQ.ReceivingSocketExtensions.ReceiveMultipartMessage(IReceivingSocket socket, Int32 expectedFrameCount)
+   at ZMQFacade.ZMQClient.Subscribe(IZMQ algoObject) in D:\Prashant\IntelligentSoftware\2020\ZMQFacade\ZMQClient.cs:line 48
 
-11/10/2020 2:45:27 PM : Reconnecting Ticker
+4/9/2025 9:49:35 AM : Starting Market Data Service
 
-11/10/2020 2:45:27 PM : Error: Lost ticker connection.
+4/9/2025 9:49:43 AM : Connected ticker
 
-11/10/2020 2:45:27 PM : Connected ticker
+4/9/2025 9:49:45 AM : Message:Index was out of range. Must be non-negative and less than the size of the collection. (Parameter 'index') 
+ Trace:   at System.Collections.Generic.List`1.get_Item(Int32 index)
+   at NetMQ.Core.Patterns.Utils.ArrayExtensions.Swap[T](List`1 items, Int32 index1, Int32 index2)
+   at NetMQ.Core.Patterns.Utils.FairQueueing.Activated(Pipe pipe)
+   at NetMQ.Core.Patterns.XSub.XReadActivated(Pipe pipe)
+   at NetMQ.Core.SocketBase.ReadActivated(Pipe pipe)
+   at NetMQ.Core.Pipe.ProcessActivateRead()
+   at NetMQ.Core.ZObject.ProcessCommand(Command cmd)
+   at NetMQ.Core.SocketBase.ProcessCommands(Int32 timeout, Boolean throttle, CancellationToken cancellationToken)
+   at NetMQ.Core.SocketBase.TryRecv(Msg& msg, TimeSpan timeout, CancellationToken cancellationToken)
+   at NetMQ.NetMQSocket.TryReceive(Msg& msg, TimeSpan timeout)
+   at NetMQ.ReceivingSocketExtensions.Receive(IReceivingSocket socket, Msg& msg)
+   at NetMQ.ReceivingSocketExtensions.ReceiveMultipartMessage(IReceivingSocket socket, Int32 expectedFrameCount)
+   at ZMQFacade.ZMQClient.Subscribe(IZMQ algoObject) in D:\Prashant\IntelligentSoftware\2020\ZMQFacade\ZMQClient.cs:line 48
 
-11/10/2020 2:45:31 PM : Order Rejected
+4/11/2025 8:59:19 AM : Message:Index was out of range. Must be non-negative and less than the size of the collection. (Parameter 'index') 
+ Trace:   at System.Collections.Generic.List`1.get_Item(Int32 index)
+   at NetMQ.Core.Patterns.Utils.ArrayExtensions.Swap[T](List`1 items, Int32 index1, Int32 index2)
+   at NetMQ.Core.Patterns.Utils.FairQueueing.RecvPipe(Msg& msg, Pipe& pipe)
+   at NetMQ.Core.Patterns.Utils.FairQueueing.Recv(Msg& msg)
+   at NetMQ.Core.Patterns.XSub.XRecv(Msg& msg)
+   at NetMQ.Core.SocketBase.TryRecv(Msg& msg, TimeSpan timeout, CancellationToken cancellationToken)
+   at NetMQ.NetMQSocket.TryReceive(Msg& msg, TimeSpan timeout)
+   at NetMQ.ReceivingSocketExtensions.Receive(IReceivingSocket socket, Msg& msg)
+   at NetMQ.ReceivingSocketExtensions.ReceiveMultipartMessage(IReceivingSocket socket, Int32 expectedFrameCount)
+   at ZMQFacade.ZMQClient.Subscribe(IZMQ algoObject) in D:\Prashant\IntelligentSoftware\2020\ZMQFacade\ZMQClient.cs:line 48
 
-11/10/2020 2:53:14 PM : User logged In
+4/11/2025 9:05:55 AM : Starting Market Data Service
 
-11/10/2020 2:53:23 PM : User logged In
+4/11/2025 9:05:59 AM : Connected ticker
 
-11/10/2020 2:53:50 PM : User logged In
+4/11/2025 11:13:01 AM : The type initializer for 'Newtonsoft.Json.JsonWriter' threw an exception.,    at Newtonsoft.Json.JsonWriter..ctor()
+   at Newtonsoft.Json.JsonTextWriter..ctor(TextWriter textWriter)
+   at Newtonsoft.Json.JsonConvert.SerializeObjectInternal(Object value, Type type, JsonSerializer jsonSerializer)
+   at Newtonsoft.Json.JsonConvert.SerializeObject(Object value, Type type, JsonSerializerSettings settings)
+   at Newtonsoft.Json.JsonConvert.SerializeObject(Object value)
+   at Algorithms.Utilities.DataLogic.UpdateOrderTrio(OrderTrio orderTrio, Int32 algoInstance)
+   at Algorithms.Algorithms.OptionSellOnEMA.TrailStopLoss(Instrument option, Decimal lastPrice, DateTime currentTime)
+   at Algorithms.Algorithms.OptionSellOnEMA.ActiveTradeIntraday(Tick tick)
 
-11/10/2020 2:53:55 PM : User logged In
+4/11/2025 11:13:01 AM : Trading Stopped as algo encountered an error
 
-11/10/2020 2:54:36 PM : User logged In
+4/11/2025 11:23:54 AM : The type initializer for 'Newtonsoft.Json.JsonWriter' threw an exception.,    at Newtonsoft.Json.JsonWriter..ctor()
+   at Newtonsoft.Json.JsonTextWriter..ctor(TextWriter textWriter)
+   at Newtonsoft.Json.JsonConvert.SerializeObjectInternal(Object value, Type type, JsonSerializer jsonSerializer)
+   at Newtonsoft.Json.JsonConvert.SerializeObject(Object value, Type type, JsonSerializerSettings settings)
+   at Newtonsoft.Json.JsonConvert.SerializeObject(Object value)
+   at Algorithms.Utilities.DataLogic.UpdateOrderTrio(OrderTrio orderTrio, Int32 algoInstance)
+   at Algorithms.Algorithms.OptionSellOnEMA.TrailStopLoss(Instrument option, Decimal lastPrice, DateTime currentTime)
+   at Algorithms.Algorithms.OptionSellOnEMA.ActiveTradeIntraday(Tick tick)
 
-11/10/2020 3:03:52 PM : One or more errors occurred. (The operation has timed out.)   at System.Threading.Tasks.Task.ThrowIfExceptional(Boolean includeTaskCanceledExceptions)
-   at System.Threading.Tasks.Task`1.GetResultCore(Boolean waitCompletionNotification)
-   at Algorithms.Utilities.MarketOrders.PlaceOrder(Int32 algoInstance, String tradingSymbol, String instrumenttype, Decimal instrument_currentPrice, UInt32 instrument_Token, Boolean buyOrder, Int32 quantity, AlgoIndex algoIndex, Nullable`1 tickTime, String orderType, String Tag) in D:\Prashant\IntelligentSoftware\2020\Algos\Utilities\MarketOrders.cs:line 65
-   at Algorithms.Algorithms.OptionBuyingWithRSI.TradeEntry(UInt32 token, Decimal lastPrice, DateTime currentTime) in D:\Prashant\IntelligentSoftware\2020\Algos\Algorithms\Momentum\Volume Trend\OptionBuyingWithRSI.cs:line 670
+4/11/2025 11:23:54 AM : Trading Stopped as algo encountered an error
 
-11/10/2020 3:03:52 PM : Trading stopped
+4/11/2025 11:25:08 AM : The type initializer for 'Newtonsoft.Json.JsonWriter' threw an exception.,    at Newtonsoft.Json.JsonWriter..ctor()
+   at Newtonsoft.Json.JsonTextWriter..ctor(TextWriter textWriter)
+   at Newtonsoft.Json.JsonConvert.SerializeObjectInternal(Object value, Type type, JsonSerializer jsonSerializer)
+   at Newtonsoft.Json.JsonConvert.SerializeObject(Object value, Type type, JsonSerializerSettings settings)
+   at Newtonsoft.Json.JsonConvert.SerializeObject(Object value)
+   at Algorithms.Utilities.DataLogic.UpdateOrderTrio(OrderTrio orderTrio, Int32 algoInstance)
+   at Algorithms.Algorithms.OptionSellOnEMA.TrailStopLoss(Instrument option, Decimal lastPrice, DateTime currentTime)
+   at Algorithms.Algorithms.OptionSellOnEMA.ActiveTradeIntraday(Tick tick)
+
+4/11/2025 11:25:08 AM : Trading Stopped as algo encountered an error
+
+4/11/2025 11:28:22 AM : Object synchronization method was called from an unsynchronized block of code.,    at System.Threading.Monitor.Exit(Object obj)
+   at Algorithms.Algorithms.OptionSellOnEMA.ActiveTradeIntraday(Tick tick)
+
+4/11/2025 11:28:22 AM : Trading Stopped as algo encountered an error
+
+4/11/2025 1:14:18 PM : Reconnecting Ticker
+
+4/11/2025 1:14:19 PM : Error: Lost ticker connection.
+
+4/11/2025 1:14:19 PM : Connected ticker
+
+4/11/2025 1:22:40 PM : Reconnecting Ticker
+
+4/11/2025 1:22:40 PM : Error: Lost ticker connection.
+
+4/11/2025 1:22:41 PM : Connected ticker
+
+4/11/2025 3:44:22 PM : Reconnecting Ticker
+
+4/11/2025 3:44:23 PM : Error: Lost ticker connection.
+
+4/11/2025 3:44:23 PM : Error: Error while connecting. Message: Unable to connect to the remote server
+
+4/11/2025 3:44:23 PM : Error: Error while connecting. Message: No such host is known. (ws.kite.trade:443)
+
+4/11/2025 3:44:23 PM : Error: Error while connecting. Message: No such host is known.
+
+4/11/2025 3:44:34 PM : Reconnecting Ticker
+
+4/11/2025 3:44:34 PM : Error: Error while connecting. Message: Unable to connect to the remote server
+
+4/11/2025 3:44:34 PM : Error: Error while connecting. Message: No such host is known. (ws.kite.trade:443)
+
+4/11/2025 3:44:34 PM : Error: Error while connecting. Message: No such host is known.

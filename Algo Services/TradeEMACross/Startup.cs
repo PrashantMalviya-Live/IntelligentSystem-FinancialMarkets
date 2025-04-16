@@ -10,7 +10,15 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Polly.Extensions.Http;
 using GrpcLoggerService;
+using Polly.Timeout;
+using Polly;
+using System.Net.Http;
+using TradeEMACross.Controllers;
+using System.Net.Http.Headers;
+using BrokerConnectWrapper;
+
 namespace TradeEMACross
 {
     public class Startup
@@ -35,11 +43,50 @@ namespace TradeEMACross
             //    .AllowCredentials());
             //});
 
+            var retryPolicy = HttpPolicyExtensions
+                .HandleTransientHttpError()
+                .Or<TimeoutRejectedException>() // thrown by Polly's TimeoutPolicy if the inner execution times out
+                .WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromMilliseconds(600));
+            //.RetryAsync(3);
+
+            var timeoutPolicy = Policy.TimeoutAsync<HttpResponseMessage>(10);
+
             services.AddControllers();
             services.AddMemoryCache();
 
             services.AddSingleton<ILoggerService, LoggerService>();
             services.AddSingleton<IOrderService, OrderService>();
+
+            services.AddHttpClient("KotakPostOrder", httpClient =>
+            {
+            }).AddPolicyHandler(retryPolicy)  .AddPolicyHandler(timeoutPolicy)  .SetHandlerLifetime(TimeSpan.FromMinutes(5));
+
+            //services.AddHttpClient("KotakPostOrder", httpClient =>
+            //{
+
+            //    httpClient.BaseAddress = new Uri("https://tradeapi.kotaksecurities.com/apim/orders/1.0/order/mis");
+            //    httpClient.DefaultRequestHeaders.Add("accept", "application/json");
+            //    httpClient.DefaultRequestHeaders.Add("consumerKey", ZObjects.kotak.ConsumerKey);
+            //    httpClient.DefaultRequestHeaders.Add("Authorization", "Bearer " + ZObjects.kotak.KotakAccessToken);
+            //    httpClient.DefaultRequestHeaders.Add("sessionToken", ZObjects.kotak.UserSessionToken);
+            //    httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+            //}).AddPolicyHandler(retryPolicy)
+            //  .AddPolicyHandler(timeoutPolicy)
+            //  .SetHandlerLifetime(TimeSpan.FromMinutes(5));
+
+            //services.AddHttpClient("KotakGetOrder", httpClient =>
+            //{
+            //    httpClient.BaseAddress = new Uri("https://tradeapi.kotaksecurities.com/apim/orders/");
+            //    httpClient.DefaultRequestHeaders.Add("accept", "application/json");
+            //    httpClient.DefaultRequestHeaders.Add("consumerKey", ZObjects.kotak.ConsumerKey);
+            //    httpClient.DefaultRequestHeaders.Add("Authorization", "Bearer " + ZObjects.kotak.KotakAccessToken);
+            //    httpClient.DefaultRequestHeaders.Add("sessionToken", ZObjects.kotak.UserSessionToken);
+            //    httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+
+            //}).AddPolicyHandler(retryPolicy)
+            //.AddPolicyHandler(timeoutPolicy)
+            //.SetHandlerLifetime(TimeSpan.FromMinutes(5));
+
 
         }
 

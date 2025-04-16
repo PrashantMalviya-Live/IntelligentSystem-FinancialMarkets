@@ -10,7 +10,7 @@ using System.Configuration;
 using DataAccess;
 using System.Data;
 
-namespace ZConnectWrapper
+namespace BrokerConnectWrapper
 {
     public class ZConnect
     {
@@ -42,7 +42,9 @@ namespace ZConnectWrapper
             try
             {
                 ZObjects.kite.SetAccessToken(user.AccessToken);
+#if Market
                 Logger.LogWrite("User logged In");
+#endif
                 return true;
             }
             catch (Exception e)

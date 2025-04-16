@@ -1,12 +1,13 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
-    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <TargetFramework>net6.0</TargetFramework>
     <RuntimeIdentifier>win7-x64</RuntimeIdentifier>
     <UserSecretsId>56d36f56-adec-48be-a078-828ab2ef690a</UserSecretsId>
     <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
     <DockerfileContext>..\..</DockerfileContext>
-    <Configurations>Debug;Release;Local;Market</Configurations>
+	  <ValidateExecutableReferencesMatchSelfContained>false</ValidateExecutableReferencesMatchSelfContained>
+    <Configurations>Debug;Release;Local;Market;BackTest</Configurations>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Market|AnyCPU'">
@@ -17,26 +18,33 @@
     <DefineConstants>DEBUG;TRACE;local</DefineConstants>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='BackTest|AnyCPU'">
+    <DefineConstants>DEBUG;TRACE;local</DefineConstants>
+  </PropertyGroup>
+
   <ItemGroup>
+    <Compile Remove="Controllers\DeltaController.cs" />
     <Compile Remove="Controllers\RSICrossController_moved.cs" />
     <Compile Remove="Controllers\RSIStrangleController.cs" />
+    <Compile Remove="Controllers\StrangleWithLevelsController.cs" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="CsvTextFieldParser" Version="1.2.1" />
-    <PackageReference Include="Microsoft.AspNetCore.Hosting.WindowsServices" Version="3.1.5" />
+    <PackageReference Include="Google.Protobuf" Version="3.25.2" />
+    <PackageReference Include="Microsoft.AspNetCore.Hosting.WindowsServices" Version="3.1.9" />
     <PackageReference Include="Microsoft.Extensions.Configuration" Version="3.1.8" />
     <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.10.8" />
     <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="3.1.2" />
-    <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
-    <PackageReference Include="System.Configuration.ConfigurationManager" Version="4.7.0" />
-    <PackageReference Include="System.Data.SqlClient" Version="4.8.2" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="System.Data.SqlClient" Version="4.8.6" />
     <PackageReference Include="System.Text.Json" Version="4.7.2" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\Algos\Algos.csproj" />
     <ProjectReference Include="..\..\GlobalLayer\GlobalLayer.csproj" />
+    <ProjectReference Include="..\..\GrpcLoggerService\GrpcLoggerService.csproj" />
   </ItemGroup>
 
 

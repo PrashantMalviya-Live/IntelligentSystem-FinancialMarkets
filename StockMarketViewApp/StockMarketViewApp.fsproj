@@ -1,0 +1,81 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <Configurations>Debug;Release;Market;BackTest</Configurations>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="Program.fs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="stockmarketview\smapp\src\alert.mp3" />
+    <Content Include="stockmarketview\smapp\src\app\app.component.html" />
+    <Content Include="stockmarketview\smapp\src\app\login\login.component.html" />
+    <Content Include="stockmarketview\smapp\src\app\trade\error.component.html" />
+    <Content Include="stockmarketview\smapp\src\app\trade\trade.component.html" />
+    <Content Include="stockmarketview\smapp\src\assets\alert.mp3" />
+    <Content Include="stockmarketview\smapp\src\assets\order.mp3" />
+    <Content Include="stockmarketview\smapp\src\assets\stop.mp3" />
+    <Content Include="stockmarketview\smapp\src\favicon.ico" />
+    <Content Include="stockmarketview\smapp\src\index.html" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="stockmarketview\smapp\src\app\app.component.scss" />
+    <None Include="stockmarketview\smapp\src\app\generated\greet_pb.js" />
+    <None Include="stockmarketview\smapp\src\app\generated\greet_pb_service.js" />
+    <None Include="stockmarketview\smapp\src\app\generated\log_pb.js" />
+    <None Include="stockmarketview\smapp\src\app\generated\log_pb_service.js" />
+    <None Include="stockmarketview\smapp\src\app\generated\order_pb.js" />
+    <None Include="stockmarketview\smapp\src\app\generated\order_pb_service.js" />
+    <None Include="stockmarketview\smapp\src\app\login\login.component.scss" />
+    <None Include="stockmarketview\smapp\src\app\protos\greet.proto" />
+    <None Include="stockmarketview\smapp\src\app\protos\log.proto" />
+    <None Include="stockmarketview\smapp\src\app\protos\order.proto" />
+    <None Include="stockmarketview\smapp\src\app\trade\trade.component.scss" />
+    <None Include="stockmarketview\smapp\src\assets\.gitkeep" />
+    <None Include="stockmarketview\smapp\src\styles.scss" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Google.Protobuf" Version="3.25.2" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="System.Data.SqlClient" Version="4.8.6" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <TypeScriptCompile Include="stockmarketview\smapp\src\app\app-routing.module.ts" />
+    <TypeScriptCompile Include="stockmarketview\smapp\src\app\app.component.spec.ts" />
+    <TypeScriptCompile Include="stockmarketview\smapp\src\app\app.component.ts" />
+    <TypeScriptCompile Include="stockmarketview\smapp\src\app\app.module.ts" />
+    <TypeScriptCompile Include="stockmarketview\smapp\src\app\auth\auth.service.ts" />
+    <TypeScriptCompile Include="stockmarketview\smapp\src\app\data.service.ts" />
+    <TypeScriptCompile Include="stockmarketview\smapp\src\app\data\baseUrl.ts" />
+    <TypeScriptCompile Include="stockmarketview\smapp\src\app\data\cdata.ts" />
+    <TypeScriptCompile Include="stockmarketview\smapp\src\app\data\constants.ts" />
+    <TypeScriptCompile Include="stockmarketview\smapp\src\app\data\expiry.ts" />
+    <TypeScriptCompile Include="stockmarketview\smapp\src\app\data\health.ts" />
+    <TypeScriptCompile Include="stockmarketview\smapp\src\app\data\instrument.ts" />
+    <TypeScriptCompile Include="stockmarketview\smapp\src\app\data\logdata.ts" />
+    <TypeScriptCompile Include="stockmarketview\smapp\src\app\data\options.ts" />
+    <TypeScriptCompile Include="stockmarketview\smapp\src\app\data\order.ts" />
+    <TypeScriptCompile Include="stockmarketview\smapp\src\app\generated\greet_pb.d.ts" />
+    <TypeScriptCompile Include="stockmarketview\smapp\src\app\generated\greet_pb_service.d.ts" />
+    <TypeScriptCompile Include="stockmarketview\smapp\src\app\generated\log_pb.d.ts" />
+    <TypeScriptCompile Include="stockmarketview\smapp\src\app\generated\log_pb_service.d.ts" />
+    <TypeScriptCompile Include="stockmarketview\smapp\src\app\generated\order_pb.d.ts" />
+    <TypeScriptCompile Include="stockmarketview\smapp\src\app\generated\order_pb_service.d.ts" />
+    <TypeScriptCompile Include="stockmarketview\smapp\src\app\login\login.component.spec.ts" />
+    <TypeScriptCompile Include="stockmarketview\smapp\src\app\login\login.component.ts" />
+    <TypeScriptCompile Include="stockmarketview\smapp\src\app\material-module.ts" />
+    <TypeScriptCompile Include="stockmarketview\smapp\src\app\trade\error.component.ts" />
+    <TypeScriptCompile Include="stockmarketview\smapp\src\app\trade\TimeToString.Pipe.ts" />
+    <TypeScriptCompile Include="stockmarketview\smapp\src\app\trade\trade.component.spec.ts" />
+    <TypeScriptCompile Include="stockmarketview\smapp\src\app\trade\trade.component.ts" />
+    <TypeScriptCompile Include="stockmarketview\smapp\src\app\trade\trade.service.ts" />
+    <TypeScriptCompile Include="stockmarketview\smapp\src\main.ts" />
+  </ItemGroup>
+
+</Project>

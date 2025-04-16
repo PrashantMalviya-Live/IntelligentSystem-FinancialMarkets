@@ -177,7 +177,7 @@ namespace Algos.TLogics
             #endregion
         }
 
-        public virtual async Task<bool> OnNext(Tick[] ticks)
+        public virtual void OnNext(Tick tick)
         {
             //_instrumentToken = 256265;
             //var fema; var sema;
@@ -196,10 +196,10 @@ namespace Algos.TLogics
             //    return false;
             //}
 
-            if (ticks[0].InstrumentToken == _instrumentToken)
+            if (tick.InstrumentToken == _instrumentToken)
             {
 
-                TypeCandles[(int)CandleType.Time].AddRange(candleManger.StreamingTimeFrameCandle(ticks[0], _instrumentToken, timeFrame, true)); // TODO: USING LOCAL VERSION RIGHT NOW
+                TypeCandles[(int)CandleType.Time].AddRange(candleManger.StreamingTimeFrameCandle(tick, _instrumentToken, timeFrame, true)); // TODO: USING LOCAL VERSION RIGHT NOW
                 //TypeCandles[(int)CandleType.Volume] = candleManger.StreamingVolumeCandle(validTicks.ToArray(), _instrumentToken, 10000); // TODO: USING LOCAL VERSION RIGHT NOW
                 //TypeCandles[(int)CandleType.Money] = candleManger.StreamingMoneyCandle(validTicks.ToArray(), _instrumentToken, 32000000); // TODO: USING LOCAL VERSION RIGHT NOW
 
@@ -213,7 +213,7 @@ namespace Algos.TLogics
                 //var msema = mema2.Process(TypeCandles[(int)CandleType.Money].Last().ClosePrice, isFinal: false);
 
 
-                TradeExisting(ticks[0]);
+                TradeExisting(tick);
             }
 
             //if (ftema.IsFormed)// && stema.IsFormed)
@@ -229,7 +229,7 @@ namespace Algos.TLogics
             //    memaFormed = true;
             //}
 
-            return true;
+            return ;
         }
 
 
@@ -455,7 +455,10 @@ namespace Algos.TLogics
 
             return trade;
         }
-
+        public void StopTrade(bool stop)
+        {
+            //_stopTrade = stop;
+        }
         private void UpdateTradeDetails(int strategyID, uint instrumentToken, int tradedLot, ShortTrade trade, int triggerID)
         {
             DataLogic dl = new DataLogic();

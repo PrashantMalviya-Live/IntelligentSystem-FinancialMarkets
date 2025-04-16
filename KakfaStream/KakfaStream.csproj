@@ -1,0 +1,66 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{A18B4026-AC10-4B96-9C41-93CFB98D521A}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>KakfaStream</RootNamespace>
+    <AssemblyName>KakfaStream</AssemblyName>
+    <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <Deterministic>true</Deterministic>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Net.Http" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Producer.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\confluent-kafka-dotnet-master\src\ConfigGen\ConfigGen.csproj">
+      <Project>{216ef484-11fd-4aee-9779-281cfa92859b}</Project>
+      <Name>ConfigGen</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\confluent-kafka-dotnet-master\src\Confluent.Kafka\Confluent.Kafka.csproj">
+      <Project>{f639e1af-2e8c-49d8-9dcb-ad7ee1ef6057}</Project>
+      <Name>Confluent.Kafka</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\confluent-kafka-dotnet-master\src\Confluent.SchemaRegistry.Serdes\Confluent.SchemaRegistry.Serdes.csproj">
+      <Project>{84223671-6ebc-4a95-990d-fe66ceffb9d1}</Project>
+      <Name>Confluent.SchemaRegistry.Serdes</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\confluent-kafka-dotnet-master\src\Confluent.SchemaRegistry\Confluent.SchemaRegistry.csproj">
+      <Project>{e8e47e0f-9ac2-4794-a7e1-0cbae9435a41}</Project>
+      <Name>Confluent.SchemaRegistry</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+</Project>

@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using Algorithms.Utilities;
 using GlobalLayer;
 using KiteConnect;
-using ZConnectWrapper;
+using BrokerConnectWrapper;
 //using Pub_Sub;
 //using MarketDataTest;
 using System.Data;
@@ -26,254 +26,254 @@ namespace Algos.TLogics
 
         private void ReviewStrangle(StrangleNode strangleNode, Tick[] ticks)
         {
-            Instrument callOption = strangleNode.Call;
-            Instrument putOption = strangleNode.Put;
+            //Instrument callOption = strangleNode.Call;
+            //Instrument putOption = strangleNode.Put;
 
-            Tick optionTick = ticks.FirstOrDefault(x => x.InstrumentToken == callOption.InstrumentToken);
-            if (optionTick.LastPrice != 0)
-            {
-                callOption.LastPrice = optionTick.LastPrice;
-                callOption.Bids = optionTick.Bids;
-                callOption.Offers = optionTick.Offers;
-                strangleNode.Call = callOption;
-            }
-            optionTick = ticks.FirstOrDefault(x => x.InstrumentToken == putOption.InstrumentToken);
-            if (optionTick.LastPrice != 0)
-            {
-                putOption.LastPrice = optionTick.LastPrice;
-                putOption.Bids = optionTick.Bids;
-                putOption.Offers = optionTick.Offers;
-                strangleNode.Put = putOption;
-            }
+            //Tick optionTick = ticks.FirstOrDefault(x => x.InstrumentToken == callOption.InstrumentToken);
+            //if (optionTick.LastPrice != 0)
+            //{
+            //    callOption.LastPrice = optionTick.LastPrice;
+            //    callOption.Bids = optionTick.Bids;
+            //    callOption.Offers = optionTick.Offers;
+            //    strangleNode.Call = callOption;
+            //}
+            //optionTick = ticks.FirstOrDefault(x => x.InstrumentToken == putOption.InstrumentToken);
+            //if (optionTick.LastPrice != 0)
+            //{
+            //    putOption.LastPrice = optionTick.LastPrice;
+            //    putOption.Bids = optionTick.Bids;
+            //    putOption.Offers = optionTick.Offers;
+            //    strangleNode.Put = putOption;
+            //}
 
-            Tick baseInstrumentTick = ticks.FirstOrDefault(x => x.InstrumentToken == strangleNode.BaseInstrumentToken);
-            if (baseInstrumentTick.LastPrice != 0)
-            {
-                strangleNode.BaseInstrumentPrice = baseInstrumentTick.LastPrice;
-            }
-            if (strangleNode.BaseInstrumentPrice * callOption.LastPrice * putOption.LastPrice == 0)
-            {
-                return;
-            }
-
-
-            //Continue trading if position is open
-            if (strangleNode.CurrentPosition == PositionStatus.Open)
-            {
-                List<ShortTrade> callTrades = strangleNode.CallTrades;
-                List<ShortTrade> putTrades = strangleNode.PutTrades;
-
-                //check for shift
-                decimal initialCallPrice = Math.Abs(callTrades[0].AveragePrice);
-                decimal initialPutPrice = Math.Abs(putTrades[0].AveragePrice);
-
-                int callQty = strangleNode.CallTradedQty;
-                int putQty = strangleNode.PutTradedQty;
-
-                decimal threshold = strangleNode.Threshold = 0.3m; //0.2 for 20%
+            //Tick baseInstrumentTick = ticks.FirstOrDefault(x => x.InstrumentToken == strangleNode.BaseInstrumentToken);
+            //if (baseInstrumentTick.LastPrice != 0)
+            //{
+            //    strangleNode.BaseInstrumentPrice = baseInstrumentTick.LastPrice;
+            //}
+            //if (strangleNode.BaseInstrumentPrice * callOption.LastPrice * putOption.LastPrice == 0)
+            //{
+            //    return;
+            //}
 
 
+            ////Continue trading if position is open
+            //if (strangleNode.CurrentPosition == PositionStatus.Open)
+            //{
+            //    List<ShortTrade> callTrades = strangleNode.CallTrades;
+            //    List<ShortTrade> putTrades = strangleNode.PutTrades;
 
-                //Check net P&L and determine if trading should be closed.
-                decimal currentPL = strangleNode.NetPnL - (callQty * callOption.LastPrice + putQty * putOption.LastPrice);
-                int PROFIT_POINTS = 25;
-                if(currentPL > strangleNode.InitialQty * PROFIT_POINTS)
-                {
-                    ShortTrade trade = PlaceOrder(callOption.TradingSymbol, true, callOption.LastPrice, callQty, tickTime: ticks[0].Timestamp);
-                    //increase trade record and quantity
-                    callTrades.Add(trade);
-                    strangleNode.CallTradedQty = callTrades.Sum(x => x.Quantity);
-                    strangleNode.CallTrades = callTrades; //This may not be required. Just check
-                    DataLogic dl = new DataLogic();
-                    strangleNode.NetPnL = dl.UpdateTrade(strangleNode.ID, callOption.InstrumentToken, trade, AlgoIndex.StrangleShiftToOneSide);
+            //    //check for shift
+            //    decimal initialCallPrice = Math.Abs(callTrades[0].AveragePrice);
+            //    decimal initialPutPrice = Math.Abs(putTrades[0].AveragePrice);
 
-                    trade = PlaceOrder(putOption.TradingSymbol, true, putOption.LastPrice, putQty, tickTime: ticks[0].Timestamp);
-                    //increase trade record and quantity
-                    putTrades.Add(trade);
-                    strangleNode.PutTradedQty = putTrades.Sum(x => x.Quantity);
-                    strangleNode.PutTrades = putTrades; //This may not be required. Just check
-                    strangleNode.NetPnL = dl.UpdateTrade(strangleNode.ID, putOption.InstrumentToken, trade, AlgoIndex.StrangleShiftToOneSide);
+            //    int callQty = strangleNode.CallTradedQty;
+            //    int putQty = strangleNode.PutTradedQty;
 
-                    strangleNode.CurrentPosition = PositionStatus.Closed;
-
-                    //Take Fresh Trades
-                    Instrument[] instruments = GetNewStrikes(strangleNode.BaseInstrumentToken, strangleNode.BaseInstrumentPrice, strangleNode.Call.Expiry);
-                    callOption = instruments[0];
-                    putOption = instruments[1];
-
-                    /// Start a new trade
-                    optionTick = ticks.FirstOrDefault(x => x.InstrumentToken == callOption.InstrumentToken);
-                    if (optionTick.LastPrice != 0)
-                    {
-                        callOption.LastPrice = optionTick.LastPrice;
-                        callOption.Bids = optionTick.Bids;
-                        callOption.Offers = optionTick.Offers;
-                    }
-                    optionTick = ticks.FirstOrDefault(x => x.InstrumentToken == putOption.InstrumentToken);
-                    if (optionTick.LastPrice != 0)
-                    {
-                        putOption.LastPrice = optionTick.LastPrice;
-                        putOption.Bids = optionTick.Bids;
-                        putOption.Offers = optionTick.Offers;
-                    }
-
-                    decimal pePrice = putOption.LastPrice;
-                    decimal cePrice = callOption.LastPrice;
-                    int initialQty = strangleNode.InitialQty;
-
-                    ShortTrade callTrade;
-                    ShortTrade putTrade;
-                    ///Uncomment below for real time orders
-                    if (pePrice * cePrice == 0)
-                    {
-                        callTrade = PlaceOrder(callOption.TradingSymbol.TrimEnd(), false, cePrice, initialQty, ticks[0].Timestamp, callOption.InstrumentToken);
-                        putTrade = PlaceOrder(putOption.TradingSymbol.TrimEnd(), false, pePrice, initialQty, ticks[0].Timestamp, putOption.InstrumentToken);
-                    }
-                    else
-                    {
-                        callTrade = PlaceOrder(callOption.TradingSymbol.TrimEnd(), false, cePrice, initialQty);
-                        putTrade = PlaceOrder(putOption.TradingSymbol.TrimEnd(), false, pePrice, initialQty);
-                    }
-
-                    //Update Database
-                    int strangleId = dl.StoreStrangleData(ceToken: callOption.InstrumentToken, peToken: putOption.InstrumentToken, cePrice: callTrade.AveragePrice,
-                       pePrice: putTrade.AveragePrice, bInstPrice: 0, algoIndex: AlgoIndex.StrangleShiftToOneSide, initialQty: initialQty,
-                       maxQty: strangleNode.MaxQty, stepQty: strangleNode.StepQty, ceOrderId: callTrade.OrderId, peOrderId: putTrade.OrderId, transactionType: "Sell");
-
-                    StrangleNode tempStrangleNode = new StrangleNode(callOption, putOption);
-                    tempStrangleNode.BaseInstrumentToken = strangleNode.BaseInstrumentToken;
-                    tempStrangleNode.BaseInstrumentPrice = strangleNode.BaseInstrumentPrice;
-                    tempStrangleNode.InitialQty = tempStrangleNode.PutTradedQty = tempStrangleNode.CallTradedQty = strangleNode.InitialQty;
-                    tempStrangleNode.NetPnL = callTrade.AveragePrice * Math.Abs(callTrade.Quantity) + putTrade.AveragePrice * Math.Abs(putTrade.Quantity);
-                    tempStrangleNode.StepQty = strangleNode.StepQty;
-                    tempStrangleNode.MaxQty = strangleNode.MaxQty;
-                    tempStrangleNode.ID = strangleId;
-
-                    tempStrangleNode.CallTrades.Add(callTrade);
-                    tempStrangleNode.PutTrades.Add(putTrade);
-
-                    ActiveStrangles.Add(strangleId, tempStrangleNode);
+            //    decimal threshold = strangleNode.Threshold = 0.3m; //0.2 for 20%
 
 
 
-                    //        public void StoreStrangleShiftToOneSideTrade(Instrument bInst, Instrument currentPE, Instrument currentCE,
-                    //int initialQty, int maxQty, int stepQty, decimal safetyWidth = 10, int strangleId = 0,
-                    //DateTime timeOfOrder = default(DateTime))
-                }
+            //    //Check net P&L and determine if trading should be closed.
+            //    decimal currentPL = strangleNode.NetPnL - (callQty * callOption.LastPrice + putQty * putOption.LastPrice);
+            //    int PROFIT_POINTS = 25;
+            //    if(currentPL > strangleNode.InitialQty * PROFIT_POINTS)
+            //    {
+            //        ShortTrade trade = PlaceOrder(callOption.TradingSymbol, true, callOption.LastPrice, callQty, tickTime: ticks[0].Timestamp);
+            //        //increase trade record and quantity
+            //        callTrades.Add(trade);
+            //        strangleNode.CallTradedQty = callTrades.Sum(x => x.Quantity);
+            //        strangleNode.CallTrades = callTrades; //This may not be required. Just check
+            //        DataLogic dl = new DataLogic();
+            //        strangleNode.NetPnL = dl.UpdateTrade(strangleNode.ID, callOption.InstrumentToken, trade, AlgoIndex.StrangleShiftToOneSide);
+
+            //        trade = PlaceOrder(putOption.TradingSymbol, true, putOption.LastPrice, putQty, tickTime: ticks[0].Timestamp);
+            //        //increase trade record and quantity
+            //        putTrades.Add(trade);
+            //        strangleNode.PutTradedQty = putTrades.Sum(x => x.Quantity);
+            //        strangleNode.PutTrades = putTrades; //This may not be required. Just check
+            //        strangleNode.NetPnL = dl.UpdateTrade(strangleNode.ID, putOption.InstrumentToken, trade, AlgoIndex.StrangleShiftToOneSide);
+
+            //        strangleNode.CurrentPosition = PositionStatus.Closed;
+
+            //        //Take Fresh Trades
+            //        Instrument[] instruments = GetNewStrikes(strangleNode.BaseInstrumentToken, strangleNode.BaseInstrumentPrice, strangleNode.Call.Expiry);
+            //        callOption = instruments[0];
+            //        putOption = instruments[1];
+
+            //        /// Start a new trade
+            //        optionTick = ticks.FirstOrDefault(x => x.InstrumentToken == callOption.InstrumentToken);
+            //        if (optionTick.LastPrice != 0)
+            //        {
+            //            callOption.LastPrice = optionTick.LastPrice;
+            //            callOption.Bids = optionTick.Bids;
+            //            callOption.Offers = optionTick.Offers;
+            //        }
+            //        optionTick = ticks.FirstOrDefault(x => x.InstrumentToken == putOption.InstrumentToken);
+            //        if (optionTick.LastPrice != 0)
+            //        {
+            //            putOption.LastPrice = optionTick.LastPrice;
+            //            putOption.Bids = optionTick.Bids;
+            //            putOption.Offers = optionTick.Offers;
+            //        }
+
+            //        decimal pePrice = putOption.LastPrice;
+            //        decimal cePrice = callOption.LastPrice;
+            //        int initialQty = strangleNode.InitialQty;
+
+            //        ShortTrade callTrade;
+            //        ShortTrade putTrade;
+            //        ///Uncomment below for real time orders
+            //        if (pePrice * cePrice == 0)
+            //        {
+            //            callTrade = PlaceOrder(callOption.TradingSymbol.TrimEnd(), false, cePrice, initialQty, ticks[0].Timestamp, callOption.InstrumentToken);
+            //            putTrade = PlaceOrder(putOption.TradingSymbol.TrimEnd(), false, pePrice, initialQty, ticks[0].Timestamp, putOption.InstrumentToken);
+            //        }
+            //        else
+            //        {
+            //            callTrade = PlaceOrder(callOption.TradingSymbol.TrimEnd(), false, cePrice, initialQty);
+            //            putTrade = PlaceOrder(putOption.TradingSymbol.TrimEnd(), false, pePrice, initialQty);
+            //        }
+
+            //        //Update Database
+            //        int strangleId = dl.StoreStrangleData(ceToken: callOption.InstrumentToken, peToken: putOption.InstrumentToken, cePrice: callTrade.AveragePrice,
+            //           pePrice: putTrade.AveragePrice, bInstPrice: 0, algoIndex: AlgoIndex.StrangleShiftToOneSide, initialQty: initialQty,
+            //           maxQty: strangleNode.MaxQty, stepQty: strangleNode.StepQty, ceOrderId: callTrade.OrderId, peOrderId: putTrade.OrderId, transactionType: "Sell");
+
+            //        StrangleNode tempStrangleNode = new StrangleNode(callOption, putOption);
+            //        tempStrangleNode.BaseInstrumentToken = strangleNode.BaseInstrumentToken;
+            //        tempStrangleNode.BaseInstrumentPrice = strangleNode.BaseInstrumentPrice;
+            //        tempStrangleNode.InitialQty = tempStrangleNode.PutTradedQty = tempStrangleNode.CallTradedQty = strangleNode.InitialQty;
+            //        tempStrangleNode.NetPnL = callTrade.AveragePrice * Math.Abs(callTrade.Quantity) + putTrade.AveragePrice * Math.Abs(putTrade.Quantity);
+            //        tempStrangleNode.StepQty = strangleNode.StepQty;
+            //        tempStrangleNode.MaxQty = strangleNode.MaxQty;
+            //        tempStrangleNode.ID = strangleId;
+
+            //        tempStrangleNode.CallTrades.Add(callTrade);
+            //        tempStrangleNode.PutTrades.Add(putTrade);
+
+            //        ActiveStrangles.Add(strangleId, tempStrangleNode);
 
 
-                if ((strangleNode.InitialQty >= strangleNode.PutTradedQty) && (Math.Floor((putOption.LastPrice - initialPutPrice) / (initialPutPrice * threshold)) >
-                    Math.Floor(Convert.ToDecimal((strangleNode.InitialQty - strangleNode.PutTradedQty) / strangleNode.StepQty))))
-                {
-                    strangleNode.PutTradedQty -= strangleNode.StepQty;
-                    strangleNode.CallTradedQty += strangleNode.StepQty;
+
+            //        //        public void StoreStrangleShiftToOneSideTrade(Instrument bInst, Instrument currentPE, Instrument currentCE,
+            //        //int initialQty, int maxQty, int stepQty, decimal safetyWidth = 10, int strangleId = 0,
+            //        //DateTime timeOfOrder = default(DateTime))
+            //    }
 
 
-                    //SET TRIGGER ID. This trigger id will be used to determine whether it has been closed or not
-                    int triggerID = Math.Max(callTrades.Select(x => x.TriggerID).Max() + 1, putTrades.Select(x => x.TriggerID).Max() + 1);
-                    ShortTrade trade = PlaceOrder(callOption.TradingSymbol, false, callOption.LastPrice, strangleNode.StepQty, triggerID: triggerID, tickTime: ticks[0].Timestamp);
-                    //increase trade record and quantity
-                    callTrades.Add(trade);
-                    strangleNode.CallTradedQty = callTrades.Sum(x => x.Quantity);
-                    strangleNode.CallTrades = callTrades; //This may not be required. Just check
-                    DataLogic dl = new DataLogic();
-                    strangleNode.NetPnL = dl.UpdateTrade(strangleNode.ID, callOption.InstrumentToken, trade, AlgoIndex.StrangleShiftToOneSide, triggerID: triggerID);
+            //    if ((strangleNode.InitialQty >= strangleNode.PutTradedQty) && (Math.Floor((putOption.LastPrice - initialPutPrice) / (initialPutPrice * threshold)) >
+            //        Math.Floor(Convert.ToDecimal((strangleNode.InitialQty - strangleNode.PutTradedQty) / strangleNode.StepQty))))
+            //    {
+            //        strangleNode.PutTradedQty -= strangleNode.StepQty;
+            //        strangleNode.CallTradedQty += strangleNode.StepQty;
 
-                    trade = PlaceOrder(putOption.TradingSymbol, true, putOption.LastPrice, strangleNode.StepQty, triggerID:triggerID, tickTime: ticks[0].Timestamp);
-                    //increase trade record and quantity
-                    putTrades.Add(trade);
-                    strangleNode.PutTradedQty = putTrades.Sum(x => x.Quantity);
-                    strangleNode.PutTrades = putTrades; //This may not be required. Just check
-                    strangleNode.NetPnL = dl.UpdateTrade(strangleNode.ID, putOption.InstrumentToken, trade, AlgoIndex.StrangleShiftToOneSide, triggerID: triggerID);
 
-                }
-                if((strangleNode.InitialQty >= strangleNode.CallTradedQty) && (Math.Floor((callOption.LastPrice - initialCallPrice) / (initialCallPrice * threshold)) >
-                   Math.Floor(Convert.ToDecimal((strangleNode.InitialQty - strangleNode.CallTradedQty) / strangleNode.StepQty))))
-                {
-                    strangleNode.PutTradedQty += strangleNode.StepQty;
-                    strangleNode.CallTradedQty -= strangleNode.StepQty;
+            //        //SET TRIGGER ID. This trigger id will be used to determine whether it has been closed or not
+            //        int triggerID = Math.Max(callTrades.Select(x => x.TriggerID).Max() + 1, putTrades.Select(x => x.TriggerID).Max() + 1);
+            //        ShortTrade trade = PlaceOrder(callOption.TradingSymbol, false, callOption.LastPrice, strangleNode.StepQty, triggerID: triggerID, tickTime: ticks[0].Timestamp);
+            //        //increase trade record and quantity
+            //        callTrades.Add(trade);
+            //        strangleNode.CallTradedQty = callTrades.Sum(x => x.Quantity);
+            //        strangleNode.CallTrades = callTrades; //This may not be required. Just check
+            //        DataLogic dl = new DataLogic();
+            //        strangleNode.NetPnL = dl.UpdateTrade(strangleNode.ID, callOption.InstrumentToken, trade, AlgoIndex.StrangleShiftToOneSide, triggerID: triggerID);
 
-                    //SET TRIGGER ID. This trigger id will be used to determine whether it has been closed or not
-                    int triggerID = Math.Max(callTrades.Select(x => x.TriggerID).Max() + 1, putTrades.Select(x => x.TriggerID).Max() + 1);
+            //        trade = PlaceOrder(putOption.TradingSymbol, true, putOption.LastPrice, strangleNode.StepQty, triggerID:triggerID, tickTime: ticks[0].Timestamp);
+            //        //increase trade record and quantity
+            //        putTrades.Add(trade);
+            //        strangleNode.PutTradedQty = putTrades.Sum(x => x.Quantity);
+            //        strangleNode.PutTrades = putTrades; //This may not be required. Just check
+            //        strangleNode.NetPnL = dl.UpdateTrade(strangleNode.ID, putOption.InstrumentToken, trade, AlgoIndex.StrangleShiftToOneSide, triggerID: triggerID);
 
-                    ShortTrade trade = PlaceOrder(callOption.TradingSymbol, true, callOption.LastPrice, strangleNode.StepQty, triggerID: triggerID, tickTime: ticks[0].Timestamp);
-                    //increase trade record and quantity
-                    callTrades.Add(trade);
-                    strangleNode.CallTradedQty = callTrades.Sum(x => x.Quantity);
-                    strangleNode.CallTrades = callTrades; //This may not be required. Just check
-                    DataLogic dl = new DataLogic();
-                    strangleNode.NetPnL = dl.UpdateTrade(strangleNode.ID, callOption.InstrumentToken, trade, AlgoIndex.StrangleShiftToOneSide, triggerID: triggerID);
+            //    }
+            //    if((strangleNode.InitialQty >= strangleNode.CallTradedQty) && (Math.Floor((callOption.LastPrice - initialCallPrice) / (initialCallPrice * threshold)) >
+            //       Math.Floor(Convert.ToDecimal((strangleNode.InitialQty - strangleNode.CallTradedQty) / strangleNode.StepQty))))
+            //    {
+            //        strangleNode.PutTradedQty += strangleNode.StepQty;
+            //        strangleNode.CallTradedQty -= strangleNode.StepQty;
 
-                    trade = PlaceOrder(putOption.TradingSymbol, false, putOption.LastPrice, strangleNode.StepQty, triggerID: triggerID, tickTime: ticks[0].Timestamp);
-                    //increase trade record and quantity
-                    putTrades.Add(trade);
-                    strangleNode.PutTradedQty = putTrades.Sum(x => x.Quantity);
-                    strangleNode.PutTrades = putTrades; //This may not be required. Just check
-                    strangleNode.NetPnL = dl.UpdateTrade(strangleNode.ID, putOption.InstrumentToken, trade, AlgoIndex.StrangleShiftToOneSide, triggerID: triggerID);
-                }
+            //        //SET TRIGGER ID. This trigger id will be used to determine whether it has been closed or not
+            //        int triggerID = Math.Max(callTrades.Select(x => x.TriggerID).Max() + 1, putTrades.Select(x => x.TriggerID).Max() + 1);
 
-                //stoploss trades in case trend reverses
+            //        ShortTrade trade = PlaceOrder(callOption.TradingSymbol, true, callOption.LastPrice, strangleNode.StepQty, triggerID: triggerID, tickTime: ticks[0].Timestamp);
+            //        //increase trade record and quantity
+            //        callTrades.Add(trade);
+            //        strangleNode.CallTradedQty = callTrades.Sum(x => x.Quantity);
+            //        strangleNode.CallTrades = callTrades; //This may not be required. Just check
+            //        DataLogic dl = new DataLogic();
+            //        strangleNode.NetPnL = dl.UpdateTrade(strangleNode.ID, callOption.InstrumentToken, trade, AlgoIndex.StrangleShiftToOneSide, triggerID: triggerID);
 
-                decimal buyBackCEThreshold = initialCallPrice * threshold;
-                decimal buyBackPEThreshold = initialPutPrice * threshold;
-                List<ShortTrade> openPutTrades = strangleNode.PutTrades.GroupBy(t => t.TriggerID).Where(g => g.Count() == 1).Select(e => e.First()).Where(x => x.TransactionType == "Buy").ToList<ShortTrade>();
-                for (int i = 0; i < openPutTrades.Count; i++)
-                {
-                    if (putOption.LastPrice < openPutTrades.ElementAt(i).AveragePrice - buyBackPEThreshold)  //initialPutPrice * (1 + Math.Floor(((Math.Abs(initialPutPrice - openPutTrades.ElementAt(i).AveragePrice) / (initialPutPrice * threshold))) - 1) * threshold))
-                    {
-                        strangleNode.PutTradedQty += strangleNode.StepQty;
-                        strangleNode.CallTradedQty -= strangleNode.StepQty;
-                        //place order with same triggerid
+            //        trade = PlaceOrder(putOption.TradingSymbol, false, putOption.LastPrice, strangleNode.StepQty, triggerID: triggerID, tickTime: ticks[0].Timestamp);
+            //        //increase trade record and quantity
+            //        putTrades.Add(trade);
+            //        strangleNode.PutTradedQty = putTrades.Sum(x => x.Quantity);
+            //        strangleNode.PutTrades = putTrades; //This may not be required. Just check
+            //        strangleNode.NetPnL = dl.UpdateTrade(strangleNode.ID, putOption.InstrumentToken, trade, AlgoIndex.StrangleShiftToOneSide, triggerID: triggerID);
+            //    }
 
-                        int triggerID = openPutTrades.ElementAt(i).TriggerID;
+            //    //stoploss trades in case trend reverses
 
-                        ShortTrade trade = PlaceOrder(callOption.TradingSymbol, true, callOption.LastPrice, strangleNode.StepQty, triggerID: triggerID, tickTime: ticks[0].Timestamp);
-                        //increase trade record and quantity
-                        callTrades.Add(trade);
-                        strangleNode.CallTradedQty = callTrades.Sum(x => x.Quantity);
-                        strangleNode.CallTrades = callTrades; //This may not be required. Just check
-                        DataLogic dl = new DataLogic();
-                        strangleNode.NetPnL = dl.UpdateTrade(strangleNode.ID, callOption.InstrumentToken, trade, AlgoIndex.StrangleShiftToOneSide, triggerID: triggerID);
+            //    decimal buyBackCEThreshold = initialCallPrice * threshold;
+            //    decimal buyBackPEThreshold = initialPutPrice * threshold;
+            //    List<ShortTrade> openPutTrades = strangleNode.PutTrades.GroupBy(t => t.TriggerID).Where(g => g.Count() == 1).Select(e => e.First()).Where(x => x.TransactionType == "Buy").ToList<ShortTrade>();
+            //    for (int i = 0; i < openPutTrades.Count; i++)
+            //    {
+            //        if (putOption.LastPrice < openPutTrades.ElementAt(i).AveragePrice - buyBackPEThreshold)  //initialPutPrice * (1 + Math.Floor(((Math.Abs(initialPutPrice - openPutTrades.ElementAt(i).AveragePrice) / (initialPutPrice * threshold))) - 1) * threshold))
+            //        {
+            //            strangleNode.PutTradedQty += strangleNode.StepQty;
+            //            strangleNode.CallTradedQty -= strangleNode.StepQty;
+            //            //place order with same triggerid
 
-                        trade = PlaceOrder(putOption.TradingSymbol, false, putOption.LastPrice, strangleNode.StepQty, triggerID: triggerID, tickTime: ticks[0].Timestamp);
-                        //increase trade record and quantity
-                        putTrades.Add(trade);
-                        strangleNode.PutTradedQty = putTrades.Sum(x => x.Quantity);
-                        strangleNode.PutTrades = putTrades; //This may not be required. Just check
-                        strangleNode.NetPnL = dl.UpdateTrade(strangleNode.ID, putOption.InstrumentToken, trade, AlgoIndex.StrangleShiftToOneSide, triggerID: triggerID);
-                    }
-                }
+            //            int triggerID = openPutTrades.ElementAt(i).TriggerID;
 
-                List<ShortTrade> openCallTrades = strangleNode.CallTrades.GroupBy(t => t.TriggerID).Where(g => g.Count() == 1).Select(e => e.First()).Where(x => x.TransactionType == "Buy").ToList<ShortTrade>();
-                for (int i = 0; i < openCallTrades.Count; i++)
-                {
+            //            ShortTrade trade = PlaceOrder(callOption.TradingSymbol, true, callOption.LastPrice, strangleNode.StepQty, triggerID: triggerID, tickTime: ticks[0].Timestamp);
+            //            //increase trade record and quantity
+            //            callTrades.Add(trade);
+            //            strangleNode.CallTradedQty = callTrades.Sum(x => x.Quantity);
+            //            strangleNode.CallTrades = callTrades; //This may not be required. Just check
+            //            DataLogic dl = new DataLogic();
+            //            strangleNode.NetPnL = dl.UpdateTrade(strangleNode.ID, callOption.InstrumentToken, trade, AlgoIndex.StrangleShiftToOneSide, triggerID: triggerID);
+
+            //            trade = PlaceOrder(putOption.TradingSymbol, false, putOption.LastPrice, strangleNode.StepQty, triggerID: triggerID, tickTime: ticks[0].Timestamp);
+            //            //increase trade record and quantity
+            //            putTrades.Add(trade);
+            //            strangleNode.PutTradedQty = putTrades.Sum(x => x.Quantity);
+            //            strangleNode.PutTrades = putTrades; //This may not be required. Just check
+            //            strangleNode.NetPnL = dl.UpdateTrade(strangleNode.ID, putOption.InstrumentToken, trade, AlgoIndex.StrangleShiftToOneSide, triggerID: triggerID);
+            //        }
+            //    }
+
+            //    List<ShortTrade> openCallTrades = strangleNode.CallTrades.GroupBy(t => t.TriggerID).Where(g => g.Count() == 1).Select(e => e.First()).Where(x => x.TransactionType == "Buy").ToList<ShortTrade>();
+            //    for (int i = 0; i < openCallTrades.Count; i++)
+            //    {
                     
-                    if (callOption.LastPrice < initialCallPrice - buyBackCEThreshold) //initialCallPrice * (1 + Math.Floor(((Math.Abs(initialCallPrice - openCallTrades.ElementAt(i).AveragePrice) / (initialCallPrice * threshold))) - 1) * threshold))
-                    {
-                        strangleNode.CallTradedQty += strangleNode.StepQty;
-                        strangleNode.PutTradedQty -= strangleNode.StepQty;
-                        //place order with same triggerid
+            //        if (callOption.LastPrice < initialCallPrice - buyBackCEThreshold) //initialCallPrice * (1 + Math.Floor(((Math.Abs(initialCallPrice - openCallTrades.ElementAt(i).AveragePrice) / (initialCallPrice * threshold))) - 1) * threshold))
+            //        {
+            //            strangleNode.CallTradedQty += strangleNode.StepQty;
+            //            strangleNode.PutTradedQty -= strangleNode.StepQty;
+            //            //place order with same triggerid
 
-                        int triggerID = openCallTrades.ElementAt(i).TriggerID;
+            //            int triggerID = openCallTrades.ElementAt(i).TriggerID;
 
-                        ShortTrade trade = PlaceOrder(callOption.TradingSymbol, true, callOption.LastPrice, strangleNode.StepQty, triggerID: triggerID, tickTime: ticks[0].Timestamp);
-                        //increase trade record and quantity
-                        callTrades.Add(trade);
-                        strangleNode.CallTradedQty = callTrades.Sum(x => x.Quantity);
-                        strangleNode.CallTrades = callTrades; //This may not be required. Just check
-                        DataLogic dl = new DataLogic();
-                        strangleNode.NetPnL = dl.UpdateTrade(strangleNode.ID, callOption.InstrumentToken, trade, AlgoIndex.StrangleShiftToOneSide, triggerID: triggerID);
+            //            ShortTrade trade = PlaceOrder(callOption.TradingSymbol, true, callOption.LastPrice, strangleNode.StepQty, triggerID: triggerID, tickTime: ticks[0].Timestamp);
+            //            //increase trade record and quantity
+            //            callTrades.Add(trade);
+            //            strangleNode.CallTradedQty = callTrades.Sum(x => x.Quantity);
+            //            strangleNode.CallTrades = callTrades; //This may not be required. Just check
+            //            DataLogic dl = new DataLogic();
+            //            strangleNode.NetPnL = dl.UpdateTrade(strangleNode.ID, callOption.InstrumentToken, trade, AlgoIndex.StrangleShiftToOneSide, triggerID: triggerID);
 
-                        trade = PlaceOrder(putOption.TradingSymbol, false, putOption.LastPrice, strangleNode.StepQty, triggerID: triggerID, tickTime: ticks[0].Timestamp);
-                        //increase trade record and quantity
-                        putTrades.Add(trade);
-                        strangleNode.PutTradedQty = putTrades.Sum(x => x.Quantity);
-                        strangleNode.PutTrades = putTrades; //This may not be required. Just check
-                        strangleNode.NetPnL = dl.UpdateTrade(strangleNode.ID, putOption.InstrumentToken, trade, AlgoIndex.StrangleShiftToOneSide, triggerID: triggerID);
+            //            trade = PlaceOrder(putOption.TradingSymbol, false, putOption.LastPrice, strangleNode.StepQty, triggerID: triggerID, tickTime: ticks[0].Timestamp);
+            //            //increase trade record and quantity
+            //            putTrades.Add(trade);
+            //            strangleNode.PutTradedQty = putTrades.Sum(x => x.Quantity);
+            //            strangleNode.PutTrades = putTrades; //This may not be required. Just check
+            //            strangleNode.NetPnL = dl.UpdateTrade(strangleNode.ID, putOption.InstrumentToken, trade, AlgoIndex.StrangleShiftToOneSide, triggerID: triggerID);
 
-                    }
-                }
-            }
+            //        }
+            //    }
+            //}
 
             #region OLD CODE 
             ////decimal pnl = strangleNode.NetPnL + strangleNode.Put.LastPrice*strangleNode.PutTradedQty + strangleNode.Call.LastPrice * strangleNode.CallTradedQty;
@@ -593,80 +593,80 @@ namespace Algos.TLogics
 
         private void LoadActiveData()
         {
-            AlgoIndex algoIndex = AlgoIndex.StrangleShiftToOneSide;
-            DataLogic dl = new DataLogic();
-            DataSet activeStrangles = dl.RetrieveActiveStrangleData(algoIndex);
-            DataRelation strategy_Token_Relation = activeStrangles.Relations.Add("Strangle_Token", new DataColumn[] { activeStrangles.Tables[0].Columns["Id"] },
-                new DataColumn[] { activeStrangles.Tables[1].Columns["StrategyId"] });
+            //AlgoIndex algoIndex = AlgoIndex.StrangleShiftToOneSide;
+            //DataLogic dl = new DataLogic();
+            //DataSet activeStrangles = dl.RetrieveActiveStrangleData(algoIndex);
+            //DataRelation strategy_Token_Relation = activeStrangles.Relations.Add("Strangle_Token", new DataColumn[] { activeStrangles.Tables[0].Columns["Id"] },
+            //    new DataColumn[] { activeStrangles.Tables[1].Columns["StrategyId"] });
 
-            DataRelation strategy_Trades_Relation = activeStrangles.Relations.Add("Strangle_Trades", new DataColumn[] { activeStrangles.Tables[0].Columns["Id"] },
-                new DataColumn[] { activeStrangles.Tables[2].Columns["StrategyId"] });
+            //DataRelation strategy_Trades_Relation = activeStrangles.Relations.Add("Strangle_Trades", new DataColumn[] { activeStrangles.Tables[0].Columns["Id"] },
+            //    new DataColumn[] { activeStrangles.Tables[2].Columns["StrategyId"] });
 
-            Instrument call, put;
+            //Instrument call, put;
 
-            foreach (DataRow strangleRow in activeStrangles.Tables[0].Rows)
-            {
-                DataRow strangleTokenRow = strangleRow.GetChildRows(strategy_Token_Relation)[0];
+            //foreach (DataRow strangleRow in activeStrangles.Tables[0].Rows)
+            //{
+            //    DataRow strangleTokenRow = strangleRow.GetChildRows(strategy_Token_Relation)[0];
 
-                call = new Instrument()
-                {
-                    BaseInstrumentToken = Convert.ToUInt32(strangleTokenRow["BInstrumentToken"]),
-                    InstrumentToken = Convert.ToUInt32(strangleTokenRow["CallToken"]),
-                    InstrumentType = "CE",
-                    Strike = (Decimal)strangleTokenRow["CallStrike"],
-                    TradingSymbol = (string)strangleTokenRow["CallSymbol"]
-                };
-                put = new Instrument()
-                {
-                    BaseInstrumentToken = Convert.ToUInt32(strangleTokenRow["BInstrumentToken"]),
-                    InstrumentToken = Convert.ToUInt32(strangleTokenRow["PutToken"]),
-                    InstrumentType = "PE",
-                    Strike = (Decimal)strangleTokenRow["PutStrike"],
-                    TradingSymbol = (string)strangleTokenRow["PutSymbol"]
-                };
+            //    call = new Instrument()
+            //    {
+            //        BaseInstrumentToken = Convert.ToUInt32(strangleTokenRow["BInstrumentToken"]),
+            //        InstrumentToken = Convert.ToUInt32(strangleTokenRow["CallToken"]),
+            //        InstrumentType = "CE",
+            //        Strike = (Decimal)strangleTokenRow["CallStrike"],
+            //        TradingSymbol = (string)strangleTokenRow["CallSymbol"]
+            //    };
+            //    put = new Instrument()
+            //    {
+            //        BaseInstrumentToken = Convert.ToUInt32(strangleTokenRow["BInstrumentToken"]),
+            //        InstrumentToken = Convert.ToUInt32(strangleTokenRow["PutToken"]),
+            //        InstrumentType = "PE",
+            //        Strike = (Decimal)strangleTokenRow["PutStrike"],
+            //        TradingSymbol = (string)strangleTokenRow["PutSymbol"]
+            //    };
 
-                if (strangleTokenRow["Expiry"] != DBNull.Value)
-                {
-                    call.Expiry = Convert.ToDateTime(strangleTokenRow["Expiry"]);
-                    put.Expiry = Convert.ToDateTime(strangleTokenRow["Expiry"]);
-                }
+            //    if (strangleTokenRow["Expiry"] != DBNull.Value)
+            //    {
+            //        call.Expiry = Convert.ToDateTime(strangleTokenRow["Expiry"]);
+            //        put.Expiry = Convert.ToDateTime(strangleTokenRow["Expiry"]);
+            //    }
 
-                StrangleNode strangleNode = new StrangleNode(call, put);
+            //    StrangleNode strangleNode = new StrangleNode(call, put);
 
-                strangleNode.InitialQty = (int)strangleTokenRow["CallInitialQty"];
+            //    strangleNode.InitialQty = (int)strangleTokenRow["CallInitialQty"];
 
-                ShortTrade trade;
-                decimal netPnL = 0;
-                foreach (DataRow strangleTradeRow in strangleRow.GetChildRows(strategy_Trades_Relation))
-                {
-                    trade = new ShortTrade();
-                    trade.AveragePrice = (Decimal)strangleTradeRow["Price"];
-                    trade.ExchangeTimestamp = (DateTime?)strangleTradeRow["TimeStamp"];
-                    trade.OrderId = (string)strangleTradeRow["OrderId"];
-                    trade.TransactionType = (string)strangleTradeRow["TransactionType"];
-                    trade.Quantity = (int)strangleTradeRow["Quantity"];
-                    trade.TriggerID = (int)strangleTradeRow["TriggerID"];
-                    if (Convert.ToUInt32(strangleTradeRow["InstrumentToken"]) == call.InstrumentToken)
-                    {
-                        strangleNode.CallTrades.Add(trade);
-                    }
-                    else if (Convert.ToUInt32(strangleTradeRow["InstrumentToken"]) == put.InstrumentToken)
-                    {
-                        strangleNode.PutTrades.Add(trade);
-                    }
-                    netPnL += trade.AveragePrice * Math.Abs(trade.Quantity);
-                }
-                strangleNode.BaseInstrumentToken = call.BaseInstrumentToken;
-                strangleNode.PutTradedQty = strangleNode.PutTrades.Sum(x => x.Quantity);
-                strangleNode.CallTradedQty = strangleNode.CallTrades.Sum(x => x.Quantity);
-                strangleNode.CurrentPosition = PositionStatus.Open;
-                strangleNode.MaxQty = (int)strangleRow["MaxQty"];
-                strangleNode.StepQty = Convert.ToInt32(strangleRow["MaxProfitPoints"]);
-                strangleNode.NetPnL = netPnL;
-                strangleNode.ID = (int)strangleRow["Id"];
+            //    ShortTrade trade;
+            //    decimal netPnL = 0;
+            //    foreach (DataRow strangleTradeRow in strangleRow.GetChildRows(strategy_Trades_Relation))
+            //    {
+            //        trade = new ShortTrade();
+            //        trade.AveragePrice = (Decimal)strangleTradeRow["Price"];
+            //        trade.ExchangeTimestamp = (DateTime?)strangleTradeRow["TimeStamp"];
+            //        trade.OrderId = (string)strangleTradeRow["OrderId"];
+            //        trade.TransactionType = (string)strangleTradeRow["TransactionType"];
+            //        trade.Quantity = (int)strangleTradeRow["Quantity"];
+            //        trade.TriggerID = (int)strangleTradeRow["TriggerID"];
+            //        if (Convert.ToUInt32(strangleTradeRow["InstrumentToken"]) == call.InstrumentToken)
+            //        {
+            //            strangleNode.CallTrades.Add(trade);
+            //        }
+            //        else if (Convert.ToUInt32(strangleTradeRow["InstrumentToken"]) == put.InstrumentToken)
+            //        {
+            //            strangleNode.PutTrades.Add(trade);
+            //        }
+            //        netPnL += trade.AveragePrice * Math.Abs(trade.Quantity);
+            //    }
+            //    strangleNode.BaseInstrumentToken = call.BaseInstrumentToken;
+            //    strangleNode.PutTradedQty = strangleNode.PutTrades.Sum(x => x.Quantity);
+            //    strangleNode.CallTradedQty = strangleNode.CallTrades.Sum(x => x.Quantity);
+            //    strangleNode.CurrentPosition = PositionStatus.Open;
+            //    strangleNode.MaxQty = (int)strangleRow["MaxQty"];
+            //    strangleNode.StepQty = Convert.ToInt32(strangleRow["MaxProfitPoints"]);
+            //    strangleNode.NetPnL = netPnL;
+            //    strangleNode.ID = (int)strangleRow["Id"];
 
-                ActiveStrangles.Add(strangleNode.ID, strangleNode);
-            }
+            //    ActiveStrangles.Add(strangleNode.ID, strangleNode);
+            //}
         }
 
         public void StoreStrangleShiftToOneSideTrade(Instrument bInst, Instrument currentPE, Instrument currentCE,

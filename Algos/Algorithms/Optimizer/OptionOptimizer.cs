@@ -1,7 +1,5 @@
 ﻿using Algorithms.Utilities;
-using Algorithms.Utilities;
 using GlobalLayer;
-//using Microsoft.Office.Core;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Eventing.Reader;
@@ -19,48 +17,62 @@ namespace Algos.TLogics
         DateTime _endDateTime;
         decimal _maxDrawDown = 0;
         DateTime[] _expiryDates;
+        private int _algoInstance;
         Option[][] suggestedOptions;
+        private const AlgoIndex algoIndex = AlgoIndex.OptionOptimizer;
+        public List<uint> SubscriptionTokens;
         //Tick[] _ticks;
         DateTime tradeTime;
         decimal baseInstrumentPrice = 0;
         SortedList<decimal, Dictionary<int, Option>[]> optimizedTrades = new SortedList<decimal, Dictionary<int, Option>[]>(new DuplicateKeyComparer<decimal>());
         Option[] calls;
         Option[] puts;
+
+        [field: NonSerialized]
+        public delegate void OnOptionUniverseChangeHandler(OptionOptimizer source);
+        [field: NonSerialized]
+        public event OnOptionUniverseChangeHandler OnOptionUniverseChange;
+
+        [field: NonSerialized]
+        public delegate void OnTradeEntryHandler(Order st);
+        [field: NonSerialized]
+        public event OnTradeEntryHandler OnTradeEntry;
+
+        [field: NonSerialized]
+        public delegate void OnTradeExitHandler(Order st);
+        [field: NonSerialized]
+        public event OnTradeExitHandler OnTradeExit;
+
         public OptionOptimizer(DateTime endDateTime, uint instrumentToken, decimal maxDrawDown, DateTime[] expiryDates)
         {
             _endDateTime = endDateTime;
             _instrumentToken = instrumentToken;
             _maxDrawDown = maxDrawDown;
             _expiryDates = expiryDates;
+
+            SubscriptionTokens = new List<uint>();
+            //SubscriptionTokens.AddRange(ActiveStrangles.Values.Select(x => x.BaseInstrumentToken));
         }
-        public virtual async Task<bool> OnNext(Tick[] ticks)
+        public virtual void OnNext(Tick tick)
         {
-            //_instrumentToken = 256265;
-            //var fema; var sema;
-            //_ticks = ticks;
-            
             List<Tick> validTicks = new List<Tick>();
-            for (int i = 0; i < ticks.Count(); i++)
-            {
-                Tick tick = ticks[i];
-                //if (ticks[i].InstrumentToken == _instrumentToken)
+            //for (int i = 0; i < tick.Count(); i++)
+            //{
+               // Tick tick = ticks[i];
+               // if (ticks[i].InstrumentToken == _instrumentToken)
                 //{
-                //    validTicks.Add(tick);
-                //}
-                if (ticks[i].InstrumentToken == _instrumentToken)
-                {
                     baseInstrumentPrice = tick.LastPrice;
                     tradeTime = tick.LastTradeTime.HasValue? tick.LastTradeTime.Value: tick.Timestamp.Value;
-                }
+                //}
 
-            }
+            //}
             if (baseInstrumentPrice == 0)
             {
-                return true;
+                return ;
             }
-            SuggestTrades(_maxDrawDown, _endDateTime, baseInstrumentPrice, _expiryDates);
+            SuggestTrades(tick, _maxDrawDown, _endDateTime, baseInstrumentPrice, _expiryDates);
 
-            return true;
+            return ;
         }
         /// <summary>
         /// This process should be async and provide result when ready..and it should be called slow, may be at candle end
@@ -69,7 +81,7 @@ namespace Algos.TLogics
         /// <param name="endDate"></param>
         /// <param name="atmStrike"></param>
         /// <param name="expiryDates"></param>
-        public void SuggestTrades(decimal maxDrawdown, DateTime endDate, decimal baseInstrumentPrice, DateTime[] expiryDates)
+        public void SuggestTrades(Tick tick, decimal maxDrawdown, DateTime endDate, decimal baseInstrumentPrice, DateTime[] expiryDates)
         {
             //List<Option> options = new List<Option>(); //universe of options
 
@@ -96,7 +108,10 @@ namespace Algos.TLogics
 
                 calls = GetOption(expiry, baseInstrumentPrice, 260105, InstrumentType.CE); // 10 strike prices above & below
                 puts = GetOption(expiry, baseInstrumentPrice, 260105, InstrumentType.PE); // 10 strike prices above & below
-                bool allUpdated = UpdateLastTradePrice(calls, puts);
+                UpdateInstrumentSubscription(calls);
+                UpdateInstrumentSubscription(puts);
+
+                bool allUpdated = UpdateLastTradePrice(tick, calls, puts);
                 if (!allUpdated)
                 {
                     return;
@@ -231,18 +246,18 @@ namespace Algos.TLogics
 
         }
 
-        private bool UpdateLastTradePrice(Option[] options1, Option[] options2)
+        private bool UpdateLastTradePrice(Tick tick, Option[] options1, Option[] options2)
         {
             bool allclear = true;
             foreach (Option o in options1)
             {
-                Tick tick = null;// NCacheFacade.GetNCacheData(o.InstrumentToken);
-                if (tick != null)
+                //Tick tick = null;// NCacheFacade.GetNCacheData(o.InstrumentToken);
+                if (tick.InstrumentToken == o.InstrumentToken)
                 {
                     o.LastPrice = tick.LastPrice;
                     o.LastTradeTime = tick.LastTradeTime?? tick.Timestamp;
                 }
-                else
+                else if(o.LastPrice == 0)
                 {
                     allclear = false;
                 }
@@ -250,14 +265,13 @@ namespace Algos.TLogics
 
             foreach (Option o in options2)
             {
-                Tick tick = null;// NCacheFacade.GetNCacheData(o.InstrumentToken);
-                if (tick != null)
+                //Tick tick = null;// NCacheFacade.GetNCacheData(o.InstrumentToken);
+                if (tick.InstrumentToken == o.InstrumentToken)
                 {
                     o.LastPrice = tick.LastPrice;
                     o.LastTradeTime = tick.LastTradeTime ?? tick.Timestamp;
                 }
-
-                else
+                else if (o.LastPrice == 0)
                 {
                     allclear = false;
                 }
@@ -283,7 +297,36 @@ namespace Algos.TLogics
             var optionsList = dl.RetrieveNextNodes(binstrumentToken, baseInstrumentPrice, instrumentType.ToString(), strike, expiry, 0, 10);
             return optionsList.Values.ToArray<Option>();
         }
-
+        private void UpdateInstrumentSubscription(Option[] options)
+        {
+            try
+            {
+                bool dataUpdated = false;
+                if (options != null)
+                {
+                    foreach (var option in options)
+                    {
+                        if (!SubscriptionTokens.Contains(option.InstrumentToken))
+                        {
+                            SubscriptionTokens.Add(option.InstrumentToken);
+                            dataUpdated = true;
+                        }
+                    }
+                    if (dataUpdated)
+                    {
+                        //LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Info, currentTime, "Subscribing to new tokens", "UpdateInstrumentSubscription");
+                        Task task = Task.Run(() => OnOptionUniverseChange(this));
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+            }
+        }
+        public void StopTrade(bool stop)
+        {
+            //_stopTrade = stop;
+        }
         public class DuplicateKeyComparer<TKey> : IComparer<TKey> where TKey : IComparable
         {
             #region IComparer<TKey> Members
@@ -299,6 +342,11 @@ namespace Algos.TLogics
             }
 
             #endregion
+        }
+        public int AlgoInstance
+        {
+            get
+            { return _algoInstance; }
         }
     }
 }

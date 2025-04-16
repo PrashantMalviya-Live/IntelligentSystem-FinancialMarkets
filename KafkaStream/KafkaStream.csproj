@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp2.1</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\confluent-kafka-dotnet-master\src\ConfigGen\ConfigGen.csproj" />
+    <ProjectReference Include="..\confluent-kafka-dotnet-master\src\Confluent.Kafka\Confluent.Kafka.csproj" />
+    <ProjectReference Include="..\confluent-kafka-dotnet-master\src\Confluent.SchemaRegistry.Serdes\Confluent.SchemaRegistry.Serdes.csproj" />
+    <ProjectReference Include="..\confluent-kafka-dotnet-master\src\Confluent.SchemaRegistry\Confluent.SchemaRegistry.csproj" />
+  </ItemGroup>
+
+</Project>

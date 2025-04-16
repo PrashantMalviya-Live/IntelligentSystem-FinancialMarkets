@@ -221,11 +221,48 @@ namespace Algorithms.Indicators
 				: base.SetValue(indicator, value);
 		}
 	}
+	public class BreakOutIndicatorValue : SingleIndicatorValue<Breakout>
+	{
+		/// <summary>
+		/// Initializes a new instance of the <see cref="BreakOutIndicatorValue"/>.
+		/// </summary>
+		/// <param name="indicator">Indicator.</param>
+		/// <param name="value">Value.</param>
+		public BreakOutIndicatorValue(IIndicator indicator, Breakout value)
+			: base(indicator, (Breakout)(int)value)
+		{
+			IsEmpty = value == Breakout.NONE;
+			IsFinal = true;
+		}
 
-    /// <summary>
-    /// The indicator value, operating with data type <see cref="Candle"/>.
-    /// </summary>
-    public class CandleIndicatorValue : SingleIndicatorValue<Candle>
+
+		/// <summary>
+		/// Initializes a new instance of the <see cref="BreakOutIndicatorValue"/>.
+		/// </summary>
+		/// <param name="indicator">Indicator.</param>
+		public BreakOutIndicatorValue(IIndicator indicator)
+			: base(indicator)
+		{
+		}
+
+		/// <inheritdoc />
+		public override IIndicatorValue SetValue<T>(IIndicator indicator, T value)
+		{
+			return typeof(T) == typeof(decimal)
+				? new BreakOutIndicatorValue(indicator, (Breakout)Convert.ToInt32(value)) { IsFinal = IsFinal, InputValue = this }
+				: base.SetValue(indicator, value);
+		}
+
+		public override T GetValue<T>()
+		{
+			var breakoutvalue = base.GetValue<Breakout>();
+			return (T)Convert.ChangeType(breakoutvalue, typeof(T));
+		}
+	}
+        /// <summary>
+        /// The indicator value, operating with data type <see cref="Candle"/>.
+        /// </summary>
+        public class CandleIndicatorValue : SingleIndicatorValue<Candle>
     {
         private readonly Func<Candle, decimal> _getPart;
 
@@ -237,6 +274,31 @@ namespace Algorithms.Indicators
         public CandleIndicatorValue(IIndicator indicator, Candle value)
             : this(indicator, value, ByClose)
         {
+        }
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CandleIndicatorValue"/>.
+        /// </summary>
+        /// <param name="indicator">Indicator.</param>
+        /// <param name="value">Value.</param>
+        public CandleIndicatorValue(Candle value)
+            : this(value, ByClose)
+        {
+        }
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CandleIndicatorValue"/>.
+        /// </summary>
+        /// <param name="indicator">Indicator.</param>
+        /// <param name="value">Value.</param>
+        /// <param name="getPart">The candle converter, through which its parameter can be got. By default, the <see cref="CandleIndicatorValue.ByClose"/> is used.</param>
+        public CandleIndicatorValue(Candle value, Func<Candle, decimal> getPart)
+            : base(null, value)
+        {
+            if (value == null)
+                throw new ArgumentNullException(nameof(value));
+
+            _getPart = getPart ?? throw new ArgumentNullException(nameof(getPart));
+
+            IsFinal = value.State == CandleStates.Finished;
         }
 
         /// <summary>

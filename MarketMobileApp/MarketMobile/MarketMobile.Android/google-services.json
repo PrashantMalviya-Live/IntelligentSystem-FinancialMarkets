@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "895254327720",
+    "project_id": "marketalerts-e9c4e",
+    "storage_bucket": "marketalerts-e9c4e.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:895254327720:android:d7842de7f30248c6316d9d",
+        "android_client_info": {
+          "package_name": "dsalgo.market.alerts"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "895254327720-fbp02ujlfd4iblcrc9mgjfbhoj7615oo.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDSUkPWpYv69JUEoA7U_9bxlL8lk612XC0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "895254327720-fbp02ujlfd4iblcrc9mgjfbhoj7615oo.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

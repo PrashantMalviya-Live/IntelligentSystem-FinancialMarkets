@@ -1,33 +1,38 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+﻿using Algos.TLogics;
 using Microsoft.AspNetCore.Mvc;
-using GlobalLayer;
-using Algorithms.Utilities;
-using ZMQFacade;
-using System.Data;
 using Microsoft.Extensions.Configuration;
-using DataAccess;
-using Newtonsoft.Json;
-using Algos.TLogics;
-using Algos.Utilities.Views;
+using System;
+using System.Collections.Generic;
+using ZMQFacade;
+using Algorithms.Algorithms;
+using Algorithms.Utilities;
+using GlobalLayer;
 using Global.Web;
 using GlobalCore;
+using System.Linq;
+using System.Data;
+using System.Threading.Tasks;
+using Algorithms.Utilities.Views;
+using Algos.Utilities.Views;
 using System.Threading;
+using Microsoft.Extensions.Caching.Memory;
+using System.Net.Http;
 
 namespace ExpiryStrangle.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class ExpiryStrangleController : Controller
+    public class ExpiryStrangleController : ControllerBase
     {
+        private readonly IHttpClientFactory _httpClientFactory;
+        private const string key = "ACTIVE_EXPIRY_TRADE_OBJECTS";
         IConfiguration configuration;
         ZMQClient zmqClient;
-
-        public ExpiryStrangleController(IConfiguration config)
+        private IMemoryCache _cache;
+        public ExpiryStrangleController(IMemoryCache cache, IHttpClientFactory httpClientFactory)
         {
-            configuration = config;
+            this._cache = cache;
+            this._httpClientFactory = httpClientFactory;
         }
 
         [HttpGet]
@@ -57,17 +62,30 @@ namespace ExpiryStrangle.Controllers
             int stepQuantity = optionExpiryStrangleInput.SQty;
             int maxQuantity = optionExpiryStrangleInput.MQty;
             int stoploss = optionExpiryStrangleInput.SL;
+            int targetProfit = optionExpiryStrangleInput.TP;
             int minDistanceFromBase = optionExpiryStrangleInput.MDFBI;
+            int initialDistanceFromBase = optionExpiryStrangleInput.IDFBI;
             int minPremiumToTrade = optionExpiryStrangleInput.MPTT;
+            optionExpiryStrangleInput.UID = "PM27031981";
+            //var httpClient = _httpClientFactory.CreateClient();
 
             //ZMQClient();
             ExpiryTrade expiryTrade = new ExpiryTrade(bInstrumentToken, expiry, initialQuantity, 
-                stepQuantity, maxQuantity, stoploss, minDistanceFromBase, minPremiumToTrade);
+                stepQuantity, maxQuantity, stoploss, minDistanceFromBase, minPremiumToTrade, initialDistanceFromBase, targetProfit, 
+                optionExpiryStrangleInput.UID, 100, _httpClientFactory);
+           
             expiryTrade.OnOptionUniverseChange += ExpiryTrade_OnOptionUniverseChange;
             expiryTrade.OnTradeEntry += ExpiryTrade_OnTradeEntry;
             expiryTrade.OnTradeExit += ExpiryTrade_OnTradeExit;
 
-            //activeAlgoObjects.Add(volumeThreshold);
+            List<ExpiryTrade> activeAlgoObjects = _cache.Get<List<ExpiryTrade>>(key);
+
+            if (activeAlgoObjects == null)
+            {
+                activeAlgoObjects = new List<ExpiryTrade>();
+            }
+            activeAlgoObjects.Add(expiryTrade);
+            _cache.Set(key, activeAlgoObjects);
 
             Task task = Task.Run(() => NMQClientSubscription(expiryTrade, bInstrumentToken));
 
@@ -112,88 +130,52 @@ namespace ExpiryStrangle.Controllers
         //    StartService();
         //}
 
-        [HttpGet("positions/all")]
-        public IEnumerable<AlgoPosition> GetCurrentPositions()
-        {
-            DataLogic dl = new DataLogic();
-            DataSet dsActiveStrangles = dl.RetrieveActiveStrangles(AlgoIndex.ExpiryTrade);
-
-            return null;
-
-
-            //var rng = new Random();
-            //return Enumerable.Range(1, 5).Select(index => new WeatherForecast
-            //{
-            //    Date = DateTime.Now.AddDays(index),
-            //    TemperatureC = rng.Next(-20, 55),
-            //    Summary = Summaries[rng.Next(Summaries.Length)]
-            //})
-            //.ToArray();
-        }
-
-
-        //[HttpGet("startservice")]
-        //public void StartService()
+        //[HttpGet("positions/all")]
+        //public IEnumerable<AlgoPosition> GetCurrentPositions()
         //{
-        //    string baseInstrumentToken = "260105";
-            
-        //    //ZMQClient();
-        //    ExpiryTrade expiryTrade = new ExpiryTrade();
-        //    expiryTrade.OnOptionUniverseChange += ExpiryTrade_OnOptionUniverseChange;
+        //    DataLogic dl = new DataLogic();
+        //    DataSet dsActiveStrangles = dl.RetrieveActiveStrangles(AlgoIndex.ExpiryTrade);
 
-        //    List<uint> tokens = new List<uint>();
-        //    tokens.Add(260105);
-        //    zmqClient = new ZMQClient();
-        //    zmqClient.AddSubscriber(tokens);
-        //    zmqClient.Subscribe(expiryTrade);
-
-        //    //ZMQClient.ZMQSubcribeAllTicks(expiryTrade);
-            
-        //    //ZMQClient.ZMQSubcribebyToken(expiryTrade, expiryTrade.SubscriptionTokens.ToArray());
-
-        //    //List<uint> tokens = new List<uint>();
-        //    //tokens.Add(baseInstrumentToken);
-
-        //    //IgniteMessanger.Subscribe(expiryTrade, tokens);
-        //    //IgniteConnector.QueryTickContinuous(tokens, expiryTrade);
-
-        //    //List<string> tokens = new List<string>();
-        //    //tokens.Add(baseInstrumentToken);
-
-
-        //    ////consumer.Subscribe(tokens);
-        //    ////consumer.Consume(expiryTrade, tokens);
-        //    //Subscriber s = new Subscriber(expiryTrade);
-        //    //s.Subscribe(new List<uint>() { 260105 });
-        //    //s.Listen();
+        //    return null;
+         
         //}
-
-
 
         private void ExpiryTrade_OnOptionUniverseChange(ExpiryTrade source)
         {
-            //ZMQClient.ZMQSubcribebyToken(source, source.SubscriptionTokens.ToArray());
-
-            //IgniteMessanger.Subscribe(source, source.SubscriptionTokens.ToArray());
-
             try
             {
                 zmqClient.AddSubscriber(source.SubscriptionTokens);
-                // consumer.Subscribe(source.SubscriptionTokens.Select(x => x.ToString()).ToList());
             }
             catch (Exception ex)
             {
                 throw ex;
 
             }
-            //IgniteMessanger.Subscribe(source, source.SubscriptionTokens);
-            //IgniteConnector.QueryTickContinuous(source.SubscriptionTokens, source);
         }
 
         [HttpGet("healthy")]
         public Task<int> Health()
         {
             return Task.FromResult((int)AlgoIndex.ExpiryTrade);
+        }
+
+        [HttpPut("{ain}")]
+        public bool Put(int ain, [FromBody] int start)
+        {
+            List<ExpiryTrade> activeAlgoObjects;
+            if (!_cache.TryGetValue(key, out activeAlgoObjects))
+            {
+                activeAlgoObjects = new List<ExpiryTrade>();
+            }
+
+            ExpiryTrade algoObject = activeAlgoObjects.FirstOrDefault(x => x.AlgoInstance == ain);
+            if (algoObject != null)
+            {
+                algoObject.StopTrade(!Convert.ToBoolean(start));
+            }
+            _cache.Set(key, activeAlgoObjects);
+
+            return true;
         }
         ////[HttpPost]
         //public async Task CreateOptionStrategy(OptionStrategy ostrategy)

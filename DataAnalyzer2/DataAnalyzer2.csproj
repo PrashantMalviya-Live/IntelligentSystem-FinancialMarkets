@@ -1,0 +1,21 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net6.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Configurations>Debug;Release;BackTest</Configurations>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Algo.Utils\Algo.Utils.csproj" />
+    <ProjectReference Include="..\Algos\Algos.csproj" />
+    <ProjectReference Include="..\DBAccess\DBAccess.csproj" />
+    <ProjectReference Include="..\GlobalLayer\GlobalLayer.csproj" />
+    <ProjectReference Include="..\KiteConnectWrapper\BrokerConnectWrapper.csproj" />
+    <ProjectReference Include="..\LocalDBData\LocalDBData.csproj" />
+  </ItemGroup>
+
+</Project>

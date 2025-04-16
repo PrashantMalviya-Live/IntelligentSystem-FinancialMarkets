@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace Algos.Utilities.Views
 {
@@ -47,8 +45,20 @@ namespace Algos.Utilities.Views
         public decimal SR { get; set; } = 1.3m;
 
         /// <summary>
-        /// Stop Loss
+        /// Straddle Shift
         /// </summary>
         public bool SS { get; set; }
+
+        /// <summary>
+        /// Straddle Shift
+        /// </summary>
+        public string UID { get; set; }
+
+        /// <summary>
+        /// Intraday
+        /// </summary>
+        public bool Intraday { get; set; } = true;
+
+
     }
 }

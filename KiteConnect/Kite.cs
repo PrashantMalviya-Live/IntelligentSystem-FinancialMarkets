@@ -310,7 +310,7 @@ namespace KiteConnect
             string Tag = "")
         {
             var param = new Dictionary<string, dynamic>();
-
+            DisclosedQuantity ??= Quantity;
             Utils.AddIfNotNull(param, "exchange", Exchange);
             Utils.AddIfNotNull(param, "tradingsymbol", TradingSymbol);
             Utils.AddIfNotNull(param, "transaction_type", TransactionType);
@@ -319,7 +319,7 @@ namespace KiteConnect
             Utils.AddIfNotNull(param, "product", Product);
             Utils.AddIfNotNull(param, "order_type", OrderType);
             Utils.AddIfNotNull(param, "validity", Validity);
-            Utils.AddIfNotNull(param, "disclosed_quantity", DisclosedQuantity.ToString());
+            Utils.AddIfNotNull(param, "disclosed_quantity",  DisclosedQuantity.ToString());
             Utils.AddIfNotNull(param, "trigger_price", TriggerPrice.ToString());
             Utils.AddIfNotNull(param, "squareoff", SquareOffValue.ToString());
             Utils.AddIfNotNull(param, "stoploss", StoplossValue.ToString());
@@ -647,12 +647,12 @@ namespace KiteConnect
             param.Add("continuous", Continuous ? "1" : "0");
             param.Add("oi", OI ? "1" : "0");
 
-            var historicalData = Get("market.historical", param);
+            Dictionary<string, dynamic> historicalData = Get("market.historical", param);
 
             List<Historical> historicals = new List<Historical>();
 
-            foreach (ArrayList item in historicalData["data"]["candles"])
-                historicals.Add(new Historical(item));
+            foreach (var item in historicalData["data"]["candles"])
+                historicals.Add(new Historical(new ArrayList(item)));
 
             return historicals;
         }

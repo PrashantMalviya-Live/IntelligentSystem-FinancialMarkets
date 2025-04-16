@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "320726911357",
+    "project_id": "nsealerts-14bf9",
+    "storage_bucket": "nsealerts-14bf9.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:320726911357:android:6a77272b99b0d593f7a414",
+        "android_client_info": {
+          "package_name": "stock.market.alerts"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "320726911357-bt7361kvugvh2138etdel7hkaqkgkf9a.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyATZyyUhlhzI15DZqi16FePF22CRdWPTfQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "320726911357-bt7361kvugvh2138etdel7hkaqkgkf9a.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

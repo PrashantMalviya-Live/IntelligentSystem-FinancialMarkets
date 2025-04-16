@@ -1,0 +1,126 @@
+﻿@typeparam TItem
+
+<span>
+    @if (!_isIndicatorEditing)
+    {
+        <label class="text-success" @onclick="EnterEditMode">@_selectedItemText</label>
+    }
+    else
+    {
+        //on selection changed show properties in editing mode
+        <select @onchange="OnIndicatorSelectionChanged">
+            @* Items is string array with format id:name;property1name:property1value;property2name:property2value *@
+            @foreach (var item in Items)
+            {
+                var kv = item.Split(';');
+                var id = kv[0].Split(':')[0];
+                var name = kv[0].Split(':')[1];
+                <option value=id,name>name</option> @* selected="@(EqualityComparer<TItem>.Equals(id, SelectedItem))" *@
+                
+            }
+          
+        </select>
+        <select @onchange="OnPropertySelectionChanged">
+        foreach (var properties in kv[1])
+        {
+            var propname = kv[1].Split(':')[0];
+            var propvalue = kv[1].Split(':')[1];
+            <option value=propname>propname: </option> @* selected="@(EqualityComparer<TItem>.Equals(propname, SelectedItem)) " *@
+            <option value=propvalue>propvalue</option> @* selected = "@(EqualityComparer<TItem>.Equals(propvalue, SelectedItem))" *@
+        }
+        </select>
+    }
+</span>
+
+@code {
+    private bool _isIndicatorEditing = false;
+    private bool _isPropertyEditing = false;
+
+    private string _selectedItemText;
+
+    [Parameter]
+    public required string[] Items { get; set; }
+    public int SelectedItemIndex { get; set; } = 0;
+    //public required Dictionary<string, TItem> Items { get; set; }
+
+    // public static Dictionary<string, string> instrumentOptions = new Dictionary<string, string> { { "260105", "NIFTY" }, { "256265", "BANKNIFTY" }, { "223432", "TCS" } };
+    // public static Dictionary<string, string> timeFrameOptions = new Dictionary<string, string> { { "0", "1 min" }, { "1", "2 min" }, { "2", "3 min" } };
+    // public static Dictionary<string, string> indicatorOptions = new Dictionary<string, string> { { "0", "Open" }, { "1", "High" }, { "2", "EMA" }, { "3", "RSI" } };
+    // public static Dictionary<string, string> mathoperatorOptions = new Dictionary<string, string> { { "0", "Equals to" }, { "1", "Greater than" }, { "2", "Less than" } };
+    // public static Dictionary<string, string> logicaloperatorOptions = new Dictionary<string, string> { { "0", "AND" }, { "1", "OR" } };
+
+
+    //this parameter will consists of full indicator format: id:name:time;optionalpropert1:optionalpropertyvalue1;..
+    [Parameter]
+    public string SelectedItem { get; set; }
+
+
+    [Parameter]
+    public EventCallback<string> SelectedItemChanged { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        //_selectedItemText = Items[SelectedItem].ToString();
+
+        var kv = Items[SelectedItemIndex].Split(';');
+        var id = kv[0].Split(':')[0];
+        var name = kv[0].Split(':')[1];
+        var time = kv[0].Split(':')[2];
+
+        _selectedItemText = $"{time} min {name}";
+
+        for(int i=1;i< kv.Count(); i++)
+        {
+            var pkey = kv[i].Split(':')[0];
+            var pvalue = kv[i].Split(':')[1];
+
+            if (i == 1)
+            {
+                _selectedItemText = _selectedItemText + $" with {pkey} = {pvalue}";
+            }
+            else
+            {
+                _selectedItemText = _selectedItemText + $" and {pkey} = {pvalue}";
+            }
+        }
+
+    }
+
+    private void EnterEditMode()
+    {
+        _isIndicatorEditing = true;
+
+        _isPropertyEditing = true;
+    }
+
+    private async Task OnIndicatorSelectionChanged(ChangeEventArgs e)
+    {
+        var kv = e.Value.ToString().Split(',');
+
+        var selectedValue = kv[0];
+
+        SelectedItem = Items.FirstOrDefault(item => item == selectedValue).Key.ToString();
+        _selectedItemText = SelectedItem;
+        _isIndicatorEditing = false;
+
+        // if (SelectedItemChanged.HasDelegate)
+        // {
+        //     await SelectedItemChanged.InvokeAsync(SelectedItem);
+        // }
+    }
+    private async Task OnPropertySelectionChanged(ChangeEventArgs e)
+    {
+        var kv = e.Value.ToString().Split(',');
+
+        var selectedValue = kv[0];
+
+        SelectedItem = Items.FirstOrDefault(item => item.Key == selectedValue).Key.ToString();
+        _selectedItemText = SelectedItem;
+        _isPropertyEditing = false;
+
+        if (SelectedItemChanged.HasDelegate)
+        {
+            await SelectedItemChanged.InvokeAsync(SelectedItem);
+        }
+    }
+}

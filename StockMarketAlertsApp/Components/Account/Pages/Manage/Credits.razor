@@ -1,0 +1,72 @@
+﻿@page "/Account/Manage/Credits"
+
+@using System.ComponentModel.DataAnnotations
+@using System.Text
+@using System.Text.Encodings.Web
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.AspNetCore.WebUtilities
+@using StockMarketAlertsApp.Data
+
+
+@inject UserManager<ApplicationUser> UserManager
+@inject IdentityUserAccessor UserAccessor
+@inject NavigationManager NavigationManager
+
+@inject AlertsClient AClient
+
+@rendermode InteractiveServer
+
+<h2>Credits</h2>
+<br />
+<p class="primaryText">Balance: @userCredits points <button class="btn btn-primary" @onclick="AddUserCredits">Load Points</button> </p>
+<p class="small-txt">
+    Load using the secure RazorPay payments.
+</p>
+@code {
+    private decimal userCredits;
+
+    private string? message;
+    private ApplicationUser currentUser = default!;
+
+    // [CascadingParameter]
+    // private HttpContext HttpContext { get; set; } = default!;
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? authenticationState { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        // if (HttpContext is not null)
+        // {
+        //     currentUser = await UserAccessor.GetRequiredUserAsync(HttpContext);
+        //     //currentUser = await UserManager.GetUserAsync(user);
+        //     userCredits = await GetUserCredits(userId: currentUser.Id);// user.Id);
+        // }
+        //else 
+        if (authenticationState is not null)
+        {
+            var authState = await authenticationState;
+            var user = authState?.User;
+
+            if (user?.Identity is not null && user.Identity.IsAuthenticated)
+            {
+                //authMessage = $"{user.Identity.Name} is authenticated.";
+                currentUser = await UserManager.GetUserAsync(user);
+
+                userCredits = await GetUserCredits(userId: currentUser.Id);// user.Id);
+            }
+        }
+    }
+
+    private async Task<decimal> GetUserCredits(string userId)//ApplicationUser applicationUser)
+    {
+        return await AClient.GetUserCredits(userId);// applicationUser.Id);
+    }
+
+    private int counter = 0;
+
+    private async Task AddUserCredits()
+    {
+        userCredits = await AClient.AddUserCredits(currentUser.Id, credits: 100);
+    }
+}

@@ -35,6 +35,6 @@ export class ActiveAlgo {
     //algo start date
     public algodate: string,
     //algo orders (if any)
-    public orders: Order[]
+    public orders: Order[] = []
   ) { }
 }

@@ -6,7 +6,7 @@ using GlobalLayer;
 using Microsoft.AspNetCore.Mvc;
 using Algorithms.Utilities;
 using KiteConnect;
-using ZConnectWrapper;
+using BrokerConnectWrapper;
 using Microsoft.AspNetCore.Cors;
 using System.ServiceModel.Channels;
 
@@ -21,19 +21,23 @@ namespace MarketView.Controllers
         //public IActionResult Login([FromQuery] string request_token, [FromQuery] string action, [FromQuery] string status)
         public IActionResult Login([FromBody] LoginParams data)
         {
-            OkObjectResult result;
+            ObjectResult result;
             try
             {
 #if market
                 Login l = new Login();
-                User activeUser = l.GetActiveUser();
+                User activeUser = l.GetActiveUser(0);
                 Kite kite = new Kite(activeUser.APIKey);
 
                 if (data.request_token == null)
                 {
                     string loginUrl = kite.GetLoginURL();
 
+                    //TODO Commented for new UI
                     result = new OkObjectResult(new { message = "401 Unauthorized", login = true, url = loginUrl });
+
+
+                    //result = new UnauthorizedObjectResult(new { message = "401 Unauthorized", login = true, url = loginUrl });
                     return result;
                 }
                 else
@@ -64,7 +68,7 @@ namespace MarketView.Controllers
             public string action { get; set; }
             public string status { get; set; }
         }
-       
+
 
         //public IActionResult Login([FromBody] object quaryParams)
         //{

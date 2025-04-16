@@ -1,738 +1,1214 @@
-﻿using System;
+﻿using Algorithms.Candles;
+using Algorithms.Indicators;
+using Algorithms.Utilities;
+using Algorithms.Utils;
+using GlobalLayer;
+using GlobalCore;
+using System;
 using System.Collections.Generic;
+using System.Data;
+using System.Dynamic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Algorithms.Utilities;
-using GlobalLayer;
-using KiteConnect;
-using ZConnectWrapper;
-//using Pub_Sub;
-//using MarketDataTest;
-using System.Data;
+using BrokerConnectWrapper;
 using ZMQFacade;
+using System.Timers;
+using System.Threading;
+using System.Net.Sockets;
+//using Google.Apis.Http;
+using System.Net.Http;
+using Google.Protobuf.WellKnownTypes;
+using System.Globalization;
+using System.Collections;
+using System.Drawing;
+using System.Reactive;
+using System.Runtime.InteropServices;
+//using InfluxDB.Client.Api.Domain;
 
-namespace Algos.TLogics
+
+namespace Algorithms.Algorithms
 {
-    public class ManageStrangleValue : IZMQ //, IObserver<Tick[]>
+    public class ManageStrangleValue : IZMQ
     {
-        //LinkedList<decimal> lowerPuts;
-        //LinkedList<decimal> upperCalls;
+        private readonly int _algoInstance;
+        public List<Instrument> ActiveOptions { get; set; }
+        public SortedList<decimal, Instrument> CallUniverse { get; set; }
+        public SortedList<decimal, Instrument> PutUniverse { get; set; }
 
-        public ManageStrangleValue()
+        [field: NonSerialized]
+        public delegate void OnOptionUniverseChangeHandler(ManageStrangleValue source);
+        [field: NonSerialized]
+        public event OnOptionUniverseChangeHandler OnOptionUniverseChange;
+
+        [field: NonSerialized]
+        public delegate void OnTradeEntryHandler(Order st);
+        [field: NonSerialized]
+        public event OnTradeEntryHandler OnTradeEntry;
+
+        [field: NonSerialized]
+        public delegate void OnTradeExitHandler(Order st);
+        [field: NonSerialized]
+        public event OnTradeExitHandler OnTradeExit;
+
+        //public StrangleOrderLinkedList sorderList;
+        public List<OrderTrio> _callOrderTrios;
+        public List<OrderTrio> _putOrderTrios;
+        public OrderTrio _hedgeCallOrderTrio;
+        public OrderTrio _hedgePutOrderTrio;
+
+        private decimal _referenceStraddleValue = 0;
+        private decimal _referenceValueForStraddleShift;
+        private const decimal THRESHOLD_FOR_POSITION_CHANGE_REFERENCE_STRADDLE_VALUE = 1.5M;
+        public List<Order> _pastOrders;
+        private bool _stopTrade;
+        private bool _stopLossHit = false;
+        public Queue<uint> TimeCandleWaitingQueue;
+        public List<uint> tokenExits;
+        //All active tokens that are passing all checks. This is kept seperate from tokenvolume as tokens may get in and out of the activeToken list.
+        public List<uint> activeTokens;
+        DateTime _endDateTime;
+        DateTime? _expiryDate;
+        TimeSpan _candleTimeSpan;
+        public decimal _strikePriceRange;
+        private bool _intraday = true;
+        private uint _baseInstrumentToken;
+        private const uint VIX_TOKEN = 264969;
+        private decimal _baseInstrumentPrice;
+        private decimal _bInstrumentPreviousPrice;
+        public const int CANDLE_COUNT = 30;
+        public readonly decimal _minDistanceFromBInstrument;
+        public readonly decimal _maxDistanceFromBInstrument;
+        public readonly int _emaLength;
+        private const int BASE_ADX_LENGTH = 30;
+        public readonly TimeSpan MARKET_START_TIME = new TimeSpan(9, 15, 0);
+        public int _tradeQty;
+        private bool _positionSizing = false;
+        private decimal _maxLossPerTrade = 0;
+        private decimal _thresholdRatio;
+        private decimal _stopLossRatio;
+
+        private decimal _upperLevel1;
+        private decimal _upperLevel2;
+        private decimal _upperLevel3;
+        private decimal _lowerLevel1;
+        private decimal _lowerLevel2;
+        private decimal _lowerLevel3;
+
+        private decimal _minDistanceforL1;
+        private decimal _minDistanceL1L2;
+        private decimal _minDistanceL2L3;
+
+        private int _initialQty;
+        private int _stepQty;
+        private int _maxQty;
+        private decimal _targetProfit;
+        private decimal _stopLoss;
+        private decimal _targetProfitPoints;
+        private decimal _stopLossPoints;
+        private decimal _initialDelta;
+        private decimal _minDelta;
+        private decimal _maxDelta;
+        private Instrument _activeCall;
+        private int _strikePriceIncrement = 100;
+        private Instrument _activePut;
+        private IHttpClientFactory _httpClientFactory;
+        Dictionary<uint, bool> _firstCandleOpenPriceNeeded;
+        private bool _adxPeaked = false;
+        private User _user;
+        public const AlgoIndex algoIndex = AlgoIndex.DeltaStrangleWithLevels;
+        //TimeSpan candletimeframe;
+        private bool _straddleShift;
+        bool callLoaded = false;
+        bool putLoaded = false;
+        bool referenceCallLoaded = false;
+        bool referencePutLoaded = false;
+        private decimal _totalPnL = 0;
+        CandleManger candleManger;
+        Dictionary<uint, List<Candle>> TimeCandles;
+
+        public List<uint> SubscriptionTokens { get; set; }
+        private bool _higherProfit = false;
+        private System.Timers.Timer _healthCheckTimer;
+        private System.Timers.Timer _logTimer;
+        private int _healthCounter = 0;
+        private Object tradeLock = new Object();
+        //This is more suited for positional trading, as it is done based on levels, but it can be ended on daily basis too.
+        public ManageStrangleValue(TimeSpan candleTimeSpan, uint baseInstrumentToken, DateTime? expiry, DateTime currentDate, decimal lowerLevel1,
+            decimal lowerLevel2, decimal upperLevel1, decimal _upperLevel2, int initialQty, int stepQty, int maxQty, decimal initialDelta,
+            decimal minDelta, decimal maxDelta, string uid, decimal targetProfit, decimal stopLoss, int algoInstance = 0,
+            bool positionSizing = false, IHttpClientFactory httpClientFactory = null)
         {
-            LoadActiveStrangles();
+            _candleTimeSpan = candleTimeSpan;
+            _expiryDate = expiry;
+            _baseInstrumentToken = baseInstrumentToken;
+            _stopTrade = true;
+            _httpClientFactory = httpClientFactory;
+            SubscriptionTokens = new List<uint>();
+            ActiveOptions = new List<Instrument>();
+            CandleSeries candleSeries = new CandleSeries();
+            _positionSizing = positionSizing;
+            _firstCandleOpenPriceNeeded = new Dictionary<uint, bool>();
+            TimeCandles = new Dictionary<uint, List<Candle>>();
+            candleManger = new CandleManger(TimeCandles, CandleType.Time);
+            candleManger.TimeCandleFinished += CandleManger_TimeCandleFinished;
+
+            
+            //_lowerLevel2 = lowerLevel1;
+            //_lowerLevel3 = lowerLevel2;
+            //_upperLevel2 = upperLevel1;
+            //_upperLevel3 = _upperLevel2;
+            _initialDelta = initialDelta;
+            _minDelta = minDelta;
+            _maxDelta = maxDelta;
+            _initialQty = initialQty;
+            _stepQty = stepQty;
+            _maxQty = maxQty;
+            _stopLoss = stopLoss;
+            _targetProfit = targetProfit;
+
+            ZConnect.Login();
+            _user = KoConnect.GetUser(userId: uid);
+
+            SetInitialDeltaSLTP(currentDate, _initialDelta);
+
+            _algoInstance = algoInstance != 0 ? algoInstance :
+                Utility.GenerateAlgoInstance(algoIndex, baseInstrumentToken, DateTime.Now,
+                expiry.GetValueOrDefault(DateTime.Now), _initialQty, _maxQty, _stepQty, _maxDelta, 0, _minDelta, 0, 0, 0, candleTimeFrameInMins:
+                (float)candleTimeSpan.TotalMinutes, CandleType.Time, 0, _targetProfit, _stopLoss, _lowerLevel2, _lowerLevel3, _upperLevel2, _upperLevel3, Arg9: _user.UserId,
+                positionSizing: _positionSizing, maxLossPerTrade: _maxLossPerTrade);
+
+
+
+#if !BACKTEST
+            //health check after 1 mins
+            _healthCheckTimer = new System.Timers.Timer(interval: 1 * 60 * 1000);
+            _healthCheckTimer.Elapsed += CheckHealth;
+            _healthCheckTimer.Start();
+
+            _logTimer = new System.Timers.Timer(interval: 5 * 60 * 1000);
+            _logTimer.Elapsed += PublishLog;
+            _logTimer.Start();
+#endif
         }
-            Dictionary<int, InstrumentLinkedList[]> ActiveStrangles = new Dictionary<int, InstrumentLinkedList[]>();
 
-        //InstrumentLinkedList Puts;
-        //InstrumentLinkedList Calls;
-        // Consumer consumer;
-        List<UInt32> assignedTokens;
-
-        //public List<UInt32> ITokensToSubscribe { get; set; }
-        public IDisposable UnsubscriptionToken;
-
-
-        //Variable set based on actual data
-
-        Instrument _bInst;
-        
-        
-
-        //decimal _peLowerValue, _peUpperValue, _ceLowerValue, _ceUpperValue;
-        //double _pelowerDelta, _peUpperDelta, _celowerDelta, _ceUpperDelta;
-        //decimal _stopLossPoints;
-
-
-        //public virtual void Subscribe(Publisher publisher)
+        //public void LoadActiveOrders(List<OrderTrio> activeOrderTrios)
         //{
-        //    UnsubscriptionToken = publisher.Subscribe(this);
+        //    if (activeOrderTrios != null && activeOrderTrios.Count > 0)
+        //    {
+        //        foreach (var orderTrio in activeOrderTrios)
+        //        {
+        //            DataLogic dl = new DataLogic();
+        //            Instrument option = dl.GetInstrument(orderTrio.Order.Tradingsymbol);
+
+        //            ActiveOptions.Add(option);
+        //            orderTrio.Option = option;
+
+        //            if (option.InstrumentType.ToLower() == "ce")
+        //            {
+        //                _callOrderTrios.Add(orderTrio);
+        //            }
+        //            else if (option.InstrumentType.ToLower() == "pe")
+        //            {
+        //                _putOrderTrios.Add(orderTrio);
+        //            }
+        //        }
+        //        _activeCall = _callOrderTrios.Last().Option;
+        //        _activePut = _putOrderTrios.Last().Option;
+        //    }
         //}
-        //public virtual void Subscribe(TickDataStreamer publisher)
-        //{
-        //    UnsubscriptionToken = publisher.Subscribe(this);
-        //}
 
-        public virtual void Unsubscribe()
-        {
-            UnsubscriptionToken.Dispose();
-        }
 
-        public virtual void OnCompleted()
+        /// <summary>
+        /// Logic:
+        ///
+        /// Sell strangle based on ATM premium on Friday, and 1.5 times..or 300 points away from total straddle range.
+        /// Mark 2 critical levels: Use previous day swing, previous week swing..swing on daily chart, or 2 hrs chart.
+        /// Initial levels are used for one adjustment factor, which is high
+        /// Outerlevels are used for another adjustment factor which is lower
+        /// and once outler level is crossed..book the profit or SL
+        /// Target points for each day
+        /// Start with small lots and increase in 2 times to better manage the Pnl
+        /// </summary>
+        /// <param name="tick"></param>
+        private void ActiveTradeIntraday(Tick tick)
         {
-        }
-
-        private void ReviewStrangle(InstrumentLinkedList optionList, Tick[] ticks)
-        {
+            DateTime currentTime = (tick.InstrumentToken == _baseInstrumentToken || tick.InstrumentToken == VIX_TOKEN) ?
+                tick.Timestamp.Value : tick.LastTradeTime.Value;
             try
             {
-               
-                    InstrumentListNode optionNode = optionList.Current;
-                    Instrument currentOption = optionNode.Instrument;
-                try
+                uint token = tick.InstrumentToken;
+                lock (tradeLock)
                 {
-
-                    /// ToDO: Remove this on the live environment as this will come with the tick data
-                    if (currentOption.LastPrice == 0)
+                    if (!GetBaseInstrumentPrice(tick))
                     {
-                        DataLogic dl = new DataLogic();
-                        currentOption.LastPrice = dl.RetrieveLastPrice(currentOption.InstrumentToken, Convert.ToDateTime("2019-07-22 09:00:00"));
-
-                        optionList.Current.Instrument = currentOption;
+                        return;
                     }
+                    LocateLevels(currentTime);
+                    LoadOptionsToTrade(currentTime);
+                    UpdateInstrumentSubscription(currentTime);
+                    MonitorCandles(tick, currentTime);
 
-                    _bInst.InstrumentToken = currentOption.BaseInstrumentToken;
 
-                    Tick baseInstrumentTick = ticks.FirstOrDefault(x => x.InstrumentToken == _bInst.InstrumentToken);
-                    if (baseInstrumentTick.LastPrice != 0)
+                    //Update option price
+                    foreach (Instrument option in CallUniverse.Values)
                     {
-                        _bInst.LastPrice = baseInstrumentTick.LastPrice;
-                    }
-                }
-                catch
-                {
-
-                }
-
-                try
-                {
-
-                    Tick optionTick = ticks.FirstOrDefault(x => x.InstrumentToken == currentOption.InstrumentToken);
-                    if (optionTick.LastPrice != 0)
-                    {
-                        currentOption.LastPrice = optionTick.LastPrice;
-                        optionList.Current.Instrument = currentOption;
-                    }
-                }
-                catch
-                {
-
-                }
-
-                try
-                {
-                    //Pulling next nodes from the begining and keeping it up to date from the ticks. This way next nodes will be available when needed, as Tick table takes time.
-                    //Doing it on Async way
-                    if (optionNode.NextNode == null || optionNode.PrevNode == null)
-                        AssignNextNodes(optionNode, _bInst.InstrumentToken, currentOption.InstrumentType, currentOption.Strike, currentOption.Expiry.Value);
-
-                }
-                catch
-                {
-
-                }
-                try
-                {
-                    UpdateLastPriceOnAllNodes(ref optionNode, ref ticks);
-                }
-                catch
-                {
-
-                }
-
-                try
-                {
-                    if (MoveNodes(optionNode, optionList, currentOption))
-                    {
-                        //put P&L impact on node level on the linked list
-                        //decimal previousNodeAvgPrice = PlaceOrder(currentOption.TradingSymbol, buyOrder: true);
-                        optionNode.Prices.Add(PlaceOrder(currentOption.TradingSymbol, buyOrder: true, optionList, ticks) * -1); //buy prices are negative and sell are positive. as sign denotes cashflow direction
-
-                        decimal previousNodeBuyPrice = optionNode.Prices.Last();  //optionNode.Prices.Skip(optionNode.Prices.Count - 2).Sum();
-
-                        uint previousInstrumentToken = currentOption.InstrumentToken;
-                        int previousInstrumentIndex = optionNode.Index;
-                        //Logic to determine the next node and move there
-                        optionNode = MoveToSubsequentNode(optionNode, currentOption.LastPrice, optionList, ticks);
-
-                        currentOption = optionNode.Instrument;
-                        optionList.Current = optionNode;
-
-                        //if (optionNode.Prices.Count > 0 && optionNode.Prices.First() == 0)
-                        //{
-                        //    optionNode.Prices.RemoveAt(0);
-                        //}
-                        optionNode.Prices.Add(PlaceOrder(currentOption.TradingSymbol, buyOrder: false, optionList, ticks));
-                        decimal currentNodeSellPrice = optionNode.Prices.Last(); //buy prices are negative and sell are positive. as sign denotes cashflow direction
-
-                        //Do we need current instrument index , when current instrument is already present in the linked list?
-                        //It can see the index of current instrument using list.current.index
-                        optionList.CurrentInstrumentIndex = optionNode.Index;
-
-
-
-                        //make next symbol as next to current node. Also update PL data in linklist main
-                        //also update currnetindex in the linklist main
-                        DataLogic dl = new DataLogic();
-                        dl.UpdateListData(optionList.listID, currentOption.InstrumentToken, optionNode.Index, previousInstrumentIndex, currentOption.InstrumentType,
-                           previousInstrumentToken, currentNodeSellPrice, previousNodeBuyPrice, AlgoIndex.PriceStrangle);
-                    }
-                }
-                catch
-                {
-
-                }
-            }
-            catch (Exception exp)
-            {
-                //throw exp;
-            }
-        }
-        private bool MoveNodes(InstrumentListNode optionNode, InstrumentLinkedList optionList, Instrument currentOption)
-        {
-            try
-            {
-                if (optionNode.Prices.Count > 0)
-                {
-                    if (optionList.MaxProfitPoints > 0 && optionList.MaxLossPoints > 0)
-                    {
-                        if ((optionNode.Prices.Last() > optionList.MaxProfitPoints) &&
-                                (currentOption.LastPrice < optionNode.Prices.Last() - optionList.MaxProfitPoints || currentOption.LastPrice > optionNode.Prices.Last() + optionList.MaxLossPoints))
+                        if (option.InstrumentToken == tick.InstrumentToken)
                         {
-                            return true;
-                        }
-                    }
-                    else if (optionList.MaxProfitPercent > 0 && optionList.MaxLossPercent > 0)
-                    {
-                        if (currentOption.LastPrice < optionNode.Prices.Last() * optionList.MaxProfitPercent || currentOption.LastPrice > optionNode.Prices.Last() * optionList.MaxLossPercent)
-                        {
-                            return true;
-                        }
-                    }
-                }
-            }
-            catch
-            {
-
-            }
-            return false;
-        }
-        private InstrumentListNode MoveToSubsequentNode(InstrumentListNode optionNode, decimal optionPrice, InstrumentLinkedList optionList, Tick[] ticks)
-        {
-            try
-            {
-                bool nodeFound = false;
-                Instrument currentOption = optionNode.Instrument;
-                decimal initialSellingPrice = optionNode.Prices.ElementAtOrDefault(optionNode.Prices.Count - 2);
-                ///TODO: Change this to Case statement.
-                if (currentOption.InstrumentType.Trim(' ') == "CE")
-                {
-                    if (optionPrice > (optionList.MaxLossPoints == 0 ? initialSellingPrice * optionList.MaxLossPercent : initialSellingPrice + optionList.MaxLossPoints))
-                    {
-                        while (optionNode.NextNode != null)
-                        {
-                            optionNode = optionNode.NextNode;
-
-                            //No condition modelled to determine the next node
-                            //if (optionNode.Instrument.LastPrice <= upperPrice * 0.8m) //90% of upper delta
-                            //{
-                            nodeFound = true;
+                            option.LastPrice = tick.LastPrice;
                             break;
-                            //}
                         }
-
                     }
-                    else
+                    foreach (Instrument option in PutUniverse.Values)
                     {
-                        while (optionNode.PrevNode != null)
+                        if (option.InstrumentToken == tick.InstrumentToken)
                         {
-                            optionNode = optionNode.PrevNode;
-                            //No condition modelled to determine the next node
-                            //if (optionNode.Instrument.LastPrice >= lowerPrice * 1.2m) //110% of lower delta
-                            //{
-                            nodeFound = true;
+                            option.LastPrice = tick.LastPrice;
                             break;
-                            //}
                         }
-
                     }
+
+                    //Take trade after 9:20 AM only
+                    if (currentTime.TimeOfDay <= new TimeSpan(09, 20, 00))
+                    {
+                        return;
+                    }
+
+                    ///Logic:
+                    ///Take trade based on initial delta and level 2, which ever is more conservative
+                    ///Vary quantity based on levels, but not levels
+                    if (_baseInstrumentPrice >= _lowerLevel2 && _baseInstrumentPrice <= _upperLevel2)
+                    {
+                        decimal outerlevelDistance = 0;
+                        if (_activeCall == null && _activePut == null)
+                        {
+                            outerlevelDistance = Math.Min(_upperLevel2 - _baseInstrumentPrice, _baseInstrumentPrice - _lowerLevel2);
+
+                            //if (_activeCall == null)
+                            //{
+
+                                decimal initialCallStrike = GetInitialStrike(InstrumentType.CE, currentTime, CallUniverse,
+                                    Math.Floor((_baseInstrumentPrice + outerlevelDistance) / _strikePriceIncrement) * _strikePriceIncrement);
+
+                            decimal initialPutStrike = GetInitialStrike(InstrumentType.PE, currentTime, PutUniverse,
+                                Math.Ceiling((_baseInstrumentPrice - outerlevelDistance) / _strikePriceIncrement) * _strikePriceIncrement);
+
+                            if(initialCallStrike ==0 || initialPutStrike == 0)
+                            {
+                                return;
+                            }
+                            decimal cQty = _initialQty, pQty = _initialQty;
+                            if(initialCallStrike - _upperLevel1 > _lowerLevel1 - initialPutStrike)
+                            {
+                                pQty = Math.Abs(Math.Round(cQty * ((_lowerLevel1 - initialPutStrike) / (initialCallStrike - _upperLevel1)), 0));
+                                pQty = pQty == 0 ? _initialQty : pQty;
+                            }
+                            else
+                            {
+                                cQty = Math.Abs(Math.Round(pQty * ((initialCallStrike - _upperLevel1) / (_lowerLevel1 - initialPutStrike)), 0));
+
+                                cQty = cQty ==0? _initialQty : cQty;
+                            }
+                            //cQty = _initialQty; pQty = _initialQty;
+                            OrderTrio ot = TradeEntry(CallUniverse[initialCallStrike] , currentTime, Convert.ToInt32(cQty), false);
+                                if (ot != null)
+                                {
+                                    _activeCall = ot.Option;
+                                    _callOrderTrios ??= new List<OrderTrio>();
+                                    _callOrderTrios.Add(ot);
+                                }
+                            //}
+                            //if (_activePut == null)
+                            //{
+                                //decimal initialPutStrike = GetInitialStrike(InstrumentType.PE, currentTime, PutUniverse,
+                                //    Math.Round((_baseInstrumentPrice - outerlevelDistance) / _strikePriceIncrement) * _strikePriceIncrement);
+
+                                ot = TradeEntry(PutUniverse[initialPutStrike], currentTime, Convert.ToInt32(pQty), false);
+                                if (ot != null)
+                                {
+                                    _activePut = ot.Option;
+                                    _putOrderTrios ??= new List<OrderTrio>();
+                                    _putOrderTrios.Add(ot);
+                                }
+                            //}
+                            if (_activeCall != null && _activePut != null)
+                            {
+                                _referenceStraddleValue = _referenceStraddleValue == 0 ? _activeCall.LastPrice + _activePut.LastPrice : _referenceStraddleValue;
+                                DataLogic dl = new DataLogic();
+                                dl.UpdateArg8(_algoInstance, _referenceStraddleValue);
+                            }
+                        }
+                    }
+                }
+
+                Interlocked.Increment(ref _healthCounter);
+            }
+            catch (Exception ex)
+            {
+                _stopTrade = true;
+                Logger.LogWrite(String.Format("{0}, {1}", ex.Message, ex.StackTrace));
+                Logger.LogWrite("Trading Stopped as algo encountered an error");
+                //throw new Exception("Trading Stopped as algo encountered an error. Check log file for details");
+                LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Error, currentTime,
+                    String.Format(@"Error occurred! Trading has stopped. \r\n {0}", ex.Message), "ActiveTradeIntraday");
+                Thread.Sleep(100);
+            }
+        }
+
+
+        private void CandleManger_TimeCandleFinished(object sender, Candle e)
+        {
+            uint token = e.InstrumentToken;
+            decimal lastPrice = e.ClosePrice;
+            DateTime currentTime = e.CloseTime;
+
+            try
+            {
+                ///Logic
+                ///IF base instrument is within level1, move closure
+                ///if banse instrument is outside level 1, move further.
+                ///option should never come closure then level2 , else move further.
+
+                if (token == _baseInstrumentToken && _activeCall != null && _activePut != null)
+                {
+                    //This is not an active trade zone, however manage the mtm swings with threshold basis trade
+                    //Use position sizing. Start with small lot and increase, but do not actively manage here
+                    //if (_baseInstrumentPrice > _lowerLevel1 - _strikePriceIncrement && _baseInstrumentPrice < _upperLevel1 + _strikePriceIncrement)
+                    //{
+                        int callTradedQty = _callOrderTrios.Sum(x => x.Order.Quantity) / (int)_activeCall.LotSize;
+                        int putTradedQty = _putOrderTrios.Sum(x => x.Order.Quantity) / (int)_activePut.LotSize;
+
+                        //increase position size when it is between the lower levels.
+
+                        if (_activePut.LastPrice > _activeCall.LastPrice * 2m)
+                        {
+                            //IF base instrument is between level 1 on both side, then move options closure, if they are outside level1.
+                            //Never move options closure to level1 as long as base instrument is within level1
+
+                            
+
+                            Instrument nextStrikeCall = CallUniverse.FirstOrDefault(x => x.Value.LastPrice < _activePut.LastPrice && x.Value.LastPrice != 0).Value;
+                        decimal cdelta = (decimal)nextStrikeCall.UpdateDelta((double)nextStrikeCall.LastPrice, 0.1, e.CloseTime, (double)_baseInstrumentPrice);
+
+                        if (nextStrikeCall.Strike < _upperLevel2 && cdelta > _minDelta)
+                            {
+                                //move put further
+                                Instrument nextStrikePut = PutUniverse.LastOrDefault(x => x.Value.LastPrice < _activeCall.LastPrice && x.Value.LastPrice != 0).Value;
+                                if (nextStrikePut != null)
+                                {
+                                    int qty = _putOrderTrios.Sum(x => x.Order.Quantity) / (int)_activeCall.LotSize;
+                                    DataLogic dl = new DataLogic();
+                                    foreach (OrderTrio orderTrio in _putOrderTrios)
+                                    {
+                                        TradeEntry(orderTrio.Option, currentTime, orderTrio.Order.Quantity / (int)_activeCall.LotSize, true);
+                                        dl.DeActivateOrderTrio(orderTrio);
+                                    }
+                                    _putOrderTrios.Clear();
+                                    _activePut = nextStrikePut;
+                                    _putOrderTrios.Add(TradeEntry(nextStrikePut, currentTime, qty, false));
+                                }
+                            }
+                            else
+                            {
+                                nextStrikeCall = CallUniverse.FirstOrDefault(x => x.Value.LastPrice < _activePut.LastPrice && x.Value.LastPrice != 0).Value;
+                                if (nextStrikeCall != null)
+                                {
+                                    int qty = _callOrderTrios.Sum(x => x.Order.Quantity) / (int)_activeCall.LotSize;
+                                    DataLogic dl = new DataLogic();
+                                    foreach (OrderTrio orderTrio in _callOrderTrios)
+                                    {
+                                        TradeEntry(orderTrio.Option, currentTime, orderTrio.Order.Quantity / (int)orderTrio.Option.LotSize, true);
+                                        dl.DeActivateOrderTrio(orderTrio);
+                                    }
+                                    _callOrderTrios.Clear();
+                                    _activeCall = nextStrikeCall;
+                                    _callOrderTrios.Add(TradeEntry(nextStrikeCall, currentTime, qty, false));
+                                }
+                            }
+                        }
+                        else if (_activeCall.LastPrice > _activePut.LastPrice * 2m)
+                        {
+                            //IF base instrument is between level 1 on both side, then move options closure, if they are outside level1.
+                            //Never move options closure to level1 as long as base instrument is within level1
+
+                            
+                            Instrument nextStrikePut = PutUniverse.LastOrDefault(x => x.Value.LastPrice < _activeCall.LastPrice && x.Value.LastPrice != 0).Value;
+                            decimal pdelta = (decimal)nextStrikePut.UpdateDelta((double)nextStrikePut.LastPrice, 0.1, e.CloseTime, (double)_baseInstrumentPrice);
+
+                        if (nextStrikePut.Strike > _lowerLevel2 && pdelta * -1 > _minDelta)
+                            {
+                                //move call further
+                                Instrument nextStrikeCall = CallUniverse.First(x => x.Value.LastPrice < _activePut.LastPrice && x.Value.LastPrice != 0).Value;
+                                if (nextStrikeCall != null)
+                                {
+                                    int qty = _callOrderTrios.Sum(x => x.Order.Quantity) / (int)_activeCall.LotSize;
+                                    DataLogic dl = new DataLogic();
+                                    foreach (OrderTrio orderTrio in _callOrderTrios)
+                                    {
+                                        TradeEntry(orderTrio.Option, currentTime, orderTrio.Order.Quantity / (int)orderTrio.Option.LotSize, true);
+                                        dl.DeActivateOrderTrio(orderTrio);
+                                    }
+                                    _callOrderTrios.Clear();
+                                    _activeCall = nextStrikeCall;
+                                    _callOrderTrios.Add(TradeEntry(nextStrikeCall, currentTime, qty, false));
+                                }
+                            }
+                            else
+                            {
+                                nextStrikePut = PutUniverse.LastOrDefault(x => x.Value.LastPrice < _activeCall.LastPrice && x.Value.LastPrice != 0).Value;
+                                if (nextStrikePut != null)
+                                {
+                                    int qty = _putOrderTrios.Sum(x => x.Order.Quantity) / (int)_activeCall.LotSize;
+                                    DataLogic dl = new DataLogic();
+                                    foreach (OrderTrio orderTrio in _putOrderTrios)
+                                    {
+                                        TradeEntry(orderTrio.Option, currentTime, orderTrio.Order.Quantity / (int)orderTrio.Option.LotSize, true);
+                                        dl.DeActivateOrderTrio(orderTrio);
+                                    }
+                                    _putOrderTrios.Clear();
+                                    _activePut = nextStrikePut;
+                                    _putOrderTrios.Add(TradeEntry(nextStrikePut, currentTime, qty, false));
+                                }
+                            }
+                        }
+                        else if (_activeCall.LastPrice + _activePut.LastPrice > _referenceStraddleValue * THRESHOLD_FOR_POSITION_CHANGE_REFERENCE_STRADDLE_VALUE
+                                                && callTradedQty <= _maxQty - _stepQty && putTradedQty <= _maxQty - _stepQty)
+                        {
+                            OrderTrio orderTrio = TradeEntry(_activeCall, currentTime, _stepQty, false);
+                            _callOrderTrios.Add(orderTrio);
+
+                            orderTrio = TradeEntry(_activePut, currentTime, _stepQty, false);
+                            _putOrderTrios.Add(orderTrio);
+                        }
+                    //}
+                    //else
+                    //{
+                    
+                        
+                    //    //TriggerEODPositionClose(currentTime, true);
+                    //}
+                }
+                //Closes all postions at 3:20 PM
+                if (_intraday)
+                {
+                    TriggerEODPositionClose(currentTime);
                 }
                 else
                 {
-                    if (optionPrice > (optionList.MaxLossPoints == 0 ? initialSellingPrice * optionList.MaxLossPercent : initialSellingPrice + optionList.MaxLossPoints))
-                    {
-                        while (optionNode.PrevNode != null)
-                        {
-                            optionNode = optionNode.PrevNode;
-                            //No condition modelled to determine the next node
-                            //if (optionNode.Instrument.LastPrice <= upperPrice * 0.8m) //90% of upper delta
-                            //{
-                            nodeFound = true;
-                            break;
-                            //}
-                        }
-                    }
-                    else
-                    {
-                        while (optionNode.NextNode != null)
-                        {
-                            optionNode = optionNode.NextNode;
-                            //No condition modelled to determine the next node
-                            //if (optionNode.Instrument.LastPrice >= lowerPrice * 1.2m) //110% of lower delta
-                            //{
-                            nodeFound = true;
-                            break;
-                            //}
-                        }
-
-                    }
+                    //Convert to Iron fly at 3:20 PM
+                    HedgeStraddle(currentTime);
                 }
-
-                if (!nodeFound)
-                {
-                    currentOption = optionNode.Instrument;
-                    AssignNextNodes(optionNode, currentOption.BaseInstrumentToken, currentOption.InstrumentType, currentOption.Strike, currentOption.Expiry.Value);
-                    optionNode = MoveToSubsequentNode(optionNode, optionPrice, optionList, ticks);
-                }
-
             }
-            catch
+            catch (Exception ex)
             {
-
+                //throw ex;
             }
-            return optionNode;
+        }
+        private OrderTrio TradeEntry(Instrument option, DateTime currentTime, int tradeQty, bool buyOrder, string tag = "")
+        {
+            OrderTrio orderTrio = null;
+            try
+            {
+                //ENTRY ORDER - Sell ALERT
+                Order order = MarketOrders.PlaceOrder(_algoInstance, option.TradingSymbol, option.InstrumentType, option.LastPrice,
+                    option.KToken, buyOrder, tradeQty * Convert.ToInt32(option.LotSize),
+                    algoIndex, currentTime, Tag: tag, product: _intraday ? Constants.PRODUCT_MIS : Constants.KPRODUCT_NRML, broker: Constants.KOTAK,
+                 httpClient: _httpClientFactory == null ? null : KoConnect.ConfigureHttpClient(_user, _httpClientFactory.CreateClient()), user: _user);
 
+                //Order order = MarketOrders.PlaceOrder(_algoInstance, option.TradingSymbol, option.InstrumentType, lastPrice,
+                // option.KToken, buyOrder, tradeQty * Convert.ToInt32(option.LotSize),
+                // algoIndex, currentTime, Tag: tag, product: _intraday ? Constants.PRODUCT_MIS : Constants.KPRODUCT_NRML, broker: Constants.KOTAK,
+                // httpClient: _httpClientFactory == null ? null : KoConnect.ConfigureHttpClient(_user, _httpClientFactory.CreateClient()), user: _user);
+
+                if (order.Status == Constants.ORDER_STATUS_REJECTED)
+                {
+                    _stopTrade = true;
+                    return orderTrio;
+                }
+
+#if !BACKTEST
+                LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Info, order.OrderTimestamp.Value,
+                   string.Format("TRADE!! {3} {0} lots of {1} @ {2}", tradeQty,
+                   option.TradingSymbol, order.AveragePrice, buyOrder ? "Bought" : "Sold"), "TradeEntry");
+
+#endif
+                orderTrio = new OrderTrio();
+                orderTrio.Order = order;
+                //orderTrio.SLOrder = slOrder;
+                orderTrio.Option = option;
+                orderTrio.EntryTradeTime = currentTime;
+                OnTradeEntry(order);
+
+                DataLogic dl = new DataLogic();
+                orderTrio.Id = dl.UpdateOrderTrio(orderTrio, _algoInstance);
+
+                _totalPnL += order.AveragePrice * order.Quantity * (buyOrder ? -1 : 1);
+            }
+            catch (Exception ex)
+            {
+                _stopTrade = true;
+                Logger.LogWrite(String.Format("{0}, {1}", ex.Message, ex.StackTrace));
+                Logger.LogWrite("Closing Application");
+                LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Error, currentTime, String.Format(@"Error occurred! Trading has stopped. \r\n {0}", ex.Message), "TradeEntry");
+                Thread.Sleep(100);
+            }
+            return orderTrio;
         }
 
 
-        //make sure ref is working with struct . else make it class
-        public virtual async Task<bool> OnNext(Tick[] ticks)
+
+        private void MonitorCandles(Tick tick, DateTime currentTime)
         {
-            //for (int i = 0; i < ActiveStrangles.Count; i++)
-            //{
-            //    await ReviewStrangle(ActiveStrangles[i][0], ticks);
-            //    await ReviewStrangle(ActiveStrangles[i][1], ticks);
-            //}
-            foreach(KeyValuePair<int, InstrumentLinkedList[]> keyValuePair in ActiveStrangles)
+            try
             {
-                 ReviewStrangle(keyValuePair.Value[0], ticks);
-                 ReviewStrangle(keyValuePair.Value[1], ticks);
-                //await ReviewStrangle(ActiveStrangles[i][1], ticks);
-            }
-            return true;
-        }
+                uint token = tick.InstrumentToken;
 
-        private void LoadActiveStrangles()
-        {
-            //InstrumentLinkedList[] strangleList = new InstrumentLinkedList[2] {
-            //    new InstrumentLinkedList(),
-            //    new InstrumentLinkedList()
-            //};
-            
-            DataLogic dl = new DataLogic();
-            DataSet activeStrangles = dl.RetrieveActiveData(AlgoIndex.PriceStrangle);
-            DataRelation strangle_Token_Relation = activeStrangles.Relations.Add("Strangle_Token",new DataColumn[] {activeStrangles.Tables[0].Columns["Id"], activeStrangles.Tables[0].Columns["OptionType"] },
-                new DataColumn[] { activeStrangles.Tables[1].Columns["StrategyId"], activeStrangles.Tables[1].Columns["Type"] });
+                //Check the below statement, this should not keep on adding to 
+                //TimeCandles with everycall, as the list doesnt return new candles unless built
 
-            
-
-            
-
-            byte strangleCount = 0;
-            foreach (DataRow strangleRow in activeStrangles.Tables[0].Rows)
-            {
-                InstrumentListNode strangleTokenNode = null;
-                foreach (DataRow strangleTokenRow in strangleRow.GetChildRows(strangle_Token_Relation))
+                if (TimeCandles.ContainsKey(token))
                 {
-                    Instrument option = new Instrument()
-                    {
-                        BaseInstrumentToken = Convert.ToUInt32(strangleTokenRow["BInstrumentToken"]),
-                        InstrumentToken = Convert.ToUInt32(strangleTokenRow["InstrumentToken"]),
-                        InstrumentType = (string)strangleTokenRow["Type"],
-                        Strike = (Decimal)strangleTokenRow["StrikePrice"],
-                        TradingSymbol = (string)strangleTokenRow["TradingSymbol"]
-                    };
-                    if (strangleTokenRow["Expiry"] != DBNull.Value)
-                        option.Expiry = Convert.ToDateTime(strangleTokenRow["Expiry"]);
-
-                    ///TODO: Each trade should be stored seperately so that prices can be stored sepertely. 
-                    ///Other wise it will create a problem with below logic, as new average gets calculated using
-                    ///last 2 prices, and retrival below is the average price.
-                    List<Decimal> prices = new List<decimal>();
-                    if((decimal)strangleTokenRow["LastSellingPrice"] != 0)
-                    prices.Add((decimal)strangleTokenRow["LastSellingPrice"]);
-
-                    if (strangleTokenNode == null)
-                    {
-                        strangleTokenNode = new InstrumentListNode(option)
-                        {
-                            Index = (int)strangleTokenRow["InstrumentIndex"]
-                        };
-                        strangleTokenNode.Prices = prices;
-                    }
-                    else
-                    {
-                        InstrumentListNode newNode = new InstrumentListNode(option)
-                        {
-                            Index = (int)strangleTokenRow["InstrumentIndex"]
-                        };
-                        newNode.Prices = prices;
-                        strangleTokenNode.AttachNode(newNode);
-                    }
-                }
-                int strategyId = (int)strangleRow["Id"];
-                InstrumentType instrumentType = (string)strangleRow["OptionType"] == "CE" ? InstrumentType.CE : InstrumentType.PE;
-
-                InstrumentLinkedList instrumentLinkedList = new InstrumentLinkedList(
-                        strangleTokenNode.GetNodebyIndex((Int16)strangleRow["CurrentIndex"]))
-                {
-                    CurrentInstrumentIndex = (Int16)strangleRow["CurrentIndex"],
-                    MaxLossPoints = (decimal)strangleRow["MaxLossPoints"],
-                    MaxProfitPoints = (decimal)strangleRow["MaxProfitPoints"],
-                    MaxLossPercent = (decimal)strangleRow["MaxLossPercent"],
-                    MaxProfitPercent = (decimal)strangleRow["MaxProfitPercent"],
-                    StopLossPoints = (double)strangleRow["StopLossPoints"],
-                    NetPrice = (decimal)strangleRow["NetPrice"],
-                    listID = strategyId
-                };
-
-                if (ActiveStrangles.ContainsKey(strategyId))
-                {
-                    ActiveStrangles[strategyId][(int)instrumentType] = instrumentLinkedList;
+                    candleManger.StreamingTimeFrameCandle(tick, token, _candleTimeSpan, true); // TODO: USING LOCAL VERSION RIGHT NOW
                 }
                 else
                 {
-                    InstrumentLinkedList[] strangle = new InstrumentLinkedList[2];
-                    strangle[(int)instrumentType] = instrumentLinkedList;
+                    DateTime lastCandleEndTime;
+                    DateTime? candleStartTime = CheckCandleStartTime(currentTime, out lastCandleEndTime);
 
-                    ActiveStrangles.Add(strategyId, strangle);
+                    if (candleStartTime.HasValue)
+                    {
+                        LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Info, currentTime,
+                            String.Format("Starting first Candle now for token: {0}", tick.InstrumentToken), "MonitorCandles");
+                        //candle starts from there
+                        candleManger.StreamingTimeFrameCandle(tick, token, _candleTimeSpan, true, candleStartTime); // TODO: USING LOCAL VERSION
+
+                    }
                 }
-
-                //strangle[strangleCount++] = new InstrumentLinkedList(
-                //        strangleTokenNode.GetNodebyIndex((Int16)strangleRow["CurrentIndex"]))
-                //    {
-                //        CurrentInstrumentIndex = (Int16)strangleRow["CurrentIndex"],
-                //        MaxLossPoints = (decimal)strangleRow["MaxLossPoints"],
-                //        MaxProfitPoints = (decimal)strangleRow["MaxProfitPoints"],
-                //        StopLossPoints = (decimal)strangleRow["StopLossPoints"]
-                //    };
-                //// int strangleID = (int)strangleTokenRow["StrangleId"];
-                ////strangleNodeList.Add(strangleID, new SortedList<decimal, InstrumentListNode>(strangleTokenNode.Index, strangleTokenNode));
-
-                //ActiveStrangles.Add(strangle);
             }
-            
-        }
-
-        private void UpdateLastPriceOnAllNodes(ref InstrumentListNode currentNode, ref Tick[] ticks)
-        {
-            Instrument option;
-            Tick optionTick;
-
-            int currentNodeIndex = currentNode.Index;
-
-            //go to the first node:
-            while (currentNode.PrevNode != null)
+            catch (Exception ex)
             {
-                currentNode = currentNode.PrevNode;
+                _stopTrade = true;
+                Logger.LogWrite(ex.Message + ex.StackTrace);
+                Logger.LogWrite("Trading Stopped as algo encountered an error");
+                //throw new Exception("Trading Stopped as algo encountered an error. Check log file for details");
+                LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Error, currentTime,
+                    String.Format(@"Error occurred! Trading has stopped. \r\n {0}", ex.Message), "MonitorCandles");
+                Thread.Sleep(100);
+                //Environment.Exit(0);
             }
-
-            //Update all the price all the way till the end
-            while (currentNode.NextNode != null)
-            {
-                option = currentNode.Instrument;
-
-                optionTick = ticks.FirstOrDefault(x => x.InstrumentToken == option.InstrumentToken);
-                if (optionTick.LastPrice != 0)
-                {
-                    option.LastPrice = optionTick.LastPrice;
-                    currentNode.Instrument = option;
-
-                }
-                currentNode = currentNode.NextNode;
-            }
-
-            //Come back to the current node
-            while (currentNode.PrevNode != null)
-            {
-                if (currentNode.Index == currentNodeIndex)
-                {
-                    break;
-                }
-                currentNode = currentNode.PrevNode;
-            }
-        }
-
-        public virtual void OnError(Exception ex)
-        {
-            ///TODO: Log the error. Also handle the error.
         }
 
         /// <summary>
-        /// Manages the value of put and call in the strangle
+        /// Check option at level2 and intial delta, which ever is lower take that trade
         /// </summary>
-        /// <param name="bInst"></param>
-        /// <param name="currentPE"></param>
-        /// <param name="currentCE"></param>
-        /// <param name="peLowerValue"></param>
-        /// <param name="peUpperValue"></param>
-        /// <param name="ceLowerValue"></param>
-        /// <param name="ceUpperValue"></param>
-        /// <param name="stopLossPoints"></param>
-        /// <param name="strangleId"></param>
-        public void ManageStrangle(Instrument bInst, Instrument currentPE, Instrument currentCE,
-            decimal peMaxProfitPoints = 0, decimal peMaxLossPoints = 0, decimal ceMaxProfitPoints = 0, 
-            decimal ceMaxLossPoints = 0, double stopLossPoints = 0, int strangleId = 0, decimal peMaxLossPercent=0, 
-            decimal peMaxProfitPercent=0, decimal ceMaxLossPercent=0, decimal ceMaxProfitPercent=0)
+        /// <param name="instrumentType"></param>
+        private decimal GetInitialStrike(InstrumentType instrumentType, DateTime currentTime, SortedList<decimal, Instrument> optionUniverse, decimal outerLevel2)
         {
-            if (currentPE.LastPrice * currentCE.LastPrice != 0)
+            double optionDelta = 0;
+            Instrument option = null;
+            decimal initialStrike = 0;
+
+            //if (optionUniverse.ContainsKey(outerLevel2))
+            //{
+            //    option = optionUniverse[outerLevel2];
+            //    orderTrio = TradeEntry(option, currentTime, _initialQty, false);
+            //}
+
+            if (optionUniverse.ContainsKey(outerLevel2))
             {
-                ///TODO: placeOrder lowerPutValue and upperCallValue
-                /// Get Executed values on to lowerPutValue and upperCallValue
+                option = optionUniverse[outerLevel2];
 
-                //Two seperate linked list are maintained with their incides on the linked list.
-                InstrumentListNode put = new InstrumentListNode(currentPE);
-                InstrumentListNode call = new InstrumentListNode(currentCE);
-
-                //If new strangle, place the order and update the data base. If old strangle monitor it.
-                if (strangleId == 0)
+                if (option.LastPrice != 0)
                 {
-                    //TEMP -> First price
-                    put.Prices.Add(currentPE.LastPrice); //put.SellPrice = 100;
-                    call.Prices.Add(currentCE.LastPrice);  // call.SellPrice = 100;
+                    initialStrike = option.Strike;
 
-                    ///Uncomment below for real time orders
-                    //put.Prices.Add(PlaceOrder(currentPE.TradingSymbol, false));
-                    //call.Prices.Add(PlaceOrder(currentPE.TradingSymbol, false));
-
-                    //Update Database
-                    DataLogic dl = new DataLogic();
-                    strangleId = dl.StoreStrangleData(currentCE.InstrumentToken, currentPE.InstrumentToken, call.Prices.Sum(),
-                        put.Prices.Sum(), AlgoIndex.PriceStrangle, ceMaxProfitPoints, ceMaxLossPoints, peMaxProfitPoints, peMaxLossPoints, 
-                        ceMaxProfitPercent, ceMaxLossPercent, peMaxProfitPercent, peMaxLossPercent, stopLossPoints = 0
-                        
-                        );
+                    //optionDelta = option.UpdateDelta(Convert.ToDouble(option.LastPrice), 0.1, currentTime, Convert.ToDouble(_baseInstrumentPrice));
+                    //if (double.IsNaN(optionDelta))
+                    //{
+                    //    optionDelta = 0;
+                    //}
                 }
-
-                //Calls = new InstrumentLinkedList(call);
-                //Puts = new InstrumentLinkedList(put);
-
-                //Calls.MaxProfitPoints = ceMaxProfitPoints;
-                //Calls.MaxLossPoints = ceMaxLossPoints;
-
-                //Puts.MaxProfitPoints = peMaxProfitPoints;
-                //Puts.MaxLossPoints = peMaxLossPoints;
-
-                //Calls.listID = Puts.listID = strangleId;
-
-                //_bInst = bInst;
             }
-        }
-        public void ManageStrangle(uint peToken, uint ceToken, string peSymbol, string ceSymbol, decimal peMaxProfitPoints = 0, decimal peMaxLossPoints = 0, decimal ceMaxProfitPoints = 0,
-          decimal ceMaxLossPoints = 0, double stopLossPoints = 0, int strangleId = 0, decimal peMaxLossPercent = 0,
-          decimal peMaxProfitPercent = 0, decimal ceMaxLossPercent = 0, decimal ceMaxProfitPercent = 0)
-        {
-            ///TODO: placeOrder lowerPutValue and upperCallValue
-            /// Get Executed values on to lowerPutValue and upperCallValue
-
-            //If new strangle, place the order and update the data base. If old strangle monitor it.
-            //TEMP -> First price
-            decimal pePrice = 100;
-            decimal cePrice = 100;
-
-            ///Uncomment below for real time orders
-            pePrice = PlaceOrder(peSymbol, false);
-            cePrice = PlaceOrder(ceSymbol, false);
-
-            //Update Database
-            DataLogic dl = new DataLogic();
-            strangleId = dl.StoreStrangleData(ceToken, peToken, cePrice,
-               pePrice, AlgoIndex.PriceStrangle, ceMaxProfitPoints, ceMaxLossPoints, peMaxProfitPoints, peMaxLossPoints,
-                ceMaxProfitPercent, ceMaxLossPercent, peMaxProfitPercent, peMaxLossPercent, stopLossPoints = 0
-
-                );
-
-        }
-        bool AssignNextNodesWithDelta(InstrumentListNode currentNode, UInt32 baseInstrumentToken, string instrumentType,
-            decimal currentStrikePrice, DateTime expiry, DateTime? tickTimeStamp)
-        {
-            DataLogic dl = new DataLogic();
-            SortedList<Decimal, Instrument> NodeData = dl.RetrieveNextNodes(baseInstrumentToken, instrumentType,
-                currentStrikePrice, expiry, currentNode.Index);
-
-            Instrument currentInstrument = currentNode.Instrument;
-
-            NodeData.Add(currentInstrument.Strike, currentInstrument);
-
-            //InstrumentListNode tempNode = currentNode;
-
-            int currentIndex = currentNode.Index;
-            int currentNodeIndex = NodeData.IndexOfKey(currentInstrument.Strike);
 
 
-
-            InstrumentListNode baseNode, firstOption = new InstrumentListNode(NodeData.Values[0]);
-            baseNode = firstOption;
-            //byte index = baseNode.Index = Convert.ToByte(Math.Floor(Convert.ToDouble(NodeData.Values.Count / 2)) * -1);
-
-            int index = currentIndex - currentNodeIndex;
-
-
-            for (byte i = 1; i < NodeData.Values.Count; i++)
+            //take sell trade
+            if (optionDelta != 0 && Math.Abs(optionDelta) < Convert.ToDouble(_initialDelta))
             {
-                InstrumentListNode option = new InstrumentListNode(NodeData.Values[i]);
+                //Sell option with initial delta
+                initialStrike = option.Strike;
 
-                baseNode.NextNode = option;
-                baseNode.Index = index;
-                option.PrevNode = baseNode;
-                baseNode = option;
-                index++;
-            }
-            baseNode.Index = index; //to assign index to the last node
-
-            if (currentNodeIndex == 0)
-            {
-                firstOption.NextNode.PrevNode = currentNode;
-                currentNode.NextNode = firstOption.NextNode;
-            }
-            else if (currentNodeIndex == NodeData.Values.Count - 1)
-            {
-                baseNode.PrevNode.NextNode = currentNode;
-                currentNode.PrevNode = baseNode.PrevNode;
+                //orderTrio = TradeEntry(option, currentTime, _initialQty, false);
             }
             else
             {
-                while (baseNode.PrevNode != null)
+                var optionSubset = instrumentType == InstrumentType.CE ? optionUniverse.Where(x => x.Key > outerLevel2).OrderBy(x => x.Key) : optionUniverse.Where(x => x.Key < outerLevel2).OrderByDescending(x => x.Key);
+                foreach (var optionSet in optionSubset)
                 {
-                    if (baseNode.Index == currentIndex)
+                    Instrument o = optionSet.Value;
+
+                    if (o.LastPrice != 0)
                     {
-                        currentNode.PrevNode = baseNode.PrevNode;
-                        currentNode.NextNode = baseNode.NextNode;
-                        break;
+                        double od = o.UpdateDelta(Convert.ToDouble(o.LastPrice), 0.1, currentTime, Convert.ToDouble(_baseInstrumentPrice));
+                        if (!double.IsNaN(od) && Math.Abs(od) <= Convert.ToDouble(_initialDelta))// && Math.Abs(od) > Convert.ToDouble(_minDelta))
+                        {
+                            //Sell option with initial delta
+                            
+                            initialStrike= o.Strike;
+                            //orderTrio = TradeEntry(o, currentTime, _initialQty, false);
+                            break;
+                        }
                     }
-                    baseNode = baseNode.PrevNode;
+                }
+
+                //Sell option at level 2
+            }
+            return initialStrike;// orderTrio;
+        }
+        private void LocateLevels(DateTime currentTime)
+        {
+            if (_lowerLevel1 == 0 || _upperLevel1 == 0)
+            {
+                //#if MARKET
+                List<Historical> bCandles = ZObjects.kite.GetHistoricalData(_baseInstrumentToken.ToString(), currentTime.Date.AddDays(-30), currentTime.Date, "60minute");
+                List<TimeFrameCandle> candles = JoinHistoricals(bCandles, 4);
+
+                List<Historical> bCandlesDaily = ZObjects.kite.GetHistoricalData(_baseInstrumentToken.ToString(), currentTime.Date.AddDays(-30), currentTime.Date, "day");
+
+                bool l1 = false, l2 = false, l3 = false, u1 = false, u2 = false, u3 = false;
+
+                foreach (var c in candles)
+                {
+                    if (!l1)
+                    {
+                        if (_lowerLevel1 == 0 || c.LowPrice < _lowerLevel1)
+                        {
+                            _lowerLevel1 = c.LowPrice;
+                        }
+                        else if (_lowerLevel1 < c.LowPrice && _lowerLevel1 < _baseInstrumentPrice - _minDistanceforL1)
+                        {
+                            l1 = true;
+                        }
+                    }
+                    else if (!l2)
+                    {
+                        if (_lowerLevel2 == 0 || c.LowPrice < _lowerLevel2)
+                        {
+                            _lowerLevel2 = c.LowPrice;
+                        }
+                        else if (_lowerLevel2 < c.LowPrice && _lowerLevel2 < _lowerLevel1 - _minDistanceL1L2)
+                        {
+                            l2 = true;
+                        }
+                    }
+
+                    if (!u1)
+                    {
+                        if (_upperLevel1 < c.HighPrice || _upperLevel1 == 0)
+                        {
+                            _upperLevel1 = c.HighPrice;
+                        }
+                        else if (_upperLevel1 > c.HighPrice && _upperLevel1 > _baseInstrumentPrice + _minDistanceforL1)
+                        {
+                            u1 = true;
+                        }
+                    }
+                    else if (!u2)
+                    {
+                        if (_upperLevel2 < c.HighPrice || _upperLevel2 == 0)
+                        {
+                            _upperLevel2 = c.HighPrice;
+                        }
+                        else if (_upperLevel2 > c.HighPrice && _upperLevel2 > _upperLevel1 + _minDistanceL1L2)
+                        {
+                            u2 = true;
+                        }
+                    }
+
+
+                }
+
+                _lowerLevel1 = l1 ? _lowerLevel1 : _baseInstrumentPrice - _minDistanceforL1;
+                _lowerLevel2 = l2 ? _lowerLevel2 : _lowerLevel1 - _minDistanceforL1;
+                _upperLevel1 = u1 ? _upperLevel1 : _baseInstrumentPrice + _minDistanceL1L2;
+                _upperLevel2 = u2 ? _upperLevel2 : _upperLevel1 + _minDistanceL1L2;
+
+                foreach (var c in bCandlesDaily)
+                {
+                    if (!l3)
+                    {
+                        if (_lowerLevel3 == 0 || c.Low < _lowerLevel3)
+                        {
+                            _lowerLevel3 = c.Low;
+                        }
+                        else if (_lowerLevel3 < c.Low && _lowerLevel3 < _lowerLevel2 - _minDistanceL2L3)
+                        {
+                            l3 = true;
+                        }
+                    }
+                    if (!u3)
+                    {
+                        if (_upperLevel3 < c.High || _upperLevel3 == 0)
+                        {
+                            _upperLevel3 = c.High;
+                        }
+                        else if (_upperLevel3 > c.High && _upperLevel3 > _upperLevel2 + _minDistanceL2L3)
+                        {
+                            u3 = true;
+                        }
+                    }
+                }
+
+                //_lowerLevel3 = l3 ? _lowerLevel3 : _lowerLevel2 - _minDistanceL2L3;
+                //_upperLevel3 = u3 ? _upperLevel3 : _lowerLevel2 + _minDistanceL2L3;
+
+                decimal minimuminacycle = bCandlesDaily.TakeLast(20).Min(x => x.Low);
+                if (_lowerLevel3 > minimuminacycle && _lowerLevel3 - minimuminacycle < 250)
+                {
+                    _lowerLevel3 = minimuminacycle;
+                }
+                decimal maxinacycle = bCandlesDaily.TakeLast(20).Max(x => x.High);
+                if (maxinacycle > _upperLevel3 && maxinacycle - _upperLevel3 < 250)
+                {
+                    _upperLevel3 = maxinacycle;
+                }
+
+
+                _lowerLevel1 = Math.Floor(_lowerLevel1 / _strikePriceIncrement) * _strikePriceIncrement;
+                _lowerLevel2 = Math.Floor(_lowerLevel2 / _strikePriceIncrement) * _strikePriceIncrement;
+                _lowerLevel3 = Math.Floor(_lowerLevel3 / _strikePriceIncrement) * _strikePriceIncrement;
+                _upperLevel1 = Math.Ceiling(_upperLevel1 / _strikePriceIncrement) * _strikePriceIncrement;
+                _upperLevel2 = Math.Ceiling(_upperLevel2 / _strikePriceIncrement) * _strikePriceIncrement;
+                _upperLevel3 = Math.Ceiling(_upperLevel3 / _strikePriceIncrement) * _strikePriceIncrement;
+
+                ////put l2 at 200 points away from l1, or at l3
+                //_lowerLevel2 = Math.Max(_lowerLevel1 - 2 * _strikePriceIncrement, _lowerLevel3);
+                //_upperLevel2 = Math.Min(_upperLevel1 + 2 * _strikePriceIncrement, _upperLevel3);
+
+
+                DataLogic dl = new DataLogic();
+                dl.UpdateAlgoParamaters(algoInstance: _algoInstance, arg1: _lowerLevel1, arg2: _lowerLevel2, arg3: _lowerLevel3, arg4: _upperLevel1, arg5: _upperLevel2, arg6: _upperLevel3);
+            }
+        }
+
+        private List<TimeFrameCandle> JoinHistoricals(List<Historical> bCandles, int numberOfHistoricalsToJoin)
+        {
+            List<TimeFrameCandle> c = new List<TimeFrameCandle>();
+            TimeFrameCandle tC = null;
+            int cc = 0;
+            for (int i = bCandles.Count - 1; i >= 0; i--)
+            {
+                if (cc % numberOfHistoricalsToJoin == 0)
+                {
+                    Historical h = bCandles[i];
+                    tC = new TimeFrameCandle();
+                    tC.InstrumentToken = h.InstrumentToken;
+                    tC.OpenPrice = h.Open;
+                    tC.CloseTime = h.TimeStamp;
+                    tC.ClosePrice = h.Close;
+                    tC.HighPrice = h.High;
+                    tC.LowPrice = h.Low;
+                    c.Add(tC);
+                }
+                else
+                {
+                    tC = c.Last();
+                    tC.HighPrice = Math.Max(tC.HighPrice, bCandles[i].High);
+                    tC.LowPrice = Math.Min(tC.LowPrice, bCandles[i].Low);
+                    tC.ClosePrice = tC.ClosePrice;
+                }
+                cc++;
+            }
+            return c;
+        }
+
+        public void StopTrade(bool stop)
+        {
+            _stopTrade = stop;
+        }
+
+
+        private void SetInitialDeltaSLTP(DateTime currentTime, decimal initialDelta = 0)
+        {
+            int dte = (_expiryDate.Value.Date - currentTime.Date).Days;
+
+            if (_baseInstrumentToken.ToString() == Constants.BANK_NIFTY_TOKEN)
+            {
+                _strikePriceIncrement = 100;
+                _minDistanceforL1 = 300;
+                _minDistanceL1L2 = 200;
+                _minDistanceL2L3 = 200;
+
+                if (dte >= 5)
+                {
+                    _targetProfit = 30 * _tradeQty;
+                    _initialDelta = 0.15m;
+                    _maxDelta = 0.45m;
+                }
+                else if (dte >= 3)
+                {
+                    _targetProfit = 30 * _tradeQty;
+                    _initialDelta = 0.15m;
+                    _maxDelta = 0.45m;
+                }
+                else if (dte >= 2)
+                {
+                    _targetProfit = 30 * _tradeQty;
+                    _initialDelta = 0.15m;
+                    _maxDelta = 0.45m;
+                }
+                else if (dte >= 1)
+                {
+                    _targetProfit = 40 * _tradeQty;
+                    _initialDelta = 0.15m;
+                    _maxDelta = 0.45m;
+                }
+                else
+                {
+                    _targetProfit = 50 * _tradeQty;
+                    _initialDelta = 0.15m;
+                    _maxDelta = 0.4m;
                 }
             }
-
-            return true;
+            else if (_baseInstrumentToken.ToString() == Constants.NIFTY_TOKEN || _baseInstrumentToken.ToString() == Constants.FINNIFTY_TOKEN)
+            {
+                _strikePriceIncrement = 50;
+            }
         }
-        /// <summary>
-        /// Pulls nodes data from database on both sides
-        /// </summary>
-        /// <param name="currentNode"></param>
-        /// <param name="baseInstrumentToken"></param>
-        /// <param name="instrumentType"></param>
-        /// <param name="currentStrikePrice"></param>
-        /// <param name="expiry"></param>
-        /// <param name="updownboth"></param>
-        /// <returns></returns>
-        bool AssignNextNodes(InstrumentListNode currentNode, UInt32 baseInstrumentToken, string instrumentType,
-        decimal currentStrikePrice, DateTime expiry)
+
+
+        private DateTime? CheckCandleStartTime(DateTime currentTime, out DateTime lastEndTime)
         {
             try
+            {
+                DateTime? candleStartTime = null;
+
+                if (currentTime.TimeOfDay < MARKET_START_TIME)
+                {
+                    candleStartTime = DateTime.Now.Date + MARKET_START_TIME;
+                    lastEndTime = candleStartTime.Value;
+                }
+                else
+                {
+
+                    double mselapsed = (currentTime.TimeOfDay - MARKET_START_TIME).TotalMilliseconds % _candleTimeSpan.TotalMilliseconds;
+
+                    //if(mselapsed < 1000) //less than a second
+                    //{
+                    //    candleStartTime =  currentTime;
+                    //}
+                    if (mselapsed < 60 * 1000)
+                    {
+                        candleStartTime = currentTime.Date.Add(TimeSpan.FromMilliseconds(currentTime.TimeOfDay.TotalMilliseconds - mselapsed));
+                    }
+                    //else
+                    //{
+                    lastEndTime = currentTime.Date.Add(TimeSpan.FromMilliseconds(currentTime.TimeOfDay.TotalMilliseconds - mselapsed));
+                    //}
+                }
+
+                return candleStartTime;
+            }
+            catch (Exception ex)
+            {
+                _stopTrade = true;
+                Logger.LogWrite(String.Format("{0}, {1}", ex.Message, ex.StackTrace));
+                Logger.LogWrite("Closing Application");
+                LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Error, currentTime, String.Format(@"Error occurred! Trading has stopped. \r\n {0}", ex.Message), "CheckCandleStartTime");
+                Thread.Sleep(100);
+                Environment.Exit(0);
+                lastEndTime = DateTime.Now;
+                return null;
+            }
+        }
+
+        private void TriggerEODPositionClose(DateTime currentTime, bool closeAll = false)
+        {
+            if (currentTime.TimeOfDay >= new TimeSpan(15, 10, 00) || closeAll)// && _referenceStraddleValue != 0)
             {
                 DataLogic dl = new DataLogic();
-                SortedList<Decimal, Instrument> NodeData = dl.RetrieveNextNodes(baseInstrumentToken, instrumentType,
-                    currentStrikePrice, expiry, currentNode.Index);
-
-                Instrument currentInstrument = currentNode.Instrument;
-
-                NodeData.Add(currentInstrument.Strike, currentInstrument);
-
-                //InstrumentListNode tempNode = currentNode;
-
-                int currentIndex = currentNode.Index;
-                int currentNodeIndex = NodeData.IndexOfKey(currentInstrument.Strike);
-
-
-
-                InstrumentListNode baseNode, firstOption = new InstrumentListNode(NodeData.Values[0]);
-                baseNode = firstOption;
-                //byte index = baseNode.Index = Convert.ToByte(Math.Floor(Convert.ToDouble(NodeData.Values.Count / 2)) * -1);
-
-                int index = currentIndex - currentNodeIndex;
-
-
-                for (byte i = 1; i < NodeData.Values.Count; i++)
+                _referenceStraddleValue = 0;
+                if (_callOrderTrios != null)
                 {
-                    InstrumentListNode option = new InstrumentListNode(NodeData.Values[i]);
-
-                    baseNode.NextNode = option;
-                    baseNode.Index = index;
-                    option.PrevNode = baseNode;
-                    baseNode = option;
-                    index++;
-                }
-                baseNode.Index = index; //to assign index to the last node
-
-
-                if (currentNodeIndex == 0)
-                {
-                    firstOption.NextNode.PrevNode = currentNode;
-                    currentNode.NextNode = firstOption.NextNode;
-                }
-                else if (currentNodeIndex == NodeData.Values.Count - 1)
-                {
-                    baseNode.PrevNode.NextNode = currentNode;
-                    currentNode.PrevNode = baseNode.PrevNode;
-                }
-                else
-                {
-                    while (baseNode.PrevNode != null)
+                    foreach (OrderTrio orderTrio in _callOrderTrios)
                     {
-                        if (baseNode.Index == currentIndex)
-                        {
-                            baseNode.Prices = currentNode.Prices;
-                            currentNode.PrevNode = baseNode.PrevNode;
-                            currentNode.NextNode = baseNode.NextNode;
-                            break;
-                        }
-                        baseNode = baseNode.PrevNode;
+                        Instrument option = orderTrio.Option;
+
+                        TradeEntry(option, currentTime, orderTrio.Order.Quantity / Convert.ToInt32(option.LotSize), true);
+                        dl.DeActivateOrderTrio(orderTrio);
                     }
+                    _callOrderTrios.Clear();
+                    _callOrderTrios = null;
                 }
+                if (_putOrderTrios != null)
+                {
+                    foreach (OrderTrio orderTrio in _putOrderTrios)
+                    {
+                        Instrument option = orderTrio.Option;
+
+                        TradeEntry(option, currentTime, orderTrio.Order.Quantity / Convert.ToInt32(option.LotSize), true);
+                        dl.DeActivateOrderTrio(orderTrio);
+                    }
+                    _putOrderTrios.Clear();
+                    _putOrderTrios = null;
+                }
+
+                dl.UpdateAlgoPnl(_algoInstance, _totalPnL);
+                _stopTrade = true;
+                _stopLossHit = true;
+
+                dl.DeActivateAlgo(_algoInstance);
             }
-            catch
+        }
+        private void LoadOptionsToTrade(DateTime currentTime)
+        {
+            try
             {
+                if (CallUniverse == null || PutUniverse == null)
+                {
+#if !BACKTEST
+                    LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Info, currentTime, " Loading Tokens from database...", "LoadOptionsToTrade");
+#endif
+                    //Load options asynchronously
+                    DataLogic dl = new DataLogic();
+
+                    Dictionary<uint, uint> mappedTokens;
+                    SortedList<decimal, Instrument> calls, puts;
+                    dl.LoadCloseByOptions(_expiryDate, _baseInstrumentToken, _baseInstrumentPrice, 2000, out calls, out puts, out mappedTokens);
+
+
+                    //for(int i= 0;i<calls.Count;)
+                    //{
+                    //    if (calls.ElementAt(i).Key < _upperLevel2)
+                    //    {
+                    //        calls.Remove(calls.ElementAt(i).Key);
+                    //    }
+                    //    else
+                    //    {
+                    //        i++;
+                    //    }
+                    //}
+                    //for (int i = 0; i < puts.Count;)
+                    //{
+                    //    if (puts.ElementAt(i).Key > _lowerLevel2)
+                    //    {
+                    //        puts.Remove(puts.ElementAt(i).Key);
+                    //    }
+                    //    else
+                    //    {
+                    //        i++;
+                    //    }
+                    //}
+
+                    CallUniverse = calls;
+                    PutUniverse = puts;
+
+#if !BACKTEST
+                    LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Info, currentTime, " Tokens Loaded", "LoadOptionsToTrade");
+#endif
+                }
 
             }
-            return true;
-            
+            catch (Exception ex)
+            {
+                _stopTrade = true;
+                Logger.LogWrite(String.Format("{0}, {1}", ex.Message, ex.StackTrace));
+                Logger.LogWrite("Closing Application");
+                LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Error, currentTime,
+                    String.Format(@"Error occurred! Trading has stopped. \r\n {0}", ex.Message), "LoadOptionsToTrade");
+                Thread.Sleep(100);
+            }
         }
 
-        private decimal PlaceOrder(string Symbol, bool buyOrder, InstrumentLinkedList optionList, Tick[] ticks)
+        private void HedgeStraddle(DateTime? currentTime)
         {
-            //temp
-            if (optionList.Current.Instrument.LastPrice == 0)
+            if (currentTime.GetValueOrDefault(DateTime.Now).TimeOfDay >= new TimeSpan(15, 20, 00))
             {
-                if (optionList.Current.Prices.Count == 0)
+                //buy call and put at total sum range
+                if (_callOrderTrios != null && _putOrderTrios != null)
                 {
-                   
-                        DataLogic dl = new DataLogic();
-                        return  dl.RetrieveLastPrice(optionList.Current.Instrument.InstrumentToken, ticks[0].LastTradeTime);
+                    decimal strangleRange = _activeCall.LastPrice + _activePut.LastPrice;
+                    decimal ceHedgeStrike = Math.Round((_baseInstrumentPrice + strangleRange) / _strikePriceIncrement, 0) * _strikePriceIncrement;
+                    decimal peHedgeStrike = Math.Round((_baseInstrumentPrice - strangleRange) / _strikePriceIncrement, 0) * _strikePriceIncrement;
 
-                      
+
+                    Instrument callHedgeOption = null, putHedgeOption = null;
+                    if (!CallUniverse.ContainsKey(ceHedgeStrike))
+                    {
+                        DataLogic dl = new DataLogic();
+                        callHedgeOption = dl.GetInstrument(_expiryDate.Value, _baseInstrumentToken, ceHedgeStrike, "ce");
+                    }
+                    if (!PutUniverse.ContainsKey(peHedgeStrike))
+                    {
+                        DataLogic dl = new DataLogic();
+                        putHedgeOption = dl.GetInstrument(_expiryDate.Value, _baseInstrumentToken, ceHedgeStrike, "pe");
+                    }
+
+#if BACKTEST && local
+                    List<Historical> futurePrices = ZObjects.kite.GetHistoricalData(callHedgeOption.InstrumentToken.ToString(), currentTime.Value, currentTime.Value, "minute");
+                    callHedgeOption.LastPrice = futurePrices[0].Close;
+                    futurePrices = ZObjects.kite.GetHistoricalData(putHedgeOption.InstrumentToken.ToString(), currentTime.Value, currentTime.Value, "minute");
+                    putHedgeOption.LastPrice = futurePrices[0].Close;
+
+#endif
+
+                    int callQty = _callOrderTrios.Sum(x => x.Order.Quantity);
+                    int putQty = _putOrderTrios.Sum(x => x.Order.Quantity);
+                    //Hedge Call trade
+                    TradeEntry(callHedgeOption, currentTime.Value, callQty, true, tag: "hedge");
+                    TradeEntry(callHedgeOption, currentTime.Value, putQty, true, tag: "hedge");
+
+                    _stopTrade = true;
+                }
+            }
+            else if (currentTime.GetValueOrDefault(DateTime.Now).TimeOfDay >= new TimeSpan(09, 20, 00))
+            {
+                if (_hedgeCallOrderTrio != null && _hedgePutOrderTrio != null)
+                {
+#if BACKTEST && local
+                    List<Historical> futurePrices = ZObjects.kite.GetHistoricalData(_hedgeCallOrderTrio.Option.InstrumentToken.ToString(), currentTime.Value, currentTime.Value, "minute");
+                    _hedgeCallOrderTrio.Option.LastPrice = futurePrices[0].Close;
+                    futurePrices = ZObjects.kite.GetHistoricalData(_hedgePutOrderTrio.Option.InstrumentToken.ToString(), currentTime.Value, currentTime.Value, "minute");
+                    _hedgePutOrderTrio.Option.LastPrice = futurePrices[0].Close;
+
+#endif
+                    DataLogic dl = new DataLogic();
+                    dl.DeActivateOrderTrio(_hedgeCallOrderTrio);
+                    dl.DeActivateOrderTrio(_hedgePutOrderTrio);
+
+                    //Hedge Call trade
+                    TradeEntry(_hedgeCallOrderTrio.Option, currentTime.Value, _hedgeCallOrderTrio.Order.Quantity, false, tag: "hedge");
+                    TradeEntry(_hedgePutOrderTrio.Option, currentTime.Value, _hedgePutOrderTrio.Order.Quantity, false, tag: "hedge");
+                }
+            }
+
+        }
+
+        private void UpdateInstrumentSubscription(DateTime currentTime)
+        {
+            try
+            {
+                bool dataUpdated = false;
+                if (CallUniverse != null)
+                {
+                    foreach (var option in CallUniverse)
+                    {
+                        if (!SubscriptionTokens.Contains(option.Value.InstrumentToken))
+                        {
+                            SubscriptionTokens.Add(option.Value.InstrumentToken);
+                            dataUpdated = true;
+                        }
+                    }
+                }
+                if (PutUniverse != null)
+                {
+                    foreach (var option in PutUniverse)
+                    {
+                        if (!SubscriptionTokens.Contains(option.Value.InstrumentToken))
+                        {
+                            SubscriptionTokens.Add(option.Value.InstrumentToken);
+                            dataUpdated = true;
+                        }
+                    }
+                }
+                if (!SubscriptionTokens.Contains(_baseInstrumentToken))
+                {
+                    SubscriptionTokens.Add(_baseInstrumentToken);
+                    dataUpdated = true;
+                }
+                if (!SubscriptionTokens.Contains(VIX_TOKEN))
+                {
+                    SubscriptionTokens.Add(VIX_TOKEN);
+                    dataUpdated = true;
                 }
 
-                return optionList.Current.Prices.Last();
+                if (dataUpdated)
+                {
+#if !BACKTEST
+                    LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Info, currentTime, "Subscribing to new tokens", "UpdateInstrumentSubscription");
+#endif
+                    Task task = Task.Run(() => OnOptionUniverseChange(this));
+                }
+            }
+            catch (Exception ex)
+            {
+                _stopTrade = true;
+                Logger.LogWrite(String.Format("{0}, {1}", ex.Message, ex.StackTrace));
+                Logger.LogWrite("Closing Application");
+                LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Error, currentTime, String.Format(@"Error occurred! Trading has stopped. \r\n {0}", ex.Message), "UpdateInstrumentSubscription");
+                Thread.Sleep(100);
+            }
+        }
+
+        public int AlgoInstance
+        {
+            get
+            { return _algoInstance; }
+        }
+        private bool GetBaseInstrumentPrice(Tick tick)
+        {
+            Tick baseInstrumentTick = tick.InstrumentToken == _baseInstrumentToken ? tick : null;
+            if (baseInstrumentTick != null && baseInstrumentTick.LastPrice != 0)
+            {
+                _baseInstrumentPrice = baseInstrumentTick.LastPrice;
+            }
+            if (_baseInstrumentPrice == 0)
+            {
+                return false;
+            }
+            return true;
+        }
+
+        public void OnNext(Tick tick)
+        {
+            try
+            {
+                if (_stopTrade || !tick.Timestamp.HasValue)
+                {
+                    return;
+                }
+                ActiveTradeIntraday(tick);
+                return;
+            }
+            catch (Exception ex)
+            {
+                _stopTrade = true;
+                Logger.LogWrite(String.Format("{0}, {1}", ex.Message, ex.StackTrace));
+                Logger.LogWrite("Trading Stopped as algo encountered an error");
+                LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Error, tick.Timestamp.GetValueOrDefault(DateTime.UtcNow),
+                    String.Format(@"Error occurred! Trading has stopped. \r\n {0}", ex.Message), "OnNext");
+                Thread.Sleep(100);
+                return;
+            }
+        }
+
+        private void CheckHealth(object sender, ElapsedEventArgs e)
+        {
+            //expecting atleast 30 ticks in 1 min
+            if (_healthCounter >= 30)
+            {
+                _healthCounter = 0;
+                LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Health, e.SignalTime, "1", "CheckHealth");
+                Thread.Sleep(100);
             }
             else
             {
-                return optionList.Current.Instrument.LastPrice;
+                LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Health, e.SignalTime, "0", "CheckHealth");
+                Thread.Sleep(100);
             }
-
-            //Dictionary<string, dynamic> orderStatus;
-
-            //orderStatus = ZObjects.kite.PlaceOrder(Constants.EXCHANGE_NFO, Symbol,
-            //                          buyOrder ? Constants.TRANSACTION_TYPE_BUY : Constants.TRANSACTION_TYPE_BUY, 75, Product: Constants.PRODUCT_MIS,
-            //                          OrderType: Constants.ORDER_TYPE_MARKET, Validity: Constants.VALIDITY_DAY);
-
-            //string orderId = orderStatus["data"]["order_id"];
-            //List<Order> orderInfo = ZObjects.kite.GetOrderHistory(orderId);
-            //return orderInfo[orderInfo.Count - 1].AveragePrice;
         }
 
-        private decimal PlaceOrder(string Symbol, bool buyOrder)
+        private void PublishLog(object sender, ElapsedEventArgs e)
         {
-            Dictionary<string, dynamic> orderStatus;
 
-            orderStatus = ZObjects.kite.PlaceOrder(Constants.EXCHANGE_NFO, Symbol,
-                                      buyOrder ? Constants.TRANSACTION_TYPE_BUY : Constants.TRANSACTION_TYPE_BUY, 75, Product: Constants.PRODUCT_MIS,
-                                      OrderType: Constants.ORDER_TYPE_MARKET, Validity: Constants.VALIDITY_DAY);
+            //if (_activeCall != null && _activePut != null)
+            //{
+            //    LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Info, e.SignalTime,
+            //    String.Format("Call Delta: {0}, Put Delta: {1}. Straddle Profit: {2}", Math.Round(_activeCall.Delta, 2) , Math.Round(_activePut.Delta, 2),
+            //    _callOrderTrio.Order.AveragePrice + _putOrderTrio.Order.AveragePrice - _activeCall.LastPrice - _activePut.LastPrice), "Log_Timer_Elapsed");
+            //}
 
-            string orderId = orderStatus["data"]["order_id"];
-            List<Order> orderInfo = ZObjects.kite.GetOrderHistory(orderId);
-            return orderInfo[orderInfo.Count - 1].AveragePrice;
+            //Thread.Sleep(100);
         }
+
     }
 }

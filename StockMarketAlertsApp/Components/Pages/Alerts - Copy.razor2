@@ -1,0 +1,271 @@
+﻿@page "/alerts"
+@inject AlertsClient AClient
+@inject MarketClient MClient
+@inject NavigationManager NavigationManager
+
+
+@rendermode InteractiveServer
+@implements IAsyncDisposable
+
+
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.AspNetCore.WebUtilities
+@using StockMarketAlertsApp.Data
+@inject UserManager<ApplicationUser> UserManager
+
+<PageTitle>Alerts</PageTitle>
+
+<h1>Alerts Management</h1>
+<br />
+
+
+<AuthorizeView>
+    <Authorized>
+        @if (@userCredits == 0)
+        {
+            <text><em>Loading...</em></text>
+        }
+        else
+        {
+            <h3>Credits: @userCredits points <button class="btn btn-primary" @onclick="AddUserCredits">Load Points</button> </h3>
+        }
+        
+        <h4>Active Alerts:</h4>
+        <br />
+        <table class="table table-striped">
+            <thead>
+               
+                <tr>
+                    <th>
+                        Sl. No.
+                    </th>
+                    <th>
+                        Stock
+                    </th>
+                    <th>
+                        Condition
+                    </th>
+                    <th>
+                        Active
+                    </th>
+                    <th>
+                        
+                    </th>
+                    <th>
+                        
+                    </th>
+                </tr>
+            </thead>
+
+            <tbody>
+
+                @if (userAlertsView == null)
+                {
+                    <text><em>Loading...</em></text>
+                }
+                else
+                {
+                    @for (int i = 0; i < userAlertsView.Count(); i++)
+                    {
+                        var alert = userAlertsView[i];
+                        <tr>
+                            <td> @GetSymbolRowCount(i)</td>
+                            <td style="font-size:12px">@alert.TradingSymbol</td>
+                            @* <td style="font-size:12px">@alert.Criteria</td> *@
+                            <td>
+                                @for (int c = 0; c < alert.Criteria.Count; c++)
+                                {
+                                    <ParentLabelDropDown AlertCriterion="@alert.Criteria[c]"
+                                                         SelectedItemChanged="SelectedItemChangedHandler" EnableLogicalOperator="@showLogicalOperator" />
+                                }
+
+
+                            </td>
+                            <td style="font-size:12px">@alert.Active</td>
+                        </tr>
+                    }
+                }
+
+            </tbody>
+        </table>
+
+
+        <br />
+    </Authorized>
+</AuthorizeView>
+
+@if (instrumentOptions == null)
+{
+    <text><em>Loading...</em></text>
+}
+else
+{
+    <h5>Set up alerts for <LabelDropDown TItem="string" Items="instrumentOptions" SelectedItem="@alertTrigger.InstrumentToken.ToString()" SelectedItemChanged="OnSelectedItemChanged" /> ticker</h5>
+
+    <h6>Where</h6>
+    <button @onclick="AddParentComponent">Add</button>
+
+    <div>
+        @for (int i = 0; i < alertTrigger.Criteria.Count; i++)
+        {
+            lhsIndicationProperties = Indicators[Int32.Parse(AlertCriterion.LHSIndicator.Split(":")[0]) - 1].PropertyNameAndValues;
+
+            <ParentLabelDropDown IndicatorProperties ="" AlertCriterion="@alertTrigger.Criteria[i]" SelectedItemChanged="SelectedItemChangedHandler" EnableLogicalOperator="@showLogicalOperator" />
+            
+            <ParentLabelDropDown IndicatorProperties="" AlertCriterion="@alertTrigger.Criteria[i]" SelectedItemChanged="SelectedItemChangedHandler" EnableLogicalOperator="@showLogicalOperator" />
+        }
+    </div>
+
+    <button @onclick="Submit">Set Alert</button>
+    
+    <br />
+    if(@success == 1)
+    {
+    <a class="bs-success"> Success! You have created an alert. We will inform you when the alert conditions are met.</a>
+    }
+    else if (@success == -1)
+    {
+    <a class="bs-danger"> Faiulure! We encountered some error in creating the alert. Please contact us at XX</a>
+    }
+}
+@code {
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? authenticationState { get; set; }
+
+    [SupplyParameterFromQuery]
+    private string? UserId { get; set; }
+
+    private AlertTrigger[]? userAlertsView;
+
+    private ApplicationUser? currentUser;
+    private decimal userCredits;
+
+
+    private async Task<ApplicationUser?> GetCurrentUserAsync()
+    {
+        return await UserManager.FindByEmailAsync("Email");
+    }
+
+
+
+    private int GetSymbolRowCount(int inputTimeFramesRowCount)
+    {
+        return inputTimeFramesRowCount + 1;
+    }
+
+    private bool showLogicalOperator = false;
+    private Int16 success = 0;
+
+    AlertTrigger alertTrigger = new()
+        {
+            ID = 0,
+            InstrumentToken = 260105,
+            TradingSymbol = "NIFTY50",
+            UserId = string.Empty,
+            Criteria = new List<AlertCriterion>()
+        };
+
+    private List<string> selectedItems = new List<string>();
+
+    private string selectedInstrument = "NIFTY50";
+
+    public Dictionary<string, string>? instrumentOptions;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (authenticationState is not null)
+        {
+            var authState = await authenticationState;
+            var user = authState?.User;
+
+            if (user?.Identity is not null && user.Identity.IsAuthenticated)
+            {
+                //authMessage = $"{user.Identity.Name} is authenticated.";
+                currentUser = await UserManager.GetUserAsync(user);
+
+                userCredits = await GetUserCredits(userId: currentUser.Id);// user.Id);
+                userAlertsView = await AClient.GetUserAlerts(userId: currentUser.Id);// user.Id);
+            }
+        }
+
+        // UserId = "1";
+        // if (UserId is not null)
+        // {
+        //     ///TODO: PENDING USER AUTHENTICATION
+        //     //var user = await UserManager.FindByIdAsync(UserId);
+        //     //if (user is not null)
+        //     //{
+        //     // var user = CurrentUser;
+        //     currentUser = await GetCurrentUserAsync();
+        //     userCredits = await GetUserCredits(userId: UserId);// user.Id);
+        //     userAlertsView = await AClient.GetUserAlerts(userId: UserId);// user.Id);
+        //                                                                  //}
+        // }
+
+        var instruments = await MClient.GetInstrumentsAsync();//. new Dictionary<string, string> { { "260105", "NIFTY" }, { "256265", "BANKNIFTY" }, { "223432", "TCS" } };
+        instrumentOptions = instruments.ToDictionary(x => x.InstrumentToken.ToString(), x => x.TradingSymbol);
+    }
+
+    private async Task<decimal> GetUserCredits(string userId)//ApplicationUser applicationUser)
+    {
+        return await AClient.GetUserCredits(userId);// applicationUser.Id);
+    }
+
+    private int counter = 0;
+
+    private async Task AddUserCredits()
+    {
+        userCredits = await AClient.AddUserCredits(currentUser.Id, credits: 100);
+    }
+    private void AddParentComponent()
+    {
+        //indicatorid:indicatorname;propertyname, indicatorypropertyid;
+        alertTrigger.Criteria.Add(new() { Id = counter++, LHSIndicator = "1:EMA;Time Period:1;Length:5", LHSTimeInMinutes = "2", LogicalCriteria = "1", MathOperator = "1", RHSIndicator = "2", RHSTimeInMinutes = "2" });
+        showLogicalOperator = true;
+    }
+
+    private void SelectedItemChangedHandler(AlertCriterion newItem)
+    {
+        //var indicatorId = newItem.
+        alertTrigger.Criteria.Find(x => x.Id == newItem.Id)!.Update(newItem);
+
+        // if (!selectedItems.Contains(newItem))
+        // {
+        //     selectedItems.Add(newItem);
+        //}
+    }
+    private void OnSelectedItemChanged((string newItemKey, string newItemValue)data)
+    {
+        alertTrigger.InstrumentToken = Convert.ToUInt32(data.newItemKey);
+    }
+
+    private async Task Submit()
+    {
+        if(UserId ==  null || UserId == string.Empty)
+        {
+            NavigationManager.NavigateTo("/Account/Register");
+        }
+        success = await AClient.SetAlertAsync(alertTrigger);
+        //NavigationManager.Refresh();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+    }
+
+    private List<ControlModel> controls = new();
+
+    private void AddControl()
+    {
+        //controls.Add(new ControlModel { Id = Guid.NewGuid(), SelectedValue = string.Empty, dcType = typeof(DynamicControls)});
+    }
+
+
+    public class ControlModel
+    {
+        public Guid Id { get; set; }
+        public string SelectedValue { get; set; }
+        public Type dcType { get; set; }
+    }
+}

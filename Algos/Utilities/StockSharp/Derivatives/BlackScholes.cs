@@ -56,11 +56,26 @@ namespace Algorithms.Utilities
 		/// <summary>
 		/// The standard deviation by default.
 		/// </summary>
-		public decimal? DefaultDeviation => Convert.ToDecimal(DerivativesHelper.BlackScholesImpliedVol(Convert.ToDouble(option.LastPrice), Convert.ToDouble(option.Strike),
-			Convert.ToDouble(option.BaseInstrumentPrice), (option.Expiry - option.LastTradeTime).Value.TotalDays / 365, Convert.ToDouble(RiskFree),
-			Convert.ToDouble(Dividend), option.InstrumentType.Trim(' ').ToLower() == "ce" ? PutCallFlag.Call : PutCallFlag.Put));
-			
-			//ImpliedVolatility(option.LastTradeTime.Value, option.LastPrice);
+		//public decimal? DefaultDeviation => Convert.ToDecimal(DerivativesHelper.BlackScholesImpliedVol(Convert.ToDouble(option.LastPrice), Convert.ToDouble(option.Strike),
+		//	Convert.ToDouble(option.BaseInstrumentPrice), (option.Expiry - option.LastTradeTime).Value.TotalDays / 365, Convert.ToDouble(RiskFree),
+		//	Convert.ToDouble(Dividend), option.InstrumentType.Trim(' ').ToLower() == "ce" ? PutCallFlag.Call : PutCallFlag.Put));
+
+
+		public decimal? DefaultDeviation
+
+        {
+			get {
+
+				var iv = (DerivativesHelper.BlackScholesImpliedVol(Convert.ToDouble(option.LastPrice), Convert.ToDouble(option.Strike),
+					Convert.ToDouble(option.BaseInstrumentPrice), (option.Expiry - option.LastTradeTime).Value.TotalDays / 365, Convert.ToDouble(RiskFree),
+					Convert.ToDouble(Dividend), option.InstrumentType.Trim(' ').ToLower() == "ce" ? PutCallFlag.Call : PutCallFlag.Put));
+
+				return Convert.ToDecimal(Double.IsNaN(iv) ? 0 : iv);
+			}
+
+			}
+
+		//ImpliedVolatility(option.LastTradeTime.Value, option.LastPrice);
 
 		/// <summary>
 		/// The time before expiration calculation.
@@ -151,7 +166,7 @@ namespace Algorithms.Utilities
 			var futureTimeToExp = GetExpirationTimeLine(endDateTime == null? option.LastTradeTime.Value : endDateTime.Value);
 
 			return DerivativesHelper.Premium(OptionType, GetStrike(), assetPrice, RiskFree, Dividend, deviation.Value,
-				futureTimeToExp.Value, D1(deviation.Value, option.BaseInstrumentPrice, currentTimeToExp.Value));
+				futureTimeToExp.HasValue? futureTimeToExp.Value:0, D1(deviation.Value, option.BaseInstrumentPrice, currentTimeToExp.HasValue?currentTimeToExp.Value:0));
 		}
 
 		public decimal GetEstimatedPrice(DateTime futureDateTime, decimal bInstrumentValue, DateTime currentDateTime)
@@ -175,7 +190,14 @@ namespace Algorithms.Utilities
 
 			var timeToExp = GetExpirationTimeLine(currentTime);
 
-			return DerivativesHelper.Delta(OptionType, assetPrice, D1(deviation ?? DefaultDeviation.Value, assetPrice, timeToExp.Value));
+			if (timeToExp.HasValue)
+			{
+				return DerivativesHelper.Delta(OptionType, assetPrice, D1(deviation ?? DefaultDeviation.Value, assetPrice, timeToExp.Value));
+			}
+			else
+            {
+				return 0;
+            }
 		}
 
 		/// <inheritdoc />
@@ -185,7 +207,7 @@ namespace Algorithms.Utilities
 			assetPrice = GetAssetPrice(assetPrice);
 
 			var timeToExp = GetExpirationTimeLine(currentTime);
-
+			timeToExp ??= 0;
 			return TryRound(DerivativesHelper.Gamma(assetPrice, deviation.Value, timeToExp.Value, D1(deviation.Value, assetPrice, timeToExp.Value)));
 		}
 
@@ -234,7 +256,7 @@ namespace Algorithms.Utilities
 			}
 			catch (Exception e)
 			{
-				throw e;
+				//throw e;
 			}
 			return iv;
 		}

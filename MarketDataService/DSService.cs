@@ -29,10 +29,12 @@ namespace MarketDataService
 
         internal void StartDBUpdate()
         {
+
+
 #if market
             MarketData.PublishData();
-            //System.Threading.Thread.Sleep(new TimeSpan(7, 30, 1));
-#elif local
+            System.Threading.Thread.Sleep(new TimeSpan(7, 30, 1));
+#elif local || BACKTEST
             TickDataStreamer dataStreamer = new TickDataStreamer();
             Task<long> done = dataStreamer.BeginStreaming();
 #endif

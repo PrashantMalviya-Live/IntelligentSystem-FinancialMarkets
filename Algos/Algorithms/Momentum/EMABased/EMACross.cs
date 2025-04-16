@@ -111,7 +111,7 @@ namespace Algos.TLogics
             #endregion
         }
 
-        public virtual async Task<bool> OnNext(Tick[] ticks)
+        public virtual void OnNext(Tick tick)
         {
             //_instrumentToken = 256265;
             //var fema; var sema;
@@ -162,7 +162,7 @@ namespace Algos.TLogics
             //    }
             //    //}
             //}
-            return true;
+            return ;
         }
 
         private void TradeEMACross(decimal ema, List<Candle> candles, CandleType candleType)
@@ -374,7 +374,10 @@ namespace Algos.TLogics
 
             return trade;
         }
-      
+        public void StopTrade(bool stop)
+        {
+            //_stopTrade = stop;
+        }
         private void UpdateTradeDetails(int strategyID, uint instrumentToken, int tradedLot, ShortTrade trade, int triggerID)
         {
             DataLogic dl = new DataLogic();

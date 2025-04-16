@@ -245,7 +245,7 @@ namespace MarketView.Controllers
         [HttpGet("healthy")]
         public Task<int> Health()
         {
-            return Task.FromResult((int)AlgoIndex.IVSpreadTrade);
+            return Task.FromResult((int)AlgoIndex.ChartSpreadTrade);
         }
         [HttpPut("{ain}")]
         public bool Put(int ain, [FromBody] int start)

@@ -12,6 +12,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using ZMQFacade;
 using System.Data;
+using System.Net.Http;
 
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
@@ -22,6 +23,9 @@ namespace TradeEMACross.Controllers
     public class MomentumVolumeController : ControllerBase
     {
         ZMQClient zmqClient;
+        private readonly IHttpClientFactory _httpClientFactory;
+        private const string key = "ACTIVE_PA_OBJECT";
+
         List<OptionVolumeRateEMAThreshold> activeAlgoObjects;
         public MomentumVolumeController()
         {
@@ -142,9 +146,12 @@ namespace TradeEMACross.Controllers
 #endif
 
             ///FOR ALL STOCKS FUTURE , PASS INSTRUMENTTOKEN AS ZERO. FOR CE/PE ON BNF/NF SEND THE INDEX TOKEN AS INSTRUMENTTOKEN
-            OptionVolumeRateEMAThreshold volumeThreshold = 
-                new OptionVolumeRateEMAThreshold(endDateTime, candleTimeSpan, instrumentToken, expiry, 
-                optionQuantity, algoInstance, positionSizing: optionMomentumInput.PS, maxLossPerTrade: optionMomentumInput.MLPT);
+            //OptionVolumeRateEMAThreshold volumeThreshold = 
+            //    new OptionVolumeRateEMAThreshold(endDateTime, candleTimeSpan, instrumentToken, expiry, 
+            //    optionQuantity, algoInstance, positionSizing: optionMomentumInput.PS, maxLossPerTrade: optionMomentumInput.MLPT);
+
+            StockMomentum volumeThreshold =
+                new StockMomentum(candleTimeSpan, instrumentToken, optionQuantity, uid, );
 
             Order activeOrder = optionMomentumInput.ActiveOrder;
             if (activeOrder != null)

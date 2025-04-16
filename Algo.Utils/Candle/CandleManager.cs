@@ -444,14 +444,16 @@ namespace Algorithms.Utils
         /// <returns></returns>
         public List<Candle> StreamingTimeFrameCandle(Tick tick, uint token, TimeSpan timeFrame, bool localTicks, DateTime? CandleStartTime = null)
         {
-            DateTime tickTime = tick.LastTradeTime ?? tick.Timestamp.Value;
-            TimeFrameCandle previousCandle = null;
-            //foreach (Tick tick in ticks)
-            //{
+            try
+            {
+                DateTime tickTime = tick.LastTradeTime ?? tick.Timestamp.Value;
+                TimeFrameCandle previousCandle = null;
+                //foreach (Tick tick in ticks)
+                //{
                 TimeFrameCandle timeCandle = null;
 
                 //TimeSpan timeTraded = timer.Elapsed;
-                
+
                 if (TimeFrameCandles.ContainsKey(token))
                 {
                     timeCandle = TimeFrameCandles[token].LastOrDefault(x => x.State == CandleStates.Inprogress) as TimeFrameCandle;
@@ -479,7 +481,7 @@ namespace Algorithms.Utils
                         //Arg2 = tick.Timestamp.Value, //Start Time
                         InstrumentToken = token,
                         OpenPrice = tick.LastPrice,
-                        OpenTime = (previousCandle == null || previousCandle.CloseTime.Date != tickTime.Date) ? 
+                        OpenTime = (previousCandle == null || previousCandle.CloseTime.Date != tickTime.Date) ?
                         CandleStartTime.HasValue ? CandleStartTime.Value : tickTime : previousCandle.CloseTime, // For testing purpose tick timestamp is better
                         OpenVolume = timePrevTicks.ContainsKey(token) ? Convert.ToDecimal(tick.Volume) - Convert.ToDecimal(timePrevTicks[token].Volume) : 0,
                         ClosePrice = tick.LastPrice,
@@ -532,8 +534,8 @@ namespace Algorithms.Utils
                     {
                         timeCandle.HighPrice = tick.LastPrice;
                         timeCandle.HighTime = tickTime;
-                        timeCandle.HighVolume = tick.LastPrice == timeCandle.HighPrice ? 
-                            timeCandle.HighVolume + Convert.ToDecimal(tick.Volume) - Convert.ToDecimal(prevTick.Volume) 
+                        timeCandle.HighVolume = tick.LastPrice == timeCandle.HighPrice ?
+                            timeCandle.HighVolume + Convert.ToDecimal(tick.Volume) - Convert.ToDecimal(prevTick.Volume)
                             : Convert.ToDecimal(tick.Volume) - Convert.ToDecimal(prevTick.Volume);
                     }
                     if (tick.LastPrice <= timeCandle.LowPrice)
@@ -541,7 +543,7 @@ namespace Algorithms.Utils
                         timeCandle.LowPrice = tick.LastPrice;
                         timeCandle.LowTime = tickTime;
                         timeCandle.LowVolume = tick.LastPrice == timeCandle.LowPrice ?
-                            timeCandle.LowVolume + Convert.ToDecimal(tick.Volume) - Convert.ToDecimal(prevTick.Volume) 
+                            timeCandle.LowVolume + Convert.ToDecimal(tick.Volume) - Convert.ToDecimal(prevTick.Volume)
                             : Convert.ToDecimal(tick.Volume) - Convert.ToDecimal(prevTick.Volume);
                     }
 
@@ -554,7 +556,7 @@ namespace Algorithms.Utils
                         timeCandle.DownTicks++;
                     }
                     timeCandle.TotalTicks++;
-                    
+
                     //TODO: Money Candle Price level should get updated.
                     UpdatePriceLevel(timeCandle.PriceLevels.ToList(), prevTick.LastPrice, (Convert.ToDecimal(tick.Volume) - Convert.ToDecimal(prevTick.Volume)), tick.LastPrice);
 
@@ -573,8 +575,13 @@ namespace Algorithms.Utils
                     }
 
                 }
-                
-            return TimeFrameCandles[token];
+
+                return TimeFrameCandles[token];
+            }
+            catch (Exception ex)
+            {
+                return null;
+            }
         }
 
 

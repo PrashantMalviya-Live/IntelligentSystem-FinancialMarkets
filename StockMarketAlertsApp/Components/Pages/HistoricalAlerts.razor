@@ -1,0 +1,77 @@
+﻿@page "/HistoricalAlertComponent"
+
+@inject AlertsClient AClient
+@rendermode InteractiveServer
+@implements IAsyncDisposable
+
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.AspNetCore.WebUtilities
+@using StockMarketAlertsApp.Data
+@using Microsoft.AspNetCore.Authorization
+
+@inject UserManager<ApplicationUser> UserManager
+
+@attribute [Authorize]
+
+<PageTitle>Previous Alerts</PageTitle>
+
+
+<AuthorizeView>
+    <Accordion>
+        @if(_generatedAlerts !=null)
+        {
+            @foreach (AlertMessage am in _generatedAlerts)
+            {
+                <AccordionItem Title="@GetAlertTitle(@am)">
+                    <Content>
+                        <b>Triggered: @am.TriggeredDateTime </b><br />
+                        <b>LastTradedPrice: @am.LastPrice</b><br />
+                        <b>Criteria: @am.Criteria</b>
+                    </Content>
+                </AccordionItem>
+            }
+        }
+    </Accordion>
+
+</AuthorizeView>
+
+
+@code {
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? authenticationState { get; set; }
+
+    private ApplicationUser? currentUser;
+    private decimal userCredits;
+
+    private AlertMessage[] _generatedAlerts;
+
+    private Offcanvas offcanvas = default!;
+
+    
+    private string? message;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (authenticationState is not null)
+        {
+            var authState = await authenticationState;
+            var user = authState?.User;
+
+            if (user?.Identity is not null && user.Identity.IsAuthenticated)
+            {
+                //authMessage = $"{user.Identity.Name} is authenticated.";
+                currentUser = await UserManager.GetUserAsync(user);
+                _generatedAlerts = await AClient.GetGeneratedAlerts(userId: currentUser.Id);// user.Id);
+            }
+        }
+    }
+
+    private string GetAlertTitle(AlertMessage am)
+    {
+        return $"{am.TradingSymbol}: {am.Message}";
+    }
+    public async ValueTask DisposeAsync()
+    {
+    }
+}

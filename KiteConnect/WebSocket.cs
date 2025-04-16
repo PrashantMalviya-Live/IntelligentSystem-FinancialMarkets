@@ -7,6 +7,7 @@ using System.Net.WebSockets;
 using System.Threading;
 using System.Net;
 
+
 namespace KiteConnect
 {
     // Delegates for events
@@ -70,6 +71,12 @@ namespace KiteConnect
                     }
                 }
                 _ws.ConnectAsync(new Uri(_url), CancellationToken.None).Wait();
+
+                //To begin receiving feed messages, you must first send a subscribe message to the server indicating which channels and contracts to subscribe for.
+
+
+
+
             }
             catch (AggregateException e)
             {

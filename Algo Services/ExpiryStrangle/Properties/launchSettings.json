@@ -2,13 +2,9 @@
   "iisSettings": {
     "windowsAuthentication": false,
     "anonymousAuthentication": true,
-    "iis": {
-      "applicationUrl": "http://localhost/ExpiryStrangle",
-      "sslPort": 0
-    },
     "iisExpress": {
-      "applicationUrl": "http://localhost:8080/",
-      "sslPort": 44306
+      "applicationUrl": "http://localhost:56680/",
+      "sslPort": 44335
     }
   },
   "profiles": {

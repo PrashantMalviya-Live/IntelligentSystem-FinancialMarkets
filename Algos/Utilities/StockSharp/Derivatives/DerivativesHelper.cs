@@ -725,7 +725,7 @@ using MathNet.Numerics.Distributions;
 			if (assetPrice == 0)
 				return 0;
 
-			return (decimal)InvertD1(d1) / (assetPrice * deviation * (decimal) Math.Sqrt(timeToExp));
+			return timeToExp == 0 ?0: (decimal)InvertD1(d1) / (assetPrice * deviation * (decimal) Math.Sqrt(timeToExp));
 		}
 
 		/// <summary>

@@ -34,9 +34,10 @@ namespace Algorithms.Indicators
 		/// <returns>Input and resulting values of the indicator.</returns>
 		Tuple<IIndicatorValue, IIndicatorValue> GetValue(int index);
 
-		/// <summary>
-		/// To delete all values of the indicator.
-		/// </summary>
-		void ClearValues();
+
+        /// <summary>
+        /// To delete all values of the indicator.
+        /// </summary>
+        void ClearValues();
 	}
 }

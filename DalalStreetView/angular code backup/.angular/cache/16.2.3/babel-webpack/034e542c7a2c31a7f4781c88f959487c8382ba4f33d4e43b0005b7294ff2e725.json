@@ -1,0 +1,1 @@
+{"ast":null,"code":"export class AlgoHealth {\n  constructor(\n  //algo instance id\n  aIns,\n  //algo health = true : running ; false: stopped\n  ah,\n  //last updated time for health\n  ad) {\n    this.aIns = aIns;\n    this.ah = ah;\n    this.ad = ad;\n  }\n}","map":null,"metadata":{},"sourceType":"module","externalDependencies":[]}

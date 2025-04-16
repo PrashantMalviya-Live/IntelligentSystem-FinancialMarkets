@@ -1,30 +1,14 @@
-#region S# License
-/******************************************************************************************
-NOTICE!!!  This program and source code is owned and licensed by
-StockSharp, LLC, www.stocksharp.com
-Viewing or use of this code requires your acceptance of the license
-agreement found at https://github.com/StockSharp/StockSharp/blob/master/LICENSE
-Removal of this comment is a violation of the license agreement.
+using System;
+using System.ComponentModel;
+using System.Linq;
 
-Project: StockSharp.Algo.Indicators.Algo
-File: SimpleMovingAverage.cs
-Created: 2015, 11, 11, 2:32 PM
-
-Copyright 2010 by StockSharp, LLC
-*******************************************************************************************/
-#endregion S# License
-namespace StockSharp.Algo.Indicators
+namespace Algorithms.Indicators
 {
-	using System.ComponentModel;
-	using System.Linq;
-
-	using StockSharp.Localization;
 
 	/// <summary>
 	/// Simple moving average.
 	/// </summary>
 	[DisplayName("SMA")]
-	[DescriptionLoc(LocalizedStrings.Str818Key)]
 	public class SimpleMovingAverage : LengthIndicator<decimal>
 	{
 		/// <summary>
@@ -33,6 +17,10 @@ namespace StockSharp.Algo.Indicators
 		public SimpleMovingAverage()
 		{
 			Length = 32;
+		}
+		public SimpleMovingAverage(int length)
+		{
+			Length = length;
 		}
 
 		/// <inheritdoc />
@@ -53,5 +41,78 @@ namespace StockSharp.Algo.Indicators
 
 			return new DecimalIndicatorValue(this, (Buffer.Skip(1).Sum() + newValue) / Length);
 		}
-	}
+
+        //public T GetCurrentValue<T>()
+        //{
+        //    return GetValue<T>(0);
+        //}
+        //public decimal GetCurrentValue()
+        //{
+        //    return GetValue<decimal>(0);
+        //}
+
+        //      /// <summary>
+        ///// To get the indicator value by the index (0 - last value).
+        ///// </summary>
+        ///// <param name="indicator">Indicator.</param>
+        ///// <param name="index">The value index.</param>
+        ///// <returns>Indicator value.</returns>
+        //public decimal? GetNullableValue(int index)
+        //      {
+        //          return GetValue<decimal?>(index);
+        //      }
+
+        //      /// <summary>
+        //      /// To get the indicator value by the index (0 - last value).
+        //      /// </summary>
+        //      /// <param name="indicator">Indicator.</param>
+        //      /// <param name="index">The value index.</param>
+        //      /// <returns>Indicator value.</returns>
+        //      public decimal GetValue(int index)
+        //      {
+        //          return GetNullableValue(index) ?? 0;
+        //      }
+        //      public decimal GetValue()
+        //      {
+        //          var container = Container;
+        //          var value = container.GetValue(0).Item2;
+        //          return typeof(IIndicatorValue).IsAssignableFrom(typeof(decimal)) ? (decimal)Convert.ChangeType(value, typeof(decimal)) : value.GetValue<decimal>();
+        //      }
+
+        /// <summary>
+        /// To get the indicator value by the index (0 - last value).
+        /// </summary>
+        /// <typeparam name="T">Value type.</typeparam>
+        /// <param name="indicator">Indicator.</param>
+        /// <param name="index">The value index.</param>
+        /// <returns>Indicator value.</returns>
+        public T GetValue<T>(int index)
+        {
+            var container = Container;
+
+            if (index >= container.Count)
+            {
+                //if (index == 0 && typeof(decimal) == typeof(T))
+                //	return indicator.GetValue<T>(0);
+                //else
+                return default;
+                //if (index == 0 && typeof(decimal) == typeof(T))
+                //	return 0m.To<T>();
+                //else
+                //throw new ArgumentOutOfRangeException(nameof(index), index, LocalizedStrings.Str914Params.Put(indicator.Name));
+            }
+            var value = container.GetValue(index).Item2;
+
+            if (value.IsEmpty)
+            {
+                if (value is T t)
+                    return t;
+
+                return default;
+            }
+
+            return typeof(IIndicatorValue).IsAssignableFrom(typeof(T)) ? (T)Convert.ChangeType(value, typeof(T)) : value.GetValue<T>();
+        }
+
+    }
 }

@@ -1,0 +1,6 @@
+@CryptoAlgos_HostAddress = http://localhost:5285
+
+GET {{CryptoAlgos_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

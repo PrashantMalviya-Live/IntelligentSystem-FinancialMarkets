@@ -162,7 +162,7 @@ namespace TradeEMACross.Controllers
 
             DateTime expiry1 = optionIVSpreadInput.Expiry1;
             DateTime expiry2 = optionIVSpreadInput.Expiry2;
-            int optionQuantity = optionIVSpreadInput.Qty;
+            int optionQuantity = optionIVSpreadInput.StepQty;
 
 #if local
             endDateTime = Convert.ToDateTime("2020-11-09 09:15:00");

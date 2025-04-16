@@ -57,26 +57,72 @@ message PublishStatus {
 }
 
 // The logging service definition.
-service Charter {
+service ServiceCharter {
   rpc DrawChart (CData) returns (CStatus);
 }
-
 
 // The response message containing the log messages
 message CData {
 	string algoId = 1;
-	int32 algo_instance = 2;  
+	int32 algo_instance = 2;
+	int32 chartId = 3;
+	int32 chartdataId = 4;
 	//time
-	google.protobuf.Timestamp t = 3;
-	uint32 instrumentToken = 4;
+	google.protobuf.Timestamp t = 5;
+	uint32 instrumentToken = 6;
 	//data to plot
-	double d = 5;
-	string xlabel = 6;
-	string ylabel = 7;
-	string arg = 8;
+	double d = 7;
+	string xlabel = 8;
+	string ylabel = 9;
+	string arg = 10;
+	double arg2 = 11;
 }
 
 // The response message containing the log messages
 message CStatus {
+  bool status = 1;
+}
+
+
+
+// The Alert service definition.
+service ServiceAlertManager {
+  rpc Alert (AlertMessage) returns (AlertMessage);
+}
+
+// The response message containing the log messages
+message AlertMessage {
+	string id = 1;
+	int32 alertTriggerId = 2;  
+	uint32 instrumentToken = 3;
+	string tradingSymbol = 4;
+	int32 candleTimeSpan = 5;
+	string userId = 6;
+	string message = 7;
+	double price = 8;
+}
+
+// The response message containing the log messages
+message AlertStatus {
+  bool status = 1;
+}
+
+// The Data service definition.
+service ServiceDataManager {
+  rpc Data (DataMessage) returns (DataMessage);
+}
+
+// The response message containing the log messages
+message DataMessage {
+	int32 algoId = 1;  
+	uint32 instrumentToken = 2;
+	uint32 baseInstrumentToken = 3;
+	int32 candleTimeSpan = 4;
+	string message = 5;
+	double price = 6;
+}
+
+// The response message containing the log messages
+message DataStatus {
   bool status = 1;
 }

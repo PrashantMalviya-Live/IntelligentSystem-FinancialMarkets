@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using KiteConnect;
 using GlobalLayer;
-using ZConnectWrapper;
+using BrokerConnectWrapper;
 using DataAccess;
 using System.Timers;
 using ZMQFacade;
@@ -15,8 +15,8 @@ namespace MarketDataService
 {
    public class MarketData
     {
-        public static readonly string NIFTY_TOKEN = "256265";
-        public static readonly string BANK_NIFTY_TOKEN = "260105";
+        //public static readonly string NIFTY_TOKEN = "256265";
+        //public static readonly string BANK_NIFTY_TOKEN = "260105";
         public static void PublishData()
         {
             ZConnect.Login();
@@ -47,13 +47,16 @@ namespace MarketDataService
         
         private static void SubscribeTokens(object sender, System.Timers.ElapsedEventArgs e)
         {
-            Dictionary<string, LTP> btokenPrices = ZObjects.kite.GetLTP(new string[] { NIFTY_TOKEN, BANK_NIFTY_TOKEN });
+            Dictionary<string, LTP> btokenPrices = ZObjects.kite.GetLTP(new string[] { Constants.NIFTY_TOKEN, Constants.BANK_NIFTY_TOKEN, Constants.FINNIFTY_TOKEN, Constants.MIDCPNIFTY_TOKEN });
 
             //Pull list of instruments to be subscribed
             DataAccess.MarketDAO dao = new MarketDAO();
-            UInt32[] instrumentTokens = dao.GetInstrumentListToSubscribe(btokenPrices[NIFTY_TOKEN].LastPrice, btokenPrices[BANK_NIFTY_TOKEN].LastPrice);
-            ZObjects.ticker.Subscribe(Tokens: instrumentTokens);
-            ZObjects.ticker.SetMode(Tokens: instrumentTokens, Mode: Constants.MODE_FULL);
+            //UInt32[] instrumentTokens = dao.GetInstrumentListToSubscribe(btokenPrices[NIFTY_TOKEN].LastPrice, btokenPrices[BANK_NIFTY_TOKEN].LastPrice);
+
+            GlobalObjects.InstrumentTokenSymbolCollection = dao.GetInstrumentListToSubscribe(btokenPrices[Constants.NIFTY_TOKEN].LastPrice, 
+                btokenPrices[Constants.BANK_NIFTY_TOKEN].LastPrice, btokenPrices[Constants.FINNIFTY_TOKEN].LastPrice, btokenPrices[Constants.MIDCPNIFTY_TOKEN].LastPrice);
+            ZObjects.ticker.Subscribe(Tokens: GlobalObjects.InstrumentTokenSymbolCollection.Keys.ToArray());
+            ZObjects.ticker.SetMode(Tokens: GlobalObjects.InstrumentTokenSymbolCollection.Keys.ToArray(), Mode: Constants.MODE_FULL);
         }
         private static void OnConnect()
         {

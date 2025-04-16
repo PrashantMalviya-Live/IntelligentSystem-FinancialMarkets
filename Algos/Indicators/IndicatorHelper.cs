@@ -1,31 +1,59 @@
 using System;
 using System.Reflection;
 using Algorithms.Utils;
+using Algos.TLogics;
 using GlobalLayer;
 namespace Algorithms.Indicators
 {
 
-	/// <summary>
-	/// Extension class for indicators.
-	/// </summary>
-	public static class IndicatorHelper
+    public static class CustomFunctions
+    {
+        public static int Product(int a, int b)
+        {
+            return a * b;
+        }
+
+        public static int Sum(int a, int b)
+        {
+            return a + b;
+        }
+    }
+
+    /// <summary>
+    /// Extension class for indicators.
+    /// </summary>
+    public static class IndicatorHelper
 	{
 		/// <summary>
 		/// To get the current value of the indicator.
 		/// </summary>
 		/// <param name="indicator">Indicator.</param>
 		/// <returns>The current value.</returns>
-		public static decimal GetCurrentValue(this IIndicator indicator)
+		public static decimal GetCurrentDecimalValue(this IIndicator indicator)
 		{
-			return indicator.GetNullableCurrentValue() ?? 0;
+			//return indicator.GetNullableCurrentValue() ?? 0;
+			return indicator.GetValue<decimal>(0);
 		}
+		public static decimal GetCurrentValue<T> (this IIndicator indicator)
+        {
+            //return indicator.GetNullableCurrentValue() ?? 0;
+            return indicator.GetValue<decimal>(0);
+        }
+        private static IIndicator GetSmallestChildIndicator(this IIndicator indicator)
+        {
+            while (indicator.ChildIndicator != null)
+            {
+                indicator = indicator.ChildIndicator;
+            }
+            return indicator;
+        }
 
-		/// <summary>
-		/// To get the current value of the indicator.
-		/// </summary>
-		/// <param name="indicator">Indicator.</param>
-		/// <returns>The current value.</returns>
-		public static decimal? GetNullableCurrentValue(this IIndicator indicator)
+        /// <summary>
+        /// To get the current value of the indicator.
+        /// </summary>
+        /// <param name="indicator">Indicator.</param>
+        /// <returns>The current value.</returns>
+        public static decimal? GetNullableCurrentValue(this IIndicator indicator)
 		{
 			if (indicator == null)
 				throw new ArgumentNullException(nameof(indicator));
@@ -39,13 +67,13 @@ namespace Algorithms.Indicators
 		/// <typeparam name="T">Value type.</typeparam>
 		/// <param name="indicator">Indicator.</param>
 		/// <returns>The current value.</returns>
-		public static T GetCurrentValue<T>(this IIndicator indicator)
-		{
-			if (indicator == null)
-				throw new ArgumentNullException(nameof(indicator));
+		//public static T GetCurrentValue<T>(this IIndicator indicator)
+		//{
+		//	if (indicator == null)
+		//		throw new ArgumentNullException(nameof(indicator));
 
-			return indicator.GetValue<T>(0);
-		}
+		//	return indicator.GetValue<T>(0);
+		//}
 
 		/// <summary>
 		/// To get the indicator value by the index (0 - last value).
@@ -71,31 +99,65 @@ namespace Algorithms.Indicators
 
 			return indicator.GetValue<decimal?>(index);
 		}
+        public static decimal GetValue(this IIndicator indicator)
+        {
+            if (indicator == null)
+                throw new ArgumentNullException(nameof(indicator));
 
-		/// <summary>
-		/// To get the indicator value by the index (0 - last value).
-		/// </summary>
-		/// <typeparam name="T">Value type.</typeparam>
-		/// <param name="indicator">Indicator.</param>
-		/// <param name="index">The value index.</param>
-		/// <returns>Indicator value.</returns>
-		public static T GetValue<T>(this IIndicator indicator, int index)
+            var container = indicator.Container;
+
+            if (indicator.GetType() == typeof(RangeBreakoutRetraceIndicator))
+            {
+                //((ComplexIndicatorValue)value).InnerValues[1].InputValue
+                return ((RangeBreakoutRetraceIndicator)indicator).GetValue<decimal>();
+            }
+
+            
+            var value = container.GetValue(0).Item2;
+
+           
+            return typeof(IIndicatorValue).IsAssignableFrom(typeof(decimal)) ? (decimal)Convert.ChangeType(value, typeof(decimal)) : value.GetValue<decimal>();
+        }
+
+        /// <summary>
+        /// To get the indicator value by the index (0 - last value).
+        /// </summary>
+        /// <typeparam name="T">Value type.</typeparam>
+        /// <param name="indicator">Indicator.</param>
+        /// <param name="index">The value index.</param>
+        /// <returns>Indicator value.</returns>
+        public static T GetValue<T>(this IIndicator indicator, int index)
 		{
 			if (indicator == null)
 				throw new ArgumentNullException(nameof(indicator));
 
 			var container = indicator.Container;
 
+			if (indicator.GetType() == typeof(RangeBreakoutRetraceIndicator))
+			{
+				//((ComplexIndicatorValue)value).InnerValues[1].InputValue
+				return (T)Convert.ChangeType(((RangeBreakoutRetraceIndicator)indicator).GetValue(), typeof(decimal)) ;
+			}
 			if (index >= container.Count)
 			{
+				//if (index == 0 && typeof(decimal) == typeof(T))
+				//	return indicator.GetValue<T>(0);
+				//else
 				return default;
 				//if (index == 0 && typeof(decimal) == typeof(T))
 				//	return 0m.To<T>();
 				//else
 				//throw new ArgumentOutOfRangeException(nameof(index), index, LocalizedStrings.Str914Params.Put(indicator.Name));
 			}
-
 			var value = container.GetValue(index).Item2;
+
+			if (indicator.GetType() == typeof(StochasticOscillator))
+            {
+				//((ComplexIndicatorValue)value).InnerValues[1].InputValue
+				return ((StochasticOscillator)indicator).K.GetValue<T>(index);
+            }
+
+			
 
 			if (value.IsEmpty)
 			{
@@ -117,6 +179,28 @@ namespace Algorithms.Indicators
         public static IIndicatorValue Process(this IIndicator indicator, Candle candle)
         {
             return indicator.Process(new CandleIndicatorValue(indicator, candle));
+        }
+
+        public static IIndicatorValue ProcessData(this IIndicator indicator, IIndicatorValue c)
+        {
+			if(indicator.ChildIndicator == null)
+			{
+				return indicator.Process(c);
+			}
+			else
+			{
+                return indicator.Process(indicator.ChildIndicator.ProcessData(c));
+			}
+            
+
+   //         if (indicator.ChildIndicator != null && indicator.ChildIndicator.ChildIndicator == null)
+   //         {
+   //             return indicator.Process(c);
+   //         }
+			//else
+			//{
+   //             return ProcessData(indicator.ChildIndicator, c);
+   //         }
         }
 
         /// <summary>

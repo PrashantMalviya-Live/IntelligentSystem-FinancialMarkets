@@ -1,0 +1,90 @@
+﻿@page "/algolaunchpad"
+
+@inject AlgoClient AlClient
+@* @inject GrpcService GrpcService *@
+@rendermode InteractiveServer
+
+@using Microsoft.AspNetCore.Identity
+@using StockMarketAlertsApp.Data
+@using Microsoft.AspNetCore.WebUtilities
+
+@inject UserManager<ApplicationUser> UserManager
+
+
+<PageTitle>Algo Launchpad</PageTitle>
+
+<h1>Algo Launchpad</h1>
+<div class="content primaryText mid-container">
+<div class="row">
+    <div class="col-md-4">
+        <Accordion Flush=true>
+                @if (Algos == null)
+                {
+                    <span> No active algos</span>
+                }
+                else
+
+                {
+                    @foreach (var algo in Algos)
+                    {
+                        <AccordionItem Title=@algo.Name>
+                            <Content>
+
+                                <EditForm Model="@algo" FormName="algoLaunchForm" OnSubmit="AlgoLaunchSubmit">
+
+                                    <div class="mb-3">
+                                        <label for="symbol" class="form-label"> Symbol</label>
+                                        <InputText class="form-control" @bind-Value="@algo.TradingSymbol" id="symbol" />
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label for="quantity" class="form-label"> Quantity</label>
+                                        <InputText class="form-control" @bind-Value ="@algo.Quantity" id="quantity" />
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="ctf" class="form-label"> Candle Time</label>
+                                        <InputText class="form-control" @bind-Value="@algo.CandleTimeFrame" id="ctf" />
+                                    </div>
+
+                                    <button class="btn btn-primary">Submit</button>
+                                </EditForm>
+
+                            </Content>
+                        </AccordionItem>
+                    }
+                }
+        </Accordion>
+    </div>
+</div>
+</div>
+@code {
+    [CascadingParameter]
+    private Task<AuthenticationState>? authenticationState { get; set; }
+
+    private ApplicationUser? currentUser;
+
+    private AlgoParams[] Algos { get; set; }
+
+    private async Task AlgoLaunchSubmit()
+    {
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (authenticationState is not null)
+        {
+            var authState = await authenticationState;
+            var user = authState?.User;
+
+            if (user?.Identity is not null && user.Identity.IsAuthenticated)
+            {
+                //authMessage = $"{user.Identity.Name} is authenticated.";
+                currentUser = await UserManager.GetUserAsync(user);
+
+                // userCredits = await GetUserCredits(userId: currentUser.Id);// user.Id);
+                Algos = await AlClient.GetUserAlgos(userId: currentUser.Id);// user.Id);
+            }
+
+        }
+    }
+}

@@ -31,6 +31,16 @@ namespace Algos.Utilities.Views
         /// </summary>
         public string IT2 { get; set; }
 
+        public bool CMB { get; set; }
+
+        public bool IVC { get; set; }
+
+        public bool OIC { get; set; }
+
+        public decimal S1 { get; set; }
+
+        public decimal S2 { get; set; }
+
 
         ///// <summary>
         ///// Initial quantity

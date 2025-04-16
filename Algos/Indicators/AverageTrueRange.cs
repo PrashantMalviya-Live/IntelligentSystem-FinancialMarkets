@@ -10,7 +10,7 @@ namespace Algorithms.Indicators
 	/// The average true range <see cref="AverageTrueRange.TrueRange"/>.
 	/// </summary>
 	[DisplayName("ATR")]
-	public class AverageTrueRange : LengthIndicator<IIndicatorValue>
+	public class AverageTrueRange : LengthIndicator<decimal> //BaseComplexIndicator
 	{
 		private bool _isFormed;
 
@@ -20,6 +20,11 @@ namespace Algorithms.Indicators
 		public AverageTrueRange()
 			: this(new WilderMovingAverage(), new TrueRange())
 		{
+		}
+		public AverageTrueRange(int length)
+	: this(new WilderMovingAverage(length), new TrueRange())
+		{
+			Length = length;
 		}
 
 		/// <summary>
@@ -62,8 +67,6 @@ namespace Algorithms.Indicators
 		/// <inheritdoc />
 		protected override IIndicatorValue OnProcess(IIndicatorValue input)
 		{
-			// используем дополнительную переменную IsFormed, 
-			// т.к. нужна задержка в один период для корректной инициализации скользящей средней
 			_isFormed = MovingAverage.IsFormed;
 
 			return MovingAverage.Process(TrueRange.Process(input));

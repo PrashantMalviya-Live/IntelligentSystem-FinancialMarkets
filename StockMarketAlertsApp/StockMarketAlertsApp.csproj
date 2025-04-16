@@ -1,0 +1,62 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>aspnet-StockMarketAlertsApp-325c719f-0a0f-431c-875a-67f4372bbdcf</UserSecretsId>
+    <Configurations>Debug;Release;Market;Local;BackTest</Configurations>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Models\Credential.cs" />
+    <Compile Remove="Models\CredentialType.cs" />
+    <Compile Remove="Models\User.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="Components\Pages\Alerts - Copy.razor1" />
+    <None Remove="Components\Pages\Alerts - Copy.razor2" />
+    <None Remove="Components\Pages\Alerts - Copy.razor3" />
+    <None Remove="Components\Pages\Alerts - Copy.razor4" />
+    <None Remove="Components\Pages\Alerts - Copy.razor5" />
+    <None Remove="Components\Pages\LabelDropDown - Copy.razor2" />
+    <None Remove="Components\Pages\LabelDropDown - Copy.razor3" />
+    <None Remove="Components\Pages\LabelDropDown - Copy.razor3.5" />
+    <None Remove="Components\Pages\LabelDropDown - Copy.razor5" />
+    <None Remove="Components\Pages\LabelDropDown - Copy.razor6" />
+    <None Remove="Components\Pages\LabelDropDown - Copy.razor7" />
+    <None Remove="Components\Pages\LabelDropDown.razor4" />
+    <None Remove="Components\Pages\ParentLabelDropDown - Copy.razo5" />
+    <None Remove="Components\Pages\ParentLabelDropDown - Copy.razor2" />
+    <None Remove="Components\Pages\ParentLabelDropDown - Copy.razor3" />
+    <None Remove="Components\Pages\ParentLabelDropDown - Copy.razor4" />
+    <None Remove="Components\Pages\ParentLabelDropDown - Copy.razorbackup" />
+    <None Remove="protos\alert.proto" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Azure.Identity" Version="1.12.0" />
+    <PackageReference Include="Blazor.Bootstrap" Version="3.0.0-preview.1" />
+    <PackageReference Include="Google.Protobuf" Version="3.27.3" />
+    <PackageReference Include="Grpc.AspNetCore.Web" Version="2.65.0" />
+    <PackageReference Include="Grpc.Net.Client" Version="2.65.0" />
+    <PackageReference Include="Grpc.Net.Client.Web" Version="2.65.0" />
+    <PackageReference Include="Grpc.Tools" Version="2.65.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.Google" Version="8.0.8" />
+    <PackageReference Include="Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore" Version="8.0.6" />
+    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="8.0.6" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.6" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="8.0.6" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Data\Migrations\" />
+    <Folder Include="Migrations\" />
+	<Protobuf Include="Protos\log.proto" GrpcServices="Client" />
+  </ItemGroup>
+
+</Project>

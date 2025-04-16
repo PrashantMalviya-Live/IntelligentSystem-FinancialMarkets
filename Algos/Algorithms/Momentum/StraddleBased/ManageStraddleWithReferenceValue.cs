@@ -11,7 +11,7 @@ using System.Dynamic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using ZConnectWrapper;
+using BrokerConnectWrapper;
 using ZMQFacade;
 using System.Timers;
 using System.Threading;
@@ -237,7 +237,7 @@ namespace Algorithms.Algorithms
 
         private void TriggerEODPositionClose(DateTime? currentTime)
         {
-            if (currentTime.GetValueOrDefault(DateTime.Now).TimeOfDay >= new TimeSpan(15, 29, 00) && _referenceStraddleValue != 0)
+            if (currentTime.GetValueOrDefault(DateTime.Now).TimeOfDay >= new TimeSpan(15, 20, 00) && _referenceStraddleValue != 0)
             {
                 _referenceStraddleValue = 0;
                 if (_straddleCallOrderTrio != null)
@@ -354,7 +354,7 @@ namespace Algorithms.Algorithms
                         LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Info, e.CloseTime,
                             String.Format("Straddle Variance: {0}", _referenceStraddleValue - currentValue), "CandleManger_TimeCandleFinished");
 
-                        if (currentValue > _referenceStraddleValue)
+                        if (currentValue > _referenceStraddleValue + 5)
                         {
                             //if (!_buyMode)
                             //{
@@ -650,16 +650,16 @@ namespace Algorithms.Algorithms
             return nodeData;
         }
 
-        public Task<bool> OnNext(Tick[] ticks)
+        public void OnNext(Tick tick)
         {
             try
             {
-                if (_stopTrade || !ticks[0].Timestamp.HasValue)
+                if (_stopTrade || !tick.Timestamp.HasValue)
                 {
-                    return Task.FromResult(false);
+                    return;
                 }
-                ActiveTradeIntraday(ticks[0]);
-                return Task.FromResult(true);
+                ActiveTradeIntraday(tick);
+                return;
             }
             catch (Exception ex)
             {
@@ -667,10 +667,10 @@ namespace Algorithms.Algorithms
                 Logger.LogWrite(String.Format("{0}, {1}", ex.Message, ex.StackTrace));
                 Logger.LogWrite("Trading Stopped as algo encountered an error");
                 //throw new Exception("Trading Stopped as algo encountered an error. Check log file for details");
-                LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Error, ticks[0].Timestamp.GetValueOrDefault(DateTime.UtcNow), String.Format(@"Error occurred! Trading has stopped. \r\n {0}", ex.Message), "OnNext");
+                LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Error, tick.Timestamp.GetValueOrDefault(DateTime.UtcNow), String.Format(@"Error occurred! Trading has stopped. \r\n {0}", ex.Message), "OnNext");
                 Thread.Sleep(100);
                 // Environment.Exit(0);
-                return Task.FromResult(false);
+                return;
             }
         }
 

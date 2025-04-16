@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using Algorithms.Utilities;
 using GlobalLayer;
 using KiteConnect;
-using ZConnectWrapper;
+using BrokerConnectWrapper;
 using System.Data;
 
 namespace Algos.TLogics

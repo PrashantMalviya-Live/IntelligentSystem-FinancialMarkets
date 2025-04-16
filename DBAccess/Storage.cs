@@ -15,7 +15,8 @@ namespace DataAccess
         public static Dictionary<UInt32, Queue<Tick>> LiveTickData;
         public static Queue<Tick> LiveTicks;
         public IDisposable UnsubscriptionToken;
-
+        //DataAccess.QuestDB ds;
+        //InfluxDB ds;
         public readonly TimeSpan MARKET_START_TIME = new TimeSpan(9, 15, 0);
         Dictionary<uint, List<Candle>> TimeCandles;
         CandleManger candleManger;
@@ -27,8 +28,11 @@ namespace DataAccess
         //}
         public Storage(bool storeTicks, bool storeCandles)
         {
+#if !BACKTEST
             if (storeTicks)
             {
+                //ds = new DataAccess.QuestDB();
+                //ds = new InfluxDB();
                 LiveTicks = new Queue<Tick>();
                 //if(sqlStorage)
                 InitTimer();
@@ -41,6 +45,7 @@ namespace DataAccess
                 candleManger = new CandleManger(TimeCandles, CandleType.Time);
                 candleManger.TimeCandleFinished += CandleManger_TimeCandleFinished;
             }
+#endif
 
         }
 
@@ -89,7 +94,7 @@ namespace DataAccess
         }
 
         //make sure ref is working with struct . else make it class
-        public void StoreTicks(List<Tick> ticks)
+        public void StoreTicks(List<Tick> ticks, bool shortenedTicks)
         {
             if (LiveTicks == null)
             {
@@ -99,12 +104,32 @@ namespace DataAccess
             {
                 foreach (Tick Tickdata in ticks)
                 {
+                    //ds.WriteTick(Tickdata);
+                    if (shortenedTicks)
+                        ShortenTheTick(Tickdata);
                     LiveTicks.Enqueue(Tickdata);
+                   // ds.InsertTick(Tickdata);
                 }
             }
             return;
         }
+        public static void ShortenTheTick(Tick tick)
+        {
+            tick.AveragePrice = 0;
+            tick.Bids = null;
+            tick.BuyQuantity = 0;
+            tick.Change = 0;
+            tick.Close = 0;
+            tick.Open = 0;
+            tick.High = 0;
+            tick.Low = 0;
+            tick.Offers = null;
+            tick.OIDayHigh = 0;
+            tick.OIDayLow = 0;
+            tick.SellQuantity = 0;
+            tick.LastQuantity = 0;
 
+        }
         /// <summary>
         /// Store raw ticks
         /// </summary>
@@ -216,10 +241,12 @@ namespace DataAccess
         }
         public static void InitTimer()
         {
+#if !BACKTEST
             GlobalObjects.OHLCTimer = new System.Timers.Timer(20000);
             GlobalObjects.OHLCTimer.Start();
 
             GlobalObjects.OHLCTimer.Elapsed += StoreRawTicks;
+#endif
         }
 
     }

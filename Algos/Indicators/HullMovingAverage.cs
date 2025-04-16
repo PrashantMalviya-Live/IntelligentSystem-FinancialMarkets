@@ -61,11 +61,11 @@ namespace Algorithms.Indicators
 
 			if (_wmaFast.IsFormed && _wmaSlow.IsFormed)
 			{
-				var diff = 2 * _wmaFast.GetCurrentValue() - _wmaSlow.GetCurrentValue();
+				var diff = 2 *  _wmaFast.GetCurrentValue<decimal>() - _wmaSlow.GetCurrentValue<decimal>();
 				_wmaResult.Process(diff);
 			}
 
-			return new DecimalIndicatorValue(this, _wmaResult.GetCurrentValue());
+			return new DecimalIndicatorValue(this, _wmaResult.GetCurrentValue<decimal>());
 		}
 
 		///// <inheritdoc />

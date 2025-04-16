@@ -1,0 +1,35 @@
+﻿@inject GrpcService GrpcService
+@inject IJSRuntime JS
+
+@implements IAsyncDisposable
+
+@code {
+    private async Task SetNotification()
+    {
+        await JS.InvokeAsync<Task>("askNotificationPermission");
+    }
+    private async void ShowNotification(GrpcProtos.AlertMessage alertMessage)
+    {
+        try
+        {
+            await JS.InvokeAsync<Task>("setNotification");
+        }
+        catch
+        {
+            GrpcService.AlertGenerated -= ShowNotification;
+        }
+
+    }
+    private bool _firstRender = true;
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            GrpcService.AlertGenerated += ShowNotification;
+        }
+    }
+    public async ValueTask DisposeAsync()
+    {
+        GrpcService.AlertGenerated -= ShowNotification;
+    }
+}

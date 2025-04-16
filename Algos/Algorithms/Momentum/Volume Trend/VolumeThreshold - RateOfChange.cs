@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using Algorithms.Utilities;
 using GlobalLayer;
 using KiteConnect;
-using ZConnectWrapper;
+using BrokerConnectWrapper;
 using System.Data;
 using ZMQFacade;
 using System.Collections;
@@ -123,9 +123,9 @@ namespace Algorithms.Algorithms
             //MonitorVolumeThreshold(e);
         }
 
-        private void MonitorVolumeThreshold(Tick[] ticks)
+        private void MonitorVolumeThreshold(Tick tick)
         {
-
+            Tick[] ticks = new Tick[] { tick };
             lock (tokenTradeLevels)
             {
                 try
@@ -423,11 +423,11 @@ namespace Algorithms.Algorithms
             }
         }
         
-        public Task<bool> OnNext(Tick[] ticks)
+        public void OnNext(Tick tick)
         {
-            MonitorVolumeThreshold(ticks);
+            MonitorVolumeThreshold(tick);
 
-            return Task.FromResult(true);
+            return;
         }
         private void SetLastPrice(Tick[] ticks)
         {
@@ -536,6 +536,10 @@ namespace Algorithms.Algorithms
             UpdateTradeDetails(strategyID:0, instrument_Token, quantity, trade, Convert.ToInt32(trade.TriggerID));
 
             return trade;
+        }
+        public void StopTrade(bool stop)
+        {
+            //_stopTrade = stop;
         }
         private void UpdateTradeDetails(int strategyID, uint instrumentToken, int tradedLot, ShortTrade trade, int triggerID)
         {

@@ -22,7 +22,7 @@ namespace GlobalCore
         {
             try
             {
-                var client = new Charter.CharterClient(grpcChannel);
+                var client = new ServiceCharter.ServiceCharterClient(grpcChannel);
                 var response = client.DrawChart(GetChartData(cData));
             }
             catch (Exception ex)
@@ -36,8 +36,13 @@ namespace GlobalCore
             return new CData()
             {
                 AlgoId = cdata.AlgoId.ToString(),
+                AlgoInstance = cdata.AlgoInstance,
+                InstrumentToken = cdata.InstrumentToken,
                 D = Convert.ToDouble(cdata.d),
+                ChartId = cdata.ChartId,
+                ChartdataId = cdata.ChartDataId,
                 Arg = cdata.Arg,
+                Arg2 = Convert.ToDouble(cdata.Arg2),
                 Xlabel = cdata.xLabel,
                 Ylabel = cdata.yLabel,
                 T = Timestamp.FromDateTime(DateTime.SpecifyKind(cdata.T, DateTimeKind.Utc))

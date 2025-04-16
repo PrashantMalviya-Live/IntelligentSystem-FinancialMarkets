@@ -1,0 +1,89 @@
+﻿@inherits LayoutComponentBase
+@using StockMarketAlertsApp.Components.Pages;
+
+<div class="page" style="background-color: #FBFBF8;">
+    @* <div class="sidebar">
+        
+    </div> *@
+
+    <main>
+        <div class="top-row px-4 container-fluid" style="background-color: #FBFBF8;">
+            <nav class="navbar navbar-expand-lg navbar-light pl-4" >
+                <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarTogglerDemo03" aria-controls="navbarTogglerDemo03" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <a class="navbar-brand pl-4" href="#">SetHooter</a>
+
+                <div class="collapse navbar-collapse pl-4 " id="navbarTogglerDemo03">
+                    <ul class="navbar-nav mr-auto mt-2 mt-lg-0">
+                        <li class="nav-item active">
+                            <a class="nav-link" href="#">Home <span class="sr-only"></span></a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="alerts">Alerts <span class="sr-only"></span></a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="breakouts">Breakouts <span class="sr-only"></span></a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="algolaunchpad">Algos <span class="sr-only"></span></a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="algodashboard">Dashboard <span class="sr-only"></span></a>
+                        </li>
+                        <li class="nav-item">
+                            <AuthorizeView>
+                                <Authorized>
+                                    <a class="nav-link" href="Account/Manage"> @context.User.Identity?.Name<span class="sr-only"></span></a>
+                                   @*  <div class="nav-item px-3">
+                                        <NavLink class="nav-link" href="Account/Manage">
+                                            <span class="bi bi-person-fill-nav-menu" aria-hidden="true"></span> @context.User.Identity?.Name
+                                        </NavLink>
+                                    </div>
+                                    <div class="nav-item px-3">
+                                        <form action="Account/Logout" method="post">
+                                            <AntiforgeryToken />
+                                            <input type="hidden" name="ReturnUrl" value="@currentUrl" />
+                                            <button type="submit" class="nav-link">
+                                                <span class="bi bi-arrow-bar-left-nav-menu" aria-hidden="true"></span> Logout
+                                            </button>
+                                        </form>
+                                    </div> *@
+                                </Authorized>
+                                <NotAuthorized>
+                                    <a class="nav-link" href="Account/Login">login <span class="sr-only"></span></a>
+                                   @*  <div class="nav-item px-3">
+                                        <NavLink class="nav-link" href="Account/Register">
+                                            <span class="bi bi-person-nav-menu" aria-hidden="true"></span> Register
+                                        </NavLink>
+                                    </div>
+                                    <div class="nav-item px-3">
+                                        <NavLink class="nav-link" href="Account/Login">
+                                            <span class="bi bi-person-badge-nav-menu" aria-hidden="true"></span> Login
+                                        </NavLink>
+                                    </div> *@
+                                </NotAuthorized>
+                            </AuthorizeView>
+                            
+                        </li>
+                        @* <li class="nav-item">
+                            <a class="nav-link" href="#">Link</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link disabled" href="#">Disabled</a>
+                        </li>*@
+                    </ul>
+                </div>
+            </nav>
+        </div>
+        <article class="content px-4">
+                @Body
+        </article>
+    </main>
+</div>
+
+<div id="blazor-error-ui">
+    An unhandled error has occurred.
+    <a href="" class="reload">Reload</a>
+    <a class="dismiss">🗙</a>
+</div>

@@ -12,6 +12,8 @@ using System.Runtime.Serialization;
 using System.Runtime.Serialization.Formatters.Binary;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using System.Collections.Concurrent;
+
 namespace GlobalLayer
 {
     public class Utils
@@ -44,6 +46,7 @@ namespace GlobalLayer
                 return null;
             }
         }
+        
 
         /// <summary>
         /// Serialize C# object to JSON string.
@@ -204,7 +207,7 @@ namespace GlobalLayer
         /// <param name="Params">Dictionary to add the key-value pair</param>
         /// <param name="Key">Key of the parameter</param>
         /// <param name="Value">Value of the parameter</param>
-        public static void AddIfNotNull(Dictionary<string, dynamic> Params, string Key, string Value)
+        public static void AddIfNotNull(Dictionary<string, dynamic> Params, string Key, dynamic Value)
         {
             if (!String.IsNullOrEmpty(Value))
                 Params.Add(Key, Value);
@@ -355,6 +358,74 @@ namespace GlobalLayer
             DateTime origin = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc);
             TimeSpan diff = date.Value.ToUniversalTime() - origin;
             return Math.Floor(diff.TotalSeconds);
+        }
+    }
+    public class FixedSizedQueue<T>
+    {
+        ConcurrentQueue<T> q = new ConcurrentQueue<T>();
+        private object lockObject = new object();
+
+        public int Limit { get; set; } = 300;
+        public void Enqueue(T obj)
+        {
+            q.Enqueue(obj);
+            lock (lockObject)
+            {
+                T overflow;
+                while (q.Count > Limit && q.TryDequeue(out overflow)) ;
+            }
+        }
+        public T GetLastElement()
+        {
+            return q.Last();
+        }
+        public T GetFirstElement()
+        {
+            return q.FirstOrDefault(null);
+        }
+        public T RemoveLastElement()
+        {
+            q.Reverse();
+            T element;
+            q.TryDequeue(out element);
+            q.Reverse();
+            return element;
+        }
+        public decimal Value
+        {
+            get
+            {
+                return q.Count > 0 ? q.Average(x => Convert.ToDecimal(x)) : 0;
+            }
+        }
+        public decimal LastValue
+        {
+            get
+            {
+                return q.Count > 0 ? Convert.ToDecimal(q.Last()) : 0;
+            }
+        }
+        public decimal SecondLastValue
+        {
+            get
+            {
+                return q.Count > 1 ? Convert.ToDecimal(q.SkipLast(1).Last()) : 0;
+            }
+        }
+
+        public decimal Max
+        {
+            get
+            {
+                return q.Count > 0 ? q.Max(x => Convert.ToDecimal(x)) : 0;
+            }
+        }
+        public decimal Min
+        {
+            get
+            {
+                return q.Count > 0 ? q.Min(x => Convert.ToDecimal(x)) : 0;
+            }
         }
     }
 }

@@ -18,7 +18,11 @@ namespace Algorithms.Indicators
 		/// </summary>
 		public WilderMovingAverage()
 		{
-			Length = 32;
+			Length = 20;//32;
+		}
+		public WilderMovingAverage(int length)
+		{
+			Length = length;
 		}
 
 		/// <inheritdoc />
@@ -44,6 +48,12 @@ namespace Algorithms.Indicators
                 }
 				//buff.AddRange(Buffer.Skip(1));
 				buff.Add(newValue);
+			}
+
+			if(Buffer.Count < Length)
+            {
+				return new DecimalIndicatorValue(this, buff.Sum() / buff.Count);
+
 			}
 
 			return new DecimalIndicatorValue(this, (this.GetCurrentValue<decimal>() * (buff.Count - 1) + newValue) / buff.Count);

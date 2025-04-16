@@ -55,7 +55,7 @@ namespace Algorithms.Algorithms
             }
         }
 
-        public virtual async Task<bool> OnNext(Tick[] ticks)
+        public virtual void OnNext(Tick tick)
         {
             //_instrumentToken = 256265;
 
@@ -75,7 +75,12 @@ namespace Algorithms.Algorithms
             //        ssignalValue.GetValue<decimal>(), lsignalValue.GetValue<decimal>(),  
             //        tick);
             //}
-            return true;
+            return ;
+        }
+
+        public void StopTrade(bool stop)
+        {
+            //_stopTrade = stop;
         }
 
         //all ticks related to 1 token only

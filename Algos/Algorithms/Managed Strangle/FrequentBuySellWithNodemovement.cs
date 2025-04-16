@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using Algorithms.Utilities;
 using GlobalLayer;
 using KiteConnect;
-using ZConnectWrapper;
+using BrokerConnectWrapper;
 //using Pub_Sub;
 //using MarketDataTest;
 using System.Data;
@@ -60,8 +60,9 @@ namespace Algos.TLogics
         {
         }
 
-        private async Task ReviewStrangle(Tick[] ticks)
+        private async Task ReviewStrangle(Tick tick)
         {
+            Tick[] ticks = new Tick[] { tick };
             InstrumentListNode ceNode = Strangle[(int)InstrumentType.CE];
             InstrumentListNode peNode = Strangle[(int)InstrumentType.PE];
 
@@ -555,17 +556,17 @@ namespace Algos.TLogics
         //}
 
         //make sure ref is working with struct . else make it class
-        public virtual async Task<bool> OnNext(Tick[] ticks)
+        public virtual void OnNext(Tick tick)
         {
             try
             {
-                ReviewStrangle(ticks);
+                ReviewStrangle(tick);
             }
             catch (Exception exp)
             {
                 throw exp;
             }
-            return true;
+            return ;
         }
 
         public virtual void OnError(Exception ex)
@@ -737,6 +738,10 @@ namespace Algos.TLogics
 
             }
 
+        }
+        public void StopTrade(bool stop)
+        {
+            //_stopTrade = stop;
         }
 
         private decimal PlaceOrder(InstrumentListNode optionNode, bool buyOrder, decimal currentPrice)

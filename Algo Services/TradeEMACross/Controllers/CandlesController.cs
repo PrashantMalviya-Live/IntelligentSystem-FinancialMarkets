@@ -53,9 +53,9 @@ namespace MarketView.Controllers
             uint instrumentToken = 260105;
             DateTime endDateTime = DateTime.Now;
             TimeSpan candleTimeSpan = TimeSpan.FromMinutes(5);
-            uint volumeThreshold = 10000;
+            uint volumeThreshold = 50000;
             uint moneyThreshold = 32000000;
-            DateTime expiry = Convert.ToDateTime("2020-12-31");
+            DateTime expiry = Convert.ToDateTime("2021-12-23");
 
 
             ///FOR ALL STOCKS FUTURE , PASS INSTRUMENTTOKEN AS ZERO. FOR CE/PE ON BNF/NF SEND THE INDEX TOKEN AS INSTRUMENTTOKEN

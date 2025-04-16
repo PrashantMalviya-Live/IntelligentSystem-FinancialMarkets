@@ -1,0 +1,175 @@
+﻿@page "/positions"
+@inject TradesClient TClient
+
+@using StockMarketAlertsApp.Data
+
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.AspNetCore.WebUtilities
+
+@rendermode InteractiveServer
+@inject UserManager<ApplicationUser> UserManager
+@inject ApplicationDbContext AppContext
+@inject NavigationManager NavigationManager
+
+<PageTitle>Positions</PageTitle>
+<AlertComponent />
+<AuthorizeView>
+    <NotAuthorized>
+        Please login to Stock Alerts
+    </NotAuthorized>
+
+    <Authorized>
+     
+        @if(!BrokerLoggedIn)
+        {
+            <BrokerLogin />
+        }
+        else
+        {
+
+        
+        @* <AuthorizeView Policy="BrokerAccountLoggedInOnly">
+    <NotAuthorized Context="BrokerLogin">
+        <BrokerLogin />
+    </NotAuthorized>
+    <Authorized Context="BrokerLogin"> *@
+
+        @if(userPositions == null)
+        {
+            <text><em>Loading...</em></text>
+        }
+        else{
+        
+            <h1>Active Positions</h1>
+
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <td>
+               
+                        </td>
+                        <td>
+               
+                        </td>
+                        <td>
+               
+                        </td>
+                        <td>
+               
+                        </td>
+                        <td>
+               
+                        </td>
+                        <td>
+                            @userPositions.Sum(_=>_.PNL)
+                        </td>
+                        <td>
+                            
+                        </td>
+                        <td>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>
+                            Sl. No.
+                        </th>
+                        <th>
+                            Symbol
+                        </th>
+                        <th>
+                            Quantity
+                        </th>
+                        <th>
+                            Last Price
+                        </th>
+                        <th>
+                            Average Price
+                        </th>
+                        <th>
+                            Today's Pnl
+                        </th>
+                        <th>
+                            Buy Quantity
+                        </th>
+                        <th>
+                            Sell Quantity
+                        </th>
+                    </tr>
+                </thead>
+
+                <tbody>
+        
+                    @foreach (var position in userPositions)
+                    {
+                        <tr>
+                            <td>@position.Product</td>
+                            <td>@position.TradingSymbol</td>
+                            <td>@GetTradedQuantity(@position.BuyQuantity,@position.SellQuantity) </td>
+                            <td>@position.LastPrice</td>
+                            <td>@position.AveragePrice</td>
+                            <td>@position.PNL</td>
+                            @*<td>@position.Realised</td>
+                            <td>@position.Unrealised</td>
+                             <td>@position.Target</td>
+                            <td>@position.StopLoss</td> *@
+                            <td>@position.BuyQuantity</td>
+                            <td>@position.SellQuantity</td>
+                        </tr>
+                    }
+        
+                </tbody>
+            </table>
+
+        }
+        }
+    @* </Authorized>
+</AuthorizeView> *@
+    </Authorized>
+</AuthorizeView>
+@code {
+    //private TradesClient tradesClient = new();
+    private List<PositionSummary>? userPositions;
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? authenticationState { get; set; }
+
+    private ApplicationUser? currentUser;
+
+    private bool BrokerLoggedIn = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (authenticationState is not null)
+        {
+            var authState = await authenticationState;
+            var user = authState?.User;
+
+            if (user?.Identity is not null && user.Identity.IsAuthenticated)
+            {
+                //authMessage = $"{user.Identity.Name} is authenticated.";
+                currentUser = await UserManager.GetUserAsync(user);
+
+                //Broker Id 1 check here is temp. Only kotak is checked as only kotak is implemented.
+                var brokerLoginCollection = AppContext.BrokerLoginParams.Where(x => x.ApplicationUserId == currentUser.Id && x.LoggedInDate.Date == DateTime.Today && x.BrokerId == 1).ToList();
+
+                if (currentUser is not null)
+                {
+                    foreach (BrokerLoginParams bl in brokerLoginCollection)
+                    {
+                        //check if user is logged in to broker
+                        (userPositions ??= new List<PositionSummary>()).AddRange(await TClient.GetUserPositionsAsync(currentUser.Id, bl.BrokerId));
+
+                        BrokerLoggedIn = true;
+                    }
+
+                }
+                
+            }
+        }
+        //return base.OnInitializedAsync();
+    }
+    private int GetTradedQuantity(int buyQty, int sellQty)
+    {
+        return buyQty != 0 ? buyQty : sellQty;
+    }
+}

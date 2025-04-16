@@ -1,0 +1,185 @@
+﻿@page "/dataprovider"
+@inject LoginClient LoginClient
+@rendermode InteractiveServer
+
+
+@using StockMarketAlertsApp.Data
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.AspNetCore.WebUtilities
+
+@inject UserManager<ApplicationUser> UserManager
+@inject ApplicationDbContext AppContext
+@inject NavigationManager NavigationManager
+
+<PageTitle>Data Provider</PageTitle>
+
+
+<h3>Zerodha Account</h3>
+
+<br />
+<br />
+@if (!@DataProviderLoggerIn)
+{
+    <button class="btn btn-primary" @onclick="() => ZerodhaLogin(string.Empty)">Login to Zerodha</button>
+}
+else
+{
+    <h4> You have logged in to Zerodha successfully at @LastLoggedInTime </h4>
+
+    <button class="btn btn-primary" @onclick="() => ZerodhaLoadTokens()">Load Tokens</button>
+
+    @if (@TokensLoaded)
+    {
+        <h4> Tokens Loaded </h4>
+    }
+} 
+
+@code {
+    private bool DataProviderLoggerIn = false;
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? authenticationState { get; set; }
+
+    [SupplyParameterFromQuery]
+    private string? request_token { get; set; }
+
+    private BrokerLoginParams? brokerLogin = new() { ClientId = "" };
+    private ApplicationUser? currentUser;
+    private DateTime LastLoggedInTime;
+    private bool TokensLoaded = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (authenticationState is not null)
+        {
+            var authState = await authenticationState;
+            var user = authState?.User;
+
+            if (user?.Identity is not null && user.Identity.IsAuthenticated)
+            {
+                currentUser = await UserManager.GetUserAsync(user);
+                //2 is for Zerodha. Check the database
+                var brokerLoginCollection = AppContext.BrokerLoginParams.Where(x => x.ApplicationUserId == currentUser.Id && x.BrokerId == 2 && x.LoggedInDate.Date == DateTime.Today).ToList();
+
+                if (brokerLoginCollection.Count > 0)
+                {
+                    LastLoggedInTime = brokerLoginCollection[0].LoggedInDate;
+                    DataProviderLoggerIn = true;
+                }
+            }
+        }
+        //return base.OnInitializedAsync();
+    }
+    private async Task ZerodhaLogin(string requestToken)
+    {
+        brokerLogin = await LoginClient.DataBrokerLogin(requestToken);
+
+        if (brokerLogin.login.HasValue && !brokerLogin.login.Value && brokerLogin.url != null)
+        {
+            NavigationManager.NavigateTo(brokerLogin.url);
+        }
+        else
+        {
+            DataProviderLoggerIn = true;
+
+            if (authenticationState is not null)
+            {
+                var authState = await authenticationState;
+                var user = authState?.User;
+
+                if (user?.Identity is not null && user.Identity.IsAuthenticated)
+                {
+                    currentUser = await UserManager.GetUserAsync(user);
+
+                    //2 is for Zerodha. Check the database
+                    var brokerLoginParamList = AppContext.BrokerLoginParams.Where(x => x.ApplicationUserId == currentUser.Id && x.BrokerId == 2).ToList();
+
+                    //brokerLogin.LoggedInDate = DateTime.Now;
+                    LastLoggedInTime = DateTime.Now;
+
+                    if (brokerLoginParamList.Count > 0)// brokerLoginParam is not null)
+                    {
+                        var brokerLoginParam = brokerLoginParamList[0];
+                        brokerLoginParam.ApplicationUser = currentUser;
+                        brokerLoginParam.ApplicationUserId = currentUser.Id;
+                        brokerLoginParam.LoggedInDate = DateTime.Now;
+                        brokerLoginParam.BrokerId = 2;
+                        brokerLoginParam.BrokerName = "Zerodha";
+
+                        List<BrokerLoginParams> brokerLoginList = new List<BrokerLoginParams>();
+                        brokerLoginList.Add(brokerLogin);
+                        var userBrokerLoginParam = currentUser.BrokerLoginParams.FirstOrDefault(x => x.ClientId == brokerLoginParam.ClientId, null);
+                        userBrokerLoginParam = brokerLoginParam;
+
+                        AppContext.BrokerLoginParams.Update(brokerLoginParam);
+                    }
+                    else
+                    {
+                        brokerLogin.ApplicationUser = currentUser;
+                        brokerLogin.ApplicationUserId = currentUser.Id;
+                        brokerLogin.LoggedInDate = DateTime.Now;
+                        brokerLogin.BrokerId = 2;
+                        brokerLogin.BrokerName = "Zerodha";
+
+                        if (currentUser.BrokerLoginParams is null)
+                        {
+                            List<BrokerLoginParams> brokerLoginList = new List<BrokerLoginParams>();
+                            brokerLoginList.Add(brokerLogin);
+                            currentUser.BrokerLoginParams = brokerLoginList;
+                        }
+                        else
+                        {
+                            currentUser.BrokerLoginParams.Add(brokerLogin);
+                        }
+
+                        AppContext.BrokerLoginParams.Add(brokerLogin);
+                    }
+
+                    await AppContext.SaveChangesAsync();
+
+                }
+            }
+        }
+
+        //In case of succesful login. add policy of data broker login with borker name
+
+    }
+    private async Task ZerodhaLoadTokens()
+    {
+        TokensLoaded =  await LoginClient.ZerodhaLoadTokens();
+    }
+    public override async Task SetParametersAsync(ParameterView parameters)
+    {
+        parameters.SetParameterProperties(this);
+
+        string requestToken = parameters.GetValueOrDefault("request_token", string.Empty) ?? string.Empty;
+
+        //if (parameters.TryGetValue<ZerodhaLoginParam>(nameof(zerodhaLoginParam), out var value))
+        //{
+        if (requestToken is not null && requestToken != string.Empty )
+        {
+            if (authenticationState is not null)
+            {
+                var authState = await authenticationState;
+                var user = authState?.User;
+
+                if (user?.Identity is not null && user.Identity.IsAuthenticated)
+                {
+                    currentUser = await UserManager.GetUserAsync(user);
+
+                    //2 is for Zerodha. Check the database
+                    var rowsAffected = AppContext.BrokerLoginParams.Where(x => x.ApplicationUserId == currentUser.Id && x.BrokerId == 2 && x.LoggedInDate.Date == DateTime.Today).ToList();
+
+
+                    if (rowsAffected.Count == 0)
+                    {
+                        await ZerodhaLogin(requestToken);
+                    }
+                }
+            }
+            
+        }
+        //}
+        await base.SetParametersAsync(ParameterView.Empty);
+    }
+}

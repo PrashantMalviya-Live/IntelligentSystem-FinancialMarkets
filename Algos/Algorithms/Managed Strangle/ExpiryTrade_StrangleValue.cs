@@ -10,9 +10,14 @@ using System.Data;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using ZConnectWrapper;
+using BrokerConnectWrapper;
 using ZMQFacade;
-namespace Algos.TLogics
+using System.Net.Http;
+using System.Security.Cryptography;
+using Google.Protobuf.WellKnownTypes;
+//using InfluxDB.Client.Api.Domain;
+
+namespace Algorithms.Algorithms
 {
 
     /// <summary>
@@ -29,7 +34,7 @@ namespace Algos.TLogics
         public IDisposable UnsubscriptionToken;
         Dictionary<int, StrangleDataStructure> ActiveStrangles;
         private int _algoInstance;
-
+        public Dictionary<uint, uint> MappedTokens { get; set; }
         private const int INSTRUMENT_TOKEN = 0;
         private const int INITIAL_TRADED_PRICE = 1;
         private const int CURRENT_PRICE = 2;
@@ -39,12 +44,13 @@ namespace Algos.TLogics
         private const int POSITION_PnL = 6;
         private const int STRIKE = 7;
         private const int PRICEDELTA = 8;
+        private const int DELTA_VALUE_TRESHOLD = 150000;
         private bool ContinueTrade = false;
         private bool InitialOI = false;
         private const int CE = 0;
         private const int PE = 1;
         private const AlgoIndex algoIndex = AlgoIndex.ExpiryTrade;
-
+        private bool _intraday = true;
         Dictionary<uint, ExponentialMovingAverage> lTokenEMA;
         Dictionary<uint, RelativeStrengthIndex> tokenRSI;
         List<uint> _EMALoaded;
@@ -52,24 +58,30 @@ namespace Algos.TLogics
         Dictionary<uint, bool> _firstCandleOpenPriceNeeded;
         CandleManger candleManger;
         Dictionary<uint, List<Candle>> TimeCandles;
-
+        private decimal _pnl = 0;
         public List<uint> SubscriptionTokens;
         private System.Timers.Timer _healthCheckTimer;
         private int _healthCounter = 0;
 
         private System.Timers.Timer _loggerTimer;
-
+        private Instrument _referenceCall;
+        private Instrument _referencePut;
         private readonly uint _bInstrumentToken;
         private readonly DateTime _expiry;
         private readonly int _initialQty;
         private readonly int _stepQty;
         private readonly int _maxQty;
-        private readonly decimal _stopLoss;
+        private decimal _stopLoss;
+        private decimal _trailingStopLoss;
+        private decimal _targetProfit;
         private readonly int _minDistanceFromBInstrument;
+        private readonly int _initialDistanceFromBInstrument;
         private readonly decimal _minPremiumToTrade;
-        private bool _stopTrade = false;
-
-
+        private bool _stopTrade = true;
+        private Object tradeLock = new Object();
+        string _userId;
+        private User _user;
+        IHttpClientFactory _httpClientFactory;
         [field: NonSerialized]
         public delegate void OnOptionUniverseChangeHandler(ExpiryTrade source);
         [field: NonSerialized]
@@ -84,34 +96,47 @@ namespace Algos.TLogics
         public delegate void OnTradeExitHandler(Order st);
         [field: NonSerialized]
         public event OnTradeExitHandler OnTradeExit;
-
+        
         public ExpiryTrade(uint bInstrumentToken, DateTime expiry, int initialQty, int stepQty, 
-            int maxQty, decimal stopLoss, int minDistanceFromBInstrument, decimal minPremiumToTrade)
+            int maxQty, decimal stopLoss, int minDistanceFromBInstrument, 
+            decimal minPremiumToTrade, int initialDistanceFromBInstrument, 
+            decimal targetProfit, string uid, int strikePriceIncrement, 
+            IHttpClientFactory httpClientFactory = null)
         {
             ActiveStrangles = new Dictionary<int, StrangleDataStructure>();
+            _userId = uid;
+            //_httpClient = httpClient;
+            _httpClientFactory = httpClientFactory;
+
             _bInstrumentToken = bInstrumentToken;
             _expiry = expiry;
             _initialQty = initialQty;
             _stepQty = stepQty;
             _maxQty = maxQty;
             _stopLoss = stopLoss;
+            _trailingStopLoss = -1;// stopLoss;
+            _targetProfit = targetProfit;
             _minDistanceFromBInstrument = minDistanceFromBInstrument;
+            _initialDistanceFromBInstrument = initialDistanceFromBInstrument;
             _minPremiumToTrade = minPremiumToTrade;
 
             _algoInstance = Utility.GenerateAlgoInstance(algoIndex, _bInstrumentToken, DateTime.Now, _expiry, initialQtyInLotsSize: _initialQty,
                maxQtyInLotSize: _maxQty, stepQtyInLotSize: _stepQty, stopLossPoints: (float) _stopLoss, upperLimit: _minDistanceFromBInstrument,
-               lowerLimit: _minPremiumToTrade);
+               lowerLimit: _minPremiumToTrade, Arg2: targetProfit, Arg1: initialDistanceFromBInstrument);
 
 
-            LoadActiveData(_algoInstance, _bInstrumentToken, _expiry, _maxQty, _initialQty, _stepQty, 100, _minDistanceFromBInstrument, _minPremiumToTrade);
+            LoadActiveData(_algoInstance, _bInstrumentToken, _expiry, _maxQty, _initialQty, _stepQty, strikePriceIncrement, _minDistanceFromBInstrument, _minPremiumToTrade);
+            
             //Load Data from database
             //LoadActiveData();
+            
             SubscriptionTokens = new List<uint>();
             SubscriptionTokens.AddRange(ActiveStrangles.Values.Select(x => x.BaseInstrumentToken));
-
+            MappedTokens = new Dictionary<uint, uint>();
             //_algoInstance = StrangleNode.ID; Utility.GenerateAlgoInstance(algoIndex, DateTime.Now);
-
+            uid = "PM27031981";
             ZConnect.Login();
+            _user = KoConnect.GetUser(userId: uid);
 
             //health check after 1 mins
             _healthCheckTimer = new System.Timers.Timer(interval: 1 * 60 * 1000);
@@ -124,298 +149,368 @@ namespace Algos.TLogics
             _loggerTimer.Start();
 
             //RSI and EMA
-            lTokenEMA = new Dictionary<uint, ExponentialMovingAverage>();
-            tokenRSI = new Dictionary<uint, RelativeStrengthIndex>();
-            _EMALoaded = new List<uint>();
-            _SQLLoading = new List<uint>();
-            _firstCandleOpenPriceNeeded = new Dictionary<uint, bool>();
-            CandleSeries candleSeries = new CandleSeries();
-            candleManger = new CandleManger(TimeCandles, CandleType.Time);
-            candleManger.TimeCandleFinished += CandleManger_TimeCandleFinished;
+            //lTokenEMA = new Dictionary<uint, ExponentialMovingAverage>();
+            //tokenRSI = new Dictionary<uint, RelativeStrengthIndex>();
+            //_EMALoaded = new List<uint>();
+            //_SQLLoading = new List<uint>();
+            //_firstCandleOpenPriceNeeded = new Dictionary<uint, bool>();
+            //CandleSeries candleSeries = new CandleSeries();
+            //candleManger = new CandleManger(TimeCandles, CandleType.Time);
+            //candleManger.TimeCandleFinished += CandleManger_TimeCandleFinished;
 
         }
 
-        private void CandleManger_TimeCandleFinished(object sender, Candle e)
-        {
-            throw new NotImplementedException();
-        }
+        //private void CandleManger_TimeCandleFinished(object sender, Candle e)
+        //{
+        //    throw new NotImplementedException();
+        //}
 
         private void ManageStrangle(StrangleDataStructure strangleNode, Tick tick)
         {
+            DateTime currentTime = (tick.InstrumentToken == _bInstrumentToken || tick.LastTradeTime == null) ?
+               tick.Timestamp.Value : tick.LastTradeTime.Value;
+
             try
             {
-                if (!GetBaseInstrumentPrice(tick, strangleNode))
+                lock (tradeLock)
                 {
-                    return;
-                }
-                if(!PopulateReferenceStrangleData(strangleNode, tick))
-                {
-                    return;
-                }
-
-                ///Commented Max pain for now. This will be used lated to predict the direction after more research.
-                //decimal maxPainStrike = UpdateMaxPainStrike(strangleNode, tick);
-                //if (maxPainStrike == 0)
-                //{
-                //    return;
-                //}
-
-                DateTime timeOfOrder = tick.LastTradeTime.HasValue ? tick.LastTradeTime.Value : tick.Timestamp.Value;
-                SortedList<decimal, Instrument> callUniverse = strangleNode.CallUniverse;
-                SortedList<decimal, Instrument> putUniverse = strangleNode.PutUniverse;
-
-                Decimal[][,] optionMatix = strangleNode.OptionMatrix;
-
-                //Each trade should have a record and pnl, and then this trade should be closed first when delta to be neutralized.
-
-                if (optionMatix[0] == null)
-                {
-                    //int tradeCounter = 0;
-                    //Take Initial Position
-                    decimal[][] optionTrade = InitialTrade(strangleNode, tick);
-                    for (int i = 0; i < optionTrade.GetLength(0); i++)
+                    if (!GetBaseInstrumentPrice(tick, strangleNode))
                     {
-                        optionMatix[i] = new decimal[1, 10];
-                        optionMatix[i][0, INSTRUMENT_TOKEN] = optionTrade[i][INSTRUMENT_TOKEN]; //Instrument Token
-                        optionMatix[i][0, INITIAL_TRADED_PRICE] = optionTrade[i][INITIAL_TRADED_PRICE]; //TradedPrice
-                        optionMatix[i][0, CURRENT_PRICE] = optionTrade[i][CURRENT_PRICE]; //CurrentPrice
-                        optionMatix[i][0, QUANTITY] = optionTrade[i][QUANTITY]; //Quantity
-                        optionMatix[i][0, TRADE_ID] = optionTrade[i][TRADE_ID]; //TradeID
-                        optionMatix[i][0, TRADING_STATUS] = optionTrade[i][TRADING_STATUS]; // Trading Status: Open
-                        optionMatix[i][0, POSITION_PnL] = optionTrade[i][POSITION_PnL];// PnL of trade as price updates
-                        optionMatix[i][0, STRIKE] = optionTrade[i][STRIKE];// Strike Price of Instrument
-
-                        //string tradingSymbol = i == PE ? strangleNode.PutUniverse[optionTrade[i][STRIKE]].TradingSymbol : strangleNode.CallUniverse[optionTrade[i][STRIKE]].TradingSymbol;
-
-
-                        //callMatix[tradeCounter, PRICEDELTA] = callTrade[1];// Price detal between consicutive positions
-                        strangleNode.OptionMatrix[i] = optionMatix[i];
+                        return;
                     }
-
-                    return;
-                }
-
-                UpdateMatrix(callUniverse, ref optionMatix[CE]);
-                UpdateMatrix(putUniverse, ref optionMatix[PE]);
-
-                ///Step 2: Higher value strangle has not reached within 100 points to Binstruments -  Delta threshold
-                ///TODO: MOVE THE TRADE AND NOT JUST CLOSE IT
-                ///16-04-20: This step has been moved out as new ATM options are checked regularly to avoid Gamma play.
-                int lotSize = GetLotSize();
-                decimal currentPutQty = GetQtyInTrade(optionMatix[PE]);
-                decimal currentCallQty = GetQtyInTrade(optionMatix[CE]);
-                decimal currentQty = currentCallQty + currentPutQty;
-                decimal qtyAvailable = strangleNode.MaxQty * lotSize - currentQty;
-
-                //Stop trade when premium reaches lower level
-                _stopTrade = StopTrade(ref optionMatix, strangleNode, timeOfOrder, Convert.ToInt32(qtyAvailable));
-                if (_stopTrade)
-                {
-                    return;
-                }
-                CloseNearATMTrades(ref optionMatix, strangleNode, timeOfOrder, Convert.ToInt32(qtyAvailable));
-
-                
-                currentPutQty = GetQtyInTrade(optionMatix[PE]);
-                currentCallQty = GetQtyInTrade(optionMatix[CE]);
-                currentQty = currentCallQty + currentPutQty;
-                qtyAvailable = strangleNode.MaxQty * lotSize - currentQty;
-
-
-                decimal callInitialValue = GetMatrixInitialValue(optionMatix[CE]);
-                decimal putInitialValue = GetMatrixInitialValue(optionMatix[PE]);
-
-                decimal callValue = GetMatrixCurrentValue(optionMatix[CE]);
-                decimal putValue = GetMatrixCurrentValue(optionMatix[PE]);
-                decimal higherOptionValue = Math.Max(callValue, putValue);
-                decimal lowerOptionValue = Math.Min(callValue, putValue);
-                int highValueOptionType = callValue > putValue ? CE : PE;
-
-                decimal initialStrangleValue = callInitialValue + putInitialValue; // only for trades that are not closed yet. Open strangle value.
-                decimal currentStrangleValue = callValue + putValue;
-
-                //Step: Check RSI and WMA on RSI and then take trade only if RSI is below 20 WMA RSI and RSI is below 55. Else manage one side.
-
-
-                ///step:if next strike cross this strike on opposide side
-                #region Manage one side
-                if (higherOptionValue > lowerOptionValue * 1.7m)
-                {
-                    int stepQty = strangleNode.StepQty * lotSize;
-                    
-
-                    decimal maxQty = strangleNode.MaxQty * lotSize;
-                    decimal maxQtyForStrangle = strangleNode.MaxQty * lotSize; // There can be 2 max qtys, a lower one for strangle and higher for side balancing
-                    decimal bInstrumentPrice = strangleNode.BaseInstrumentPrice;
-                    //decimal lotSize = strangleNode.CallUniverse.First().Value.LotSize;
-                    decimal optionToken = 0;
-
-                    //decimal premiumNeeded = (higherOptionValue - lowerOptionValue) / stepQty;
-                    decimal premiumNeeded = (higherOptionValue - lowerOptionValue);
-
-                    ///Step 1: Check if there are any profitable calltrades that can be bought back
-                    CloseProfitableTrades(ref optionMatix[highValueOptionType], strangleNode, timeOfOrder, premiumNeeded, lotSize, highValueOptionType);
-
-                    /////Step 2: Higher value strangle has not reached within 100 points to Binstruments -  Delta threshold
-                    /////TODO: MOVE THE TRADE AND NOT JUST CLOSE IT
-                    //CloseNearATMTrades(optionMatix[highValueOptionType], strangleNode, timeOfOrder, (InstrumentType)highValueOptionType);
-
-                    ///Step 3: Check to see if trade can be taken out from lower value strangle matrix
-                    ///TODO: This step may not be needed as lower value option gets moved to maintain delta. This should be a totally seperate step.
-                    BookProfitAndMoveClosure();
-
-                    ///Intermediate Step
-                    ///Recheck value of options to see if further continuation is needed.
-                    higherOptionValue = highValueOptionType == CE ? GetMatrixCurrentValue(optionMatix[CE]) : GetMatrixCurrentValue(optionMatix[PE]);
-
-                    if (higherOptionValue <= lowerOptionValue * 1.7m)
+                    if (!PopulateReferenceStrangleData(strangleNode, tick))
                     {
                         return;
                     }
 
-                    //Step 3: keep checking on the next in the money option and see if the value ot next strike price of opposite side crosses this option price
+                    ///Commented Max pain for now. This will be used lated to predict the direction after more research.
+                    //decimal maxPainStrike = UpdateMaxPainStrike(strangleNode, tick);
+                    //if (maxPainStrike == 0)
+                    //{
+                    //    return;
+                    //}
 
-                    ///Step4: Look for increasing quantity on lower strike prices to increase the value of strangle just above loss making high value strangle
+                    DateTime timeOfOrder = tick.LastTradeTime.HasValue ? tick.LastTradeTime.Value : tick.Timestamp.Value;
+                    SortedList<decimal, Instrument> callUniverse = strangleNode.CallUniverse;
+                    SortedList<decimal, Instrument> putUniverse = strangleNode.PutUniverse;
+                    //Console.WriteLine(timeOfOrder.ToLongTimeString());
+                    if(strangleNode.OptionMatrix == null)
+                    {
+                        strangleNode.OptionMatrix = new Decimal[2][,];
+                    }
+                    Decimal[][,] optionMatix = strangleNode.OptionMatrix;
+
+                    //Each trade should have a record and pnl, and then this trade should be closed first when delta to be neutralized.
+
+                    if (optionMatix[0] == null)
+                    {
+                        if (currentTime.TimeOfDay > new TimeSpan(9, 15, 0))
+                        {
+                            //int tradeCounter = 0;
+                            //Take Initial Position
+                            decimal[][] optionTrade = InitialTrade(strangleNode, tick);
+                            if (optionTrade != null)
+                            {
+                                for (int i = 0; i < optionTrade.GetLength(0); i++)
+                                {
+                                    optionMatix[i] = new decimal[1, 10];
+                                    optionMatix[i][0, INSTRUMENT_TOKEN] = optionTrade[i][INSTRUMENT_TOKEN]; //Instrument Token
+                                    optionMatix[i][0, INITIAL_TRADED_PRICE] = optionTrade[i][INITIAL_TRADED_PRICE]; //TradedPrice
+                                    optionMatix[i][0, CURRENT_PRICE] = optionTrade[i][CURRENT_PRICE]; //CurrentPrice
+                                    optionMatix[i][0, QUANTITY] = optionTrade[i][QUANTITY]; //Quantity
+                                    optionMatix[i][0, TRADE_ID] = optionTrade[i][TRADE_ID]; //TradeID
+                                    optionMatix[i][0, TRADING_STATUS] = optionTrade[i][TRADING_STATUS]; // Trading Status: Open
+                                    optionMatix[i][0, POSITION_PnL] = optionTrade[i][POSITION_PnL];// PnL of trade as price updates
+                                    optionMatix[i][0, STRIKE] = optionTrade[i][STRIKE];// Strike Price of Instrument
+
+                                    //string tradingSymbol.TrimEnd(' ') = i == PE ? strangleNode.PutUniverse[optionTrade[i][STRIKE]].TradingSymbol : strangleNode.CallUniverse[optionTrade[i][STRIKE]].TradingSymbol;
+
+
+                                    //callMatix[tradeCounter, PRICEDELTA] = callTrade[1];// Price detal between consicutive positions
+                                    strangleNode.OptionMatrix[i] = optionMatix[i];
+                                }
+                            }
+                        }
+                        return;
+                    }
+
+                    strangleNode.UnBookedPnL = 0;
+
+                    strangleNode.UnBookedPnL += UpdateMatrix(callUniverse, ref optionMatix[CE]);
+                    strangleNode.UnBookedPnL += UpdateMatrix(putUniverse, ref optionMatix[PE]);
+
+                    if (strangleNode.UnBookedPnL + strangleNode.BookedPnL > _targetProfit)
+                    {
+                        CloseAllOpenTrades(ref optionMatix, strangleNode, timeOfOrder);
+
+                        _stopTrade = true;
+                        return;
+                    }
+
+                    //Trail SL after 0.5% profit
+                    if (strangleNode.UnBookedPnL + strangleNode.BookedPnL > _stopLoss)
+                    {
+                        _trailingStopLoss = Math.Max(_trailingStopLoss, strangleNode.UnBookedPnL + strangleNode.BookedPnL - _stopLoss / 2);
+                    }
+
+                    //_trailingStopLoss = Math.Max(_trailingStopLoss, strangleNode.UnBookedPnL + strangleNode.BookedPnL - _stopLoss);
+
+                    //_trailingStopLoss = 25000000;
+                    if (strangleNode.UnBookedPnL + strangleNode.BookedPnL < _trailingStopLoss && _trailingStopLoss > 0)
+                    {
+                        //CloseAllOpenTrades(ref optionMatix, strangleNode, timeOfOrder);
+                        //_stopTrade = true;
+                        //return;
+                    }
+
+                    ///Step 2: Higher value strangle has not reached within 100 points to Binstruments -  Delta threshold
+                    ///TODO: MOVE THE TRADE AND NOT JUST CLOSE IT
+                    ///16-04-20: This step has been moved out as new ATM options are checked regularly to avoid Gamma play.
+                    int lotSize = GetLotSize();
+                    decimal currentPutQty = GetQtyInTrade(optionMatix[PE]);
+                    decimal currentCallQty = GetQtyInTrade(optionMatix[CE]);
+                    decimal currentQty = currentCallQty + currentPutQty;
+                    decimal qtyAvailable = strangleNode.MaxQty * lotSize - currentQty;
+
+                    //Stop trade when premium reaches lower level
+                    _stopTrade = StopTrade(ref optionMatix, strangleNode, timeOfOrder, Convert.ToInt32(qtyAvailable));
+                    if (_stopTrade)
+                    {
+                        CloseAllOpenTrades(ref optionMatix, strangleNode, timeOfOrder);
+                        _stopTrade = true;
+                        return;
+                    }
+                    CloseNearATMTrades(ref optionMatix, strangleNode, timeOfOrder, Convert.ToInt32(qtyAvailable));
+
+
                     currentPutQty = GetQtyInTrade(optionMatix[PE]);
                     currentCallQty = GetQtyInTrade(optionMatix[CE]);
                     currentQty = currentCallQty + currentPutQty;
-                    qtyAvailable = maxQty - currentQty;
-                    decimal valueNeeded = 0;
-                    decimal[,] matrix;
+                    qtyAvailable = strangleNode.MaxQty * lotSize - currentQty;
 
-                    if (qtyAvailable >= lotSize)
+
+                    decimal callInitialValue = GetMatrixInitialValue(optionMatix[CE]);
+                    decimal putInitialValue = GetMatrixInitialValue(optionMatix[PE]);
+
+                    decimal callValue = GetMatrixCurrentValue(optionMatix[CE]);
+                    decimal putValue = GetMatrixCurrentValue(optionMatix[PE]);
+                    decimal higherOptionValue = Math.Max(callValue, putValue);
+                    decimal lowerOptionValue = Math.Min(callValue, putValue);
+                    int highValueOptionType = callValue > putValue ? CE : PE;
+
+                    decimal initialStrangleValue = callInitialValue + putInitialValue; // only for trades that are not closed yet. Open strangle value.
+                    decimal currentStrangleValue = callValue + putValue;
+
+                    //Step: Check RSI and WMA on RSI and then take trade only if RSI is below 20 WMA RSI and RSI is below 55. Else manage one side.
+
+                    //decimal deltaThreashold = Math.Min(Math.Max(0.4m * lowerOptionValue, 6000), 10000);
+                    decimal deltaThreashold = Math.Min(lowerOptionValue, DELTA_VALUE_TRESHOLD);
+
+                    //shift will be based on reference instrument which is atmoption
+                    decimal higherReferenceValue = Math.Max(_referenceCall.LastPrice, _referencePut.LastPrice);
+                    decimal lowerReferenceValue = Math.Min(_referenceCall.LastPrice, _referencePut.LastPrice);
+                    //decimal deltaThreashold = Math.Min(lowerReferenceValue, DELTA_VALUE_TRESHOLD);
+                    ///step:if next strike cross this strike on opposide side
+                    #region Manage one side
+                    if (higherOptionValue - lowerOptionValue > deltaThreashold)// || (strangleNode.UnBookedPnL + strangleNode.BookedPnL) * -1 > _trailingStopLoss - 10000 && _trailingStopLoss > 0)
+                                                                               //if (higherReferenceValue - lowerReferenceValue > deltaThreashold || (strangleNode.UnBookedPnL + strangleNode.BookedPnL) * -1 > _trailingStopLoss - 5000)
                     {
-                        valueNeeded = Math.Abs(higherOptionValue - lowerOptionValue);
-                        matrix = callValue > putValue ? optionMatix[PE] : optionMatix[CE];
+                        UpdateReferenceInstruments(strangleNode);
+
+                        int stepQty = strangleNode.StepQty * lotSize;
 
 
-                        SortMatrixByPrice(ref matrix);
+                        decimal maxQty = strangleNode.MaxQty * lotSize;
+                        decimal maxQtyForStrangle = strangleNode.MaxQty * lotSize; // There can be 2 max qtys, a lower one for strangle and higher for side balancing
+                        decimal bInstrumentPrice = strangleNode.BaseInstrumentPrice;
+                        //decimal lotSize = strangleNode.CallUniverse.First().Value.LotSize;
+                        decimal optionToken = 0;
 
-                        for (int i = 0; i < matrix.GetLength(0); i++)
+                        //decimal premiumNeeded = (higherOptionValue - lowerOptionValue) / stepQty;
+                        decimal premiumNeeded = (higherOptionValue - lowerOptionValue);
+
+                        ///Step 1: Check if there are any profitable calltrades that can be bought back
+                        //CloseProfitableTrades(ref optionMatix[highValueOptionType], strangleNode, timeOfOrder, premiumNeeded, lotSize, highValueOptionType);
+
+                        /////Step 2: Higher value strangle has not reached within 100 points to Binstruments -  Delta threshold
+                        /////TODO: MOVE THE TRADE AND NOT JUST CLOSE IT
+                        //CloseNearATMTrades(optionMatix[highValueOptionType], strangleNode, timeOfOrder, (InstrumentType)highValueOptionType);
+
+                        ///Step 3: Check to see if trade can be taken out from lower value strangle matrix
+                        ///TODO: This step may not be needed as lower value option gets moved to maintain delta. This should be a totally seperate step.
+                        //BookProfitAndMoveClosure();
+
+                        ///Intermediate Step
+                        ///Recheck value of options to see if further continuation is needed.
+                        higherOptionValue = highValueOptionType == CE ? GetMatrixCurrentValue(optionMatix[CE]) : GetMatrixCurrentValue(optionMatix[PE]);
+
+                        if (higherOptionValue - lowerOptionValue < deltaThreashold)
                         {
-                            if (matrix[i, TRADING_STATUS] == (decimal)TradeStatus.Open && (matrix[i, CURRENT_PRICE] * qtyAvailable >= valueNeeded || i == matrix.GetLength(0) - 1)) //2: CurrentPrice
-                            {
-                                string tradingSymbol = callValue > putValue ? strangleNode.PutUniverse[matrix[i, STRIKE]].TradingSymbol : strangleNode.CallUniverse[matrix[i, STRIKE]].TradingSymbol;
-                                string instrumentType = callValue > putValue ? "PE" : "CE";
-                                //Book this trade and update matix with only open trades
-                                int qtyToBeBooked = Convert.ToInt32(Math.Ceiling((valueNeeded / matrix[i, CURRENT_PRICE]) / lotSize) * lotSize);
-
-
-                                optionToken = matrix[i, INSTRUMENT_TOKEN];
-                                //Instrument option = strangleNode.TradedStrangle.Options.First(x => x.InstrumentToken == optionToken);
-                                Order order = MarketOrders.PlaceOrder(strangleNode.ID, tradingSymbol, instrumentType,
-                                    matrix[i, CURRENT_PRICE], Convert.ToUInt32(optionToken),
-                                    false, Convert.ToInt32(Math.Min(qtyToBeBooked, qtyAvailable)), algoIndex, timeOfOrder, Tag: strangleNode.ID.ToString());
-
-                                OnTradeEntry(order);
-                                decimal[,] data = new decimal[1, 10];
-                                data[0, INSTRUMENT_TOKEN] = optionToken;
-                                data[0, INITIAL_TRADED_PRICE] = order.AveragePrice;
-                                data[0, CURRENT_PRICE] = order.AveragePrice;
-                                data[0, QUANTITY] = order.Quantity;
-                                data[0, TRADING_STATUS] = (decimal)TradeStatus.Open;
-                                data[0, TRADE_ID] = strangleNode.ID;
-                                data[0, POSITION_PnL] = 0;// PnL of trade as price updates
-                                data[0, STRIKE] = matrix[i, STRIKE];// Strike Price of Instrument
-
-                                //check the universe for appropriate strike price for addition. The price should be such that 1 step qty should help
-                                //break;
-
-                                if (callValue > putValue)
-                                {
-                                    strangleNode.AddMatrixRow(data, InstrumentType.PE);
-                                }
-                                else
-                                {
-                                    strangleNode.AddMatrixRow(data, InstrumentType.CE);
-                                }
-                                return;
-                            }
+                            return;
                         }
 
+                        //Step 3: keep checking on the next in the money option and see if the value ot next strike price of opposite side crosses this option price
+
+                        ///Step4: Look for increasing quantity on lower strike prices to increase the value of strangle just above loss making high value strangle
+                        currentPutQty = GetQtyInTrade(optionMatix[PE]);
+                        currentCallQty = GetQtyInTrade(optionMatix[CE]);
+                        currentQty = currentCallQty + currentPutQty;
+                        qtyAvailable = maxQty - currentQty;
+                        decimal valueNeeded = 0;
+                        decimal[,] matrix;
+
+                        if (qtyAvailable >= lotSize)
+                        {
+                            valueNeeded = Math.Abs(higherOptionValue - lowerOptionValue) + 2000;
+                            matrix = callValue > putValue ? optionMatix[PE] : optionMatix[CE];
+
+
+                            SortMatrixByPrice(ref matrix);
+
+                            for (int i = 0; i < matrix.GetLength(0); i++)
+                            {
+                                if (matrix[i, TRADING_STATUS] == (decimal)TradeStatus.Open && (matrix[i, CURRENT_PRICE] * qtyAvailable >= valueNeeded || i == matrix.GetLength(0) - 1)) //2: CurrentPrice
+                                {
+                                    string tradingSymbol = callValue > putValue ? strangleNode.PutUniverse[matrix[i, STRIKE]].TradingSymbol : strangleNode.CallUniverse[matrix[i, STRIKE]].TradingSymbol.TrimEnd(' ');
+                                    string instrumentType = callValue > putValue ? "PE" : "CE";
+                                    //Book this trade and update matix with only open trades
+                                    int qtyToBeBooked = Convert.ToInt32(Math.Ceiling((valueNeeded / matrix[i, CURRENT_PRICE]) / lotSize) * lotSize);
+
+
+                                    optionToken = matrix[i, INSTRUMENT_TOKEN];
+
+                                    //Instrument option = strangleNode.TradedStrangle.Options.First(x => x.InstrumentToken == optionToken);
+                                    //Order order = MarketOrders.PlaceOrder(strangleNode.ID, tradingSymbol.TrimEnd(' '), instrumentType,
+                                    //    matrix[i, CURRENT_PRICE], Convert.ToUInt32(optionToken),
+                                    //    false, Convert.ToInt32(Math.Min(qtyToBeBooked, qtyAvailable)), algoIndex, timeOfOrder, Tag: strangleNode.BaseInstrumentPrice.ToString(), broker: Constants.KOTAK);
+
+
+                                    Order order = MarketOrders.PlaceOrder(strangleNode.ID, tradingSymbol.TrimEnd(' '), instrumentType, matrix[i, CURRENT_PRICE],
+                                    Convert.ToUInt32(optionToken), false, Convert.ToInt32(Math.Min(qtyToBeBooked, qtyAvailable)), algoIndex, timeOfOrder, Tag: strangleNode.BaseInstrumentPrice.ToString(),
+                                    product: _intraday ? Constants.PRODUCT_MIS : Constants.KPRODUCT_NRML,
+                                     broker: Constants.KOTAK, HsServerId: _user.HsServerId,
+                                     httpClient: _httpClientFactory == null ? null : KoConnect.ConfigureHttpClient(_user, _httpClientFactory.CreateClient()), user: _user);
+
+                                    //orderTask.Wait();
+                                    //Order order = orderTask.Result;
+
+                                    OnTradeEntry(order);
+                                    decimal[,] data = new decimal[1, 10];
+                                    data[0, INSTRUMENT_TOKEN] = optionToken;
+                                    data[0, INITIAL_TRADED_PRICE] = order.AveragePrice;
+                                    data[0, CURRENT_PRICE] = order.AveragePrice;
+                                    data[0, QUANTITY] = order.Quantity;
+                                    data[0, TRADING_STATUS] = (decimal)TradeStatus.Open;
+                                    data[0, TRADE_ID] = strangleNode.ID;
+                                    data[0, POSITION_PnL] = 0;// PnL of trade as price updates
+                                    data[0, STRIKE] = matrix[i, STRIKE];// Strike Price of Instrument
+
+                                    //check the universe for appropriate strike price for addition. The price should be such that 1 step qty should help
+                                    //break;
+
+                                    if (callValue > putValue)
+                                    {
+                                        strangleNode.AddMatrixRow(data, InstrumentType.PE);
+                                    }
+                                    else
+                                    {
+                                        strangleNode.AddMatrixRow(data, InstrumentType.CE);
+                                    }
+                                    return;
+                                }
+                            }
+
+
+                        }
+
+                        ///Step 5: If no additional quantity available in Step 4, then move the strangles
+                        MoveNearTerm(strangleNode, ref optionMatix, timeOfOrder);
+                    }
+                    #endregion
+                    #region Manage at strangle level
+                    else if (currentStrangleValue > 1.2m * initialStrangleValue)
+                    {
+                        //int stepQty = strangleNode.StepQty;
+                        //decimal maxQty = strangleNode.MaxQty;
+                        //decimal maxQtyForStrangle = strangleNode.MaxQty; // There can be 2 max qtys, a lower one for strangle and higher for side balancing
+                        //decimal bInstrumentPrice = strangleNode.BaseInstrumentPrice;
+                        //decimal lotSize = strangleNode.CallUniverse.First().Value.LotSize;
+                        //decimal optionStrike = 0;
+
+                        ////Determine proper structure with minimum trade and first taking profit out from existing trade
+
+                        //// Step 1: Check if max quantity is reached. If yes move to step 2 , else increase qty on both sides and balance
+                        //currentQty = GetQtyInTrade(optionMatix[CE]) + GetQtyInTrade(optionMatix[PE]);
+                        //maxQtyForStrangle = maxQty - currentQty;
+
+                        //if (maxQtyForStrangle >= (stepQty * 2)) // Add qtys to near ATM options
+                        //{
+                        //    optionStrike = GetMinStrike(optionMatix[CE]);
+
+                        //    string tradingSymbol.TrimEnd(' ') = strangleNode.CallUniverse[optionStrike].TradingSymbol;
+                        //    uint optionToken = strangleNode.CallUniverse[optionStrike].InstrumentToken;
+
+                        //    //Instrument option = strangleNode.TradedStrangle.Options.First(x => x.InstrumentToken == optionToken);
+
+                        //    ShortTrade shortTrade = PlaceOrder(strangleNode.ID,tradingSymbol.TrimEnd(' '), optionMatix[CE][0, CURRENT_PRICE],
+                        //        optionToken, false, stepQty, timeOfOrder); //TODO: What qtys should be added to both side? same as original or same as step qty?
+
+                        //    decimal[,] data = new decimal[1, 10];
+                        //    data[0, INSTRUMENT_TOKEN] = optionToken;
+                        //    data[0, INITIAL_TRADED_PRICE] = shortTrade.AveragePrice;
+                        //    data[0, CURRENT_PRICE] = shortTrade.AveragePrice;
+                        //    data[0, QUANTITY] = shortTrade.Quantity;
+                        //    data[0, TRADING_STATUS] = (decimal)TradeStatus.Open;
+                        //    data[0, TRADE_ID] = shortTrade.TriggerID;
+                        //    data[0, POSITION_PnL] = 0;// PnL of trade as price updates
+                        //    data[0, STRIKE] = optionStrike;// Strike Price of Instrument
+                        //    strangleNode.AddMatrixRow(data, InstrumentType.CE);
+
+                        //    optionStrike = GetMaxStrike(optionMatix[PE]);
+                        //    tradingSymbol.TrimEnd(' ') = strangleNode.PutUniverse[optionStrike].TradingSymbol;
+                        //    optionToken = strangleNode.PutUniverse[optionStrike].InstrumentToken;
+
+                        //    shortTrade = PlaceOrder(strangleNode.ID, tradingSymbol.TrimEnd(' '), optionMatix[PE][0, CURRENT_PRICE],
+                        //       optionToken, false, stepQty, timeOfOrder);
+
+                        //    data = new decimal[1, 10];
+                        //    data[0, INSTRUMENT_TOKEN] = optionToken;
+                        //    data[0, INITIAL_TRADED_PRICE] = shortTrade.AveragePrice;
+                        //    data[0, CURRENT_PRICE] = shortTrade.AveragePrice;
+                        //    data[0, QUANTITY] = shortTrade.Quantity;
+                        //    data[0, TRADING_STATUS] = (decimal)TradeStatus.Open;
+                        //    data[0, TRADE_ID] = shortTrade.TriggerID;
+                        //    data[0, POSITION_PnL] = 0;// PnL of trade as price updates
+                        //    data[0, STRIKE] = optionStrike;// Strike Price of Instrument
+                        //    strangleNode.AddMatrixRow(data, InstrumentType.PE);
+
+                        //}
+                        ////Step 2: move far OTMs to near ATMS. Same as step 5 below
+                        //else if (currentQty < maxQtyForStrangle)
+                        //{
+                        //    //optionToken = GetOptionWithMaxStrike(callMatix);
+                        //    //Instrument option = strangleNode.TradedStrangle.Options.First(x => x.InstrumentToken == optionToken);
+                        //    //PlaceOrder(strangleNode.ID, option, false, stepQty, timeOfOrder, triggerID: tradeCounter + 1);
+
+                        //    //optionToken = GetOptionWithMinStrike(putMatix);
+                        //    //option = strangleNode.TradedStrangle.Options.First(x => x.InstrumentToken == optionToken);
+                        //    //PlaceOrder(strangleNode.ID, option, false, stepQty, timeOfOrder, triggerID: tradeCounter + 1);
+                        //}
 
                     }
+                    #endregion
 
-                    ///Step 5: If no additional quantity available in Step 4, then move the strangles
-                    MoveNearTerm(strangleNode, ref optionMatix, timeOfOrder);
+                    //Book this trade and update matix with only open trades
+                    if (strangleNode.OptionMatrix != null)
+                    {
+                        strangleNode.OptionMatrix[CE] = optionMatix[CE];
+                        strangleNode.OptionMatrix[PE] = optionMatix[PE];
+
+                        TriggerEODPositionClose(ref optionMatix, strangleNode, timeOfOrder);
+                    }
+
+                    Interlocked.Increment(ref _healthCounter);
                 }
-                #endregion
-                #region Manage at strangle level
-                else if (currentStrangleValue > 1.2m * initialStrangleValue)
-                {
-                    //int stepQty = strangleNode.StepQty;
-                    //decimal maxQty = strangleNode.MaxQty;
-                    //decimal maxQtyForStrangle = strangleNode.MaxQty; // There can be 2 max qtys, a lower one for strangle and higher for side balancing
-                    //decimal bInstrumentPrice = strangleNode.BaseInstrumentPrice;
-                    //decimal lotSize = strangleNode.CallUniverse.First().Value.LotSize;
-                    //decimal optionStrike = 0;
-
-                    ////Determine proper structure with minimum trade and first taking profit out from existing trade
-
-                    //// Step 1: Check if max quantity is reached. If yes move to step 2 , else increase qty on both sides and balance
-                    //currentQty = GetQtyInTrade(optionMatix[CE]) + GetQtyInTrade(optionMatix[PE]);
-                    //maxQtyForStrangle = maxQty - currentQty;
-
-                    //if (maxQtyForStrangle >= (stepQty * 2)) // Add qtys to near ATM options
-                    //{
-                    //    optionStrike = GetMinStrike(optionMatix[CE]);
-
-                    //    string tradingSymbol = strangleNode.CallUniverse[optionStrike].TradingSymbol;
-                    //    uint optionToken = strangleNode.CallUniverse[optionStrike].InstrumentToken;
-
-                    //    //Instrument option = strangleNode.TradedStrangle.Options.First(x => x.InstrumentToken == optionToken);
-
-                    //    ShortTrade shortTrade = PlaceOrder(strangleNode.ID,tradingSymbol, optionMatix[CE][0, CURRENT_PRICE],
-                    //        optionToken, false, stepQty, timeOfOrder); //TODO: What qtys should be added to both side? same as original or same as step qty?
-
-                    //    decimal[,] data = new decimal[1, 10];
-                    //    data[0, INSTRUMENT_TOKEN] = optionToken;
-                    //    data[0, INITIAL_TRADED_PRICE] = shortTrade.AveragePrice;
-                    //    data[0, CURRENT_PRICE] = shortTrade.AveragePrice;
-                    //    data[0, QUANTITY] = shortTrade.Quantity;
-                    //    data[0, TRADING_STATUS] = (decimal)TradeStatus.Open;
-                    //    data[0, TRADE_ID] = shortTrade.TriggerID;
-                    //    data[0, POSITION_PnL] = 0;// PnL of trade as price updates
-                    //    data[0, STRIKE] = optionStrike;// Strike Price of Instrument
-                    //    strangleNode.AddMatrixRow(data, InstrumentType.CE);
-
-                    //    optionStrike = GetMaxStrike(optionMatix[PE]);
-                    //    tradingSymbol = strangleNode.PutUniverse[optionStrike].TradingSymbol;
-                    //    optionToken = strangleNode.PutUniverse[optionStrike].InstrumentToken;
-
-                    //    shortTrade = PlaceOrder(strangleNode.ID, tradingSymbol, optionMatix[PE][0, CURRENT_PRICE],
-                    //       optionToken, false, stepQty, timeOfOrder);
-
-                    //    data = new decimal[1, 10];
-                    //    data[0, INSTRUMENT_TOKEN] = optionToken;
-                    //    data[0, INITIAL_TRADED_PRICE] = shortTrade.AveragePrice;
-                    //    data[0, CURRENT_PRICE] = shortTrade.AveragePrice;
-                    //    data[0, QUANTITY] = shortTrade.Quantity;
-                    //    data[0, TRADING_STATUS] = (decimal)TradeStatus.Open;
-                    //    data[0, TRADE_ID] = shortTrade.TriggerID;
-                    //    data[0, POSITION_PnL] = 0;// PnL of trade as price updates
-                    //    data[0, STRIKE] = optionStrike;// Strike Price of Instrument
-                    //    strangleNode.AddMatrixRow(data, InstrumentType.PE);
-
-                    //}
-                    ////Step 2: move far OTMs to near ATMS. Same as step 5 below
-                    //else if (currentQty < maxQtyForStrangle)
-                    //{
-                    //    //optionToken = GetOptionWithMaxStrike(callMatix);
-                    //    //Instrument option = strangleNode.TradedStrangle.Options.First(x => x.InstrumentToken == optionToken);
-                    //    //PlaceOrder(strangleNode.ID, option, false, stepQty, timeOfOrder, triggerID: tradeCounter + 1);
-
-                    //    //optionToken = GetOptionWithMinStrike(putMatix);
-                    //    //option = strangleNode.TradedStrangle.Options.First(x => x.InstrumentToken == optionToken);
-                    //    //PlaceOrder(strangleNode.ID, option, false, stepQty, timeOfOrder, triggerID: tradeCounter + 1);
-                    //}
-
-                }
-                #endregion
-                //Book this trade and update matix with only open trades
-                strangleNode.OptionMatrix[CE] = optionMatix[CE];
-                strangleNode.OptionMatrix[PE] = optionMatix[PE];
-                Interlocked.Increment(ref _healthCounter);
             }
             catch (Exception ex)
             {
@@ -429,6 +524,19 @@ namespace Algos.TLogics
                 Environment.Exit(0);
             }
         }
+
+        private void UpdateReferenceInstruments(StrangleDataStructure strangleNode)
+        {
+            decimal atmStrike = Math.Round(strangleNode.BaseInstrumentPrice / strangleNode.StrikePriceIncrement, 0) * strangleNode.StrikePriceIncrement;
+
+            _referenceCall = strangleNode.CallUniverse.First(x => x.Key == atmStrike).Value;
+            _referencePut = strangleNode.PutUniverse.First(x => x.Key == atmStrike).Value;
+        }
+
+        //private decimal GetDeltaFactor()
+        //{
+
+        //}
 
         /// <summary>
         /// Updates Options matrix with closed profitable trades
@@ -446,7 +554,7 @@ namespace Algos.TLogics
                 int closeCounter = 0;
                 for (int i = 0; i < optionMatrix.GetLength(0); i++)
                 {
-                    if (optionMatrix[i, POSITION_PnL] > 0 && optionMatrix[i, POSITION_PnL] * lotSize <= valueNeeded)
+                    if (optionMatrix[i, POSITION_PnL] > 0 && optionMatrix[i, POSITION_PnL] * lotSize <= valueNeeded && optionMatrix[i, TRADING_STATUS] == (decimal)TradeStatus.Open)
                     {
                         decimal optionValue = optionMatrix[i, POSITION_PnL] * optionMatrix[i, QUANTITY];
                         decimal qtyToBeClosed = Math.Round(valueNeeded / optionMatrix[i, CURRENT_PRICE] / lotSize) * lotSize;
@@ -457,11 +565,23 @@ namespace Algos.TLogics
 
                         //ShortTrade trade = MarketOrders.PlaceOrder(strangleNode.ID, option, true, Convert.ToInt32(quantity), timeOfOrder, triggerID: i);
 
-                        Order order = MarketOrders.PlaceOrder(strangleNode.ID, option.TradingSymbol, option.InstrumentType,
-                            optionMatrix[i, CURRENT_PRICE], instrumentToken, true, Convert.ToInt32(quantity), algoIndex, timeOfOrder, Tag: strangleNode.ID.ToString());
+                        //Order order = MarketOrders.PlaceOrder(strangleNode.ID, option.TradingSymbol, option.InstrumentType,
+                        //    optionMatrix[i, CURRENT_PRICE], instrumentToken, true, Convert.ToInt32(quantity), algoIndex, timeOfOrder, Tag: strangleNode.BaseInstrumentPrice.ToString(), broker: Constants.KOTAK);
+
+                        //Task<Order> orderTask = MarketOrders.PlaceKotakOrderAsync(strangleNode.ID, option.TradingSymbol, option.InstrumentType,
+                        //    optionMatrix[i, CURRENT_PRICE], MappedTokens[instrumentToken], true, Convert.ToInt32(quantity), algoIndex, timeOfOrder, Tag: strangleNode.BaseInstrumentPrice.ToString(), httpClient: _httpClient);
+
+                        //orderTask.Wait();
+                        //Order order = orderTask.Result;
+
+                        Order order = MarketOrders.PlaceOrder(strangleNode.ID, option.TradingSymbol, option.InstrumentType.ToLower(), optionMatrix[i, CURRENT_PRICE],
+                            option.KToken, true, Convert.ToInt32(quantity), algoIndex, timeOfOrder, Tag: strangleNode.BaseInstrumentPrice.ToString(), product: _intraday ? Constants.PRODUCT_MIS : Constants.KPRODUCT_NRML,
+                            broker: Constants.KOTAK, HsServerId: _user.HsServerId, httpClient: _httpClientFactory == null ? null : KoConnect.ConfigureHttpClient(_user, _httpClientFactory.CreateClient()), user: _user);
+
 
                         OnTradeEntry(order);
                         optionMatrix[i, CURRENT_PRICE] = order.AveragePrice;
+                        strangleNode.BookedPnL += (optionMatrix[i, INITIAL_TRADED_PRICE] - optionMatrix[i, CURRENT_PRICE]) * quantity;
 
                         if (quantity == optionMatrix[i, QUANTITY])
                         {
@@ -568,67 +688,105 @@ namespace Algos.TLogics
                         int quantity = Convert.ToInt32(optionMatrix[i, QUANTITY]);
                         decimal strike = optionMatrix[i, STRIKE];
                         ///TODO: Need to move option 1 strike behind
-                        if (optionType == InstrumentType.CE && strike <= strangleNode.BaseInstrumentPrice + strangleNode.MinDistanceFromBInstrument * 0.6m)
+                        if (optionType == InstrumentType.CE && (strike <= strangleNode.BaseInstrumentPrice + strangleNode.MinDistanceFromBInstrument * 0.9m))
                         {
                             Instrument option = strangleNode.CallUniverse[strike];
                             //ShortTrade trade = PlaceOrder(strangleNode.ID, option.TradingSymbol, optionMatrix[i, CURRENT_PRICE], option.InstrumentToken, true, quantity, timeOfOrder, triggerID: i);
-                            Order order = MarketOrders.PlaceOrder(strangleNode.ID, option.TradingSymbol, option.InstrumentType, optionMatrix[i, CURRENT_PRICE],
-                                option.InstrumentToken, true, quantity, algoIndex, timeOfOrder, Tag: strangleNode.ID.ToString());
+                            //Order order = MarketOrders.PlaceOrder(strangleNode.ID, option.TradingSymbol, option.InstrumentType, optionMatrix[i, CURRENT_PRICE],
+                            //    option.InstrumentToken, true, quantity, algoIndex, timeOfOrder, Tag: strangleNode.BaseInstrumentPrice.ToString(), broker: Constants.KOTAK);
+
+                            //Task<Order> orderTask = MarketOrders.PlaceKotakOrderAsync(strangleNode.ID, option.TradingSymbol, option.InstrumentType, optionMatrix[i, CURRENT_PRICE],
+                            //    MappedTokens[option.InstrumentToken], true, quantity, algoIndex, timeOfOrder, Tag: strangleNode.BaseInstrumentPrice.ToString(), httpClient: _httpClient);
+                            //orderTask.Wait();
+                            //Order order = orderTask.Result;
+
+
+                            Order order = MarketOrders.PlaceOrder(strangleNode.ID, option.TradingSymbol, option.InstrumentType.ToLower(), optionMatrix[i, CURRENT_PRICE],
+                               option.KToken, true, quantity, algoIndex, timeOfOrder, Tag: strangleNode.BaseInstrumentPrice.ToString(),
+                               product: _intraday ? Constants.PRODUCT_MIS : Constants.KPRODUCT_NRML,
+                                broker: Constants.KOTAK, HsServerId: _user.HsServerId,
+                                httpClient: _httpClientFactory == null ? null : KoConnect.ConfigureHttpClient(_user, _httpClientFactory.CreateClient()), user: _user);
+
 
                             OnTradeEntry(order);
                             optionMatrix[i, CURRENT_PRICE] = order.AveragePrice;
+                            optionMatrix[i, POSITION_PnL] = (optionMatrix[i, INITIAL_TRADED_PRICE] - order.AveragePrice) * quantity;
+                            strangleNode.BookedPnL += optionMatrix[i, POSITION_PnL];
                             optionMatrix[i, TRADING_STATUS] = (decimal)TradeStatus.Closed;
                             closeCounter++;
 
-                            //Loss Booked.
-                            decimal lossBooked = quantity * (optionMatrix[i, CURRENT_PRICE] - optionMatrix[i, INITIAL_TRADED_PRICE]);
-                            if(lossBooked > 0)
-                            {
-                                decimal[,] oppositeMatrix = optionMatrices[j == CE ? PE : CE];
-                                BookProfitFromStrangleNode(lossBooked, strangleNode, optionType == InstrumentType.CE ? InstrumentType.PE : InstrumentType.CE, ref oppositeMatrix, timeOfOrder);
-                            }
-
                             SortedList<decimal, Instrument> callUniverse = strangleNode.CallUniverse;
                             KeyValuePair<decimal, Instrument> callNode = callUniverse.
-                                Where(x => x.Key > strike && x.Key >= strangleNode.BaseInstrumentPrice + strangleNode.MinDistanceFromBInstrument).OrderBy(x => x.Key).First();
+                                Where(x => x.Key > strike && x.Key >= strangleNode.BaseInstrumentPrice + strangleNode.MinDistanceFromBInstrument + strangleNode.StrikePriceIncrement * 2).OrderBy(x => x.Key).First();
+
+                            int oldQty = quantity;
+                            decimal oldCurrentPrice = optionMatrix[i, CURRENT_PRICE];
+                            decimal oldInitialTradedPrice = optionMatrix[i, INITIAL_TRADED_PRICE];
 
                             quantityAvailable = quantityAvailable + quantity;
                             quantity = Convert.ToInt32(optionMatrix[i, CURRENT_PRICE] / callNode.Value.LastPrice) * quantity;
                             quantity = quantity < quantityAvailable ? quantity : quantityAvailable;
 
-                            PlaceOrderAndUpdateMatrix(strangleNode.ID, ref optionMatrix, callNode.Value, false, quantity, timeOfOrder, triggerID: i);
+                            PlaceOrderAndUpdateMatrix(strangleNode.ID, ref optionMatrix, callNode.Value, false, quantity, timeOfOrder, triggerID: i, tag: strangleNode.BaseInstrumentPrice.ToString());
                             //strangleNode.OptionMatrix[CE] = optionMatrix; This is getting assigned in the main function, so no need here
-                        }
-                        else if (optionType == InstrumentType.PE && strike >= strangleNode.BaseInstrumentPrice - strangleNode.MinDistanceFromBInstrument * 0.6m)
-                        {
-                            Instrument option = strangleNode.PutUniverse[strike];
-                            //ShortTrade trade = PlaceOrder(strangleNode.ID, option.TradingSymbol, optionMatrix[i, CURRENT_PRICE], option.InstrumentToken, true, quantity, timeOfOrder, triggerID: i);
-                            Order order = MarketOrders.PlaceOrder(strangleNode.ID, option.TradingSymbol, option.InstrumentType, optionMatrix[i, CURRENT_PRICE],
-                                option.InstrumentToken, true, quantity, algoIndex, timeOfOrder, Tag: strangleNode.ID.ToString());
-
-                            OnTradeEntry(order);
-                            optionMatrix[i, CURRENT_PRICE] = order.AveragePrice;
-                            optionMatrix[i, TRADING_STATUS] = (decimal)TradeStatus.Closed;
-                            closeCounter++;
 
                             //Loss Booked.
-                            decimal lossBooked = quantity * (optionMatrix[i, CURRENT_PRICE] - optionMatrix[i, INITIAL_TRADED_PRICE]);
+                            decimal lossBooked = (oldQty * oldCurrentPrice) - quantity * optionMatrix[optionMatrix.GetLength(0) - 1, CURRENT_PRICE];
                             if (lossBooked > 0)
                             {
                                 decimal[,] oppositeMatrix = optionMatrices[j == CE ? PE : CE];
                                 BookProfitFromStrangleNode(lossBooked, strangleNode, optionType == InstrumentType.CE ? InstrumentType.PE : InstrumentType.CE, ref oppositeMatrix, timeOfOrder);
                             }
 
+                        }
+                        else if (optionType == InstrumentType.PE && (strike >= strangleNode.BaseInstrumentPrice - strangleNode.MinDistanceFromBInstrument * 0.9m))
+                        {
+                            Instrument option = strangleNode.PutUniverse[strike];
+                            //ShortTrade trade = PlaceOrder(strangleNode.ID, option.TradingSymbol, optionMatrix[i, CURRENT_PRICE], option.InstrumentToken, true, quantity, timeOfOrder, triggerID: i);
+                            //Order order = MarketOrders.PlaceOrder(strangleNode.ID, option.TradingSymbol, option.InstrumentType, optionMatrix[i, CURRENT_PRICE],
+                            //    option.InstrumentToken, true, quantity, algoIndex, timeOfOrder, Tag: strangleNode.BaseInstrumentPrice.ToString(), broker: Constants.KOTAK);
+
+                            //Task<Order> orderTask = MarketOrders.PlaceKotakOrderAsync(strangleNode.ID, option.TradingSymbol, option.InstrumentType, optionMatrix[i, CURRENT_PRICE],
+                            //    MappedTokens[option.InstrumentToken], true, quantity, algoIndex, timeOfOrder, Tag: strangleNode.BaseInstrumentPrice.ToString(), httpClient: _httpClient);
+                            //orderTask.Wait();
+                            //Order order = orderTask.Result;
+
+                            Order order = MarketOrders.PlaceOrder(strangleNode.ID, option.TradingSymbol, option.InstrumentType.ToLower(), optionMatrix[i, CURRENT_PRICE],
+                                option.KToken, true, quantity, algoIndex, timeOfOrder, Tag: strangleNode.BaseInstrumentPrice.ToString(), product: _intraday ? Constants.PRODUCT_MIS : Constants.KPRODUCT_NRML,
+                                broker: Constants.KOTAK, HsServerId: _user.HsServerId, httpClient: _httpClientFactory == null ? null : KoConnect.ConfigureHttpClient(_user, _httpClientFactory.CreateClient()), user: _user);
+
+
+
+
+                            OnTradeEntry(order);
+                            optionMatrix[i, CURRENT_PRICE] = order.AveragePrice;
+                            optionMatrix[i, POSITION_PnL] = (optionMatrix[i, INITIAL_TRADED_PRICE] - order.AveragePrice) * quantity;
+                            strangleNode.BookedPnL += optionMatrix[i, POSITION_PnL];
+                            optionMatrix[i, TRADING_STATUS] = (decimal)TradeStatus.Closed;
+                            closeCounter++;
+
+                            int oldQty = quantity;
+                            decimal oldCurrentPrice = optionMatrix[i, CURRENT_PRICE];
+                            decimal oldInitialTradedPrice = optionMatrix[i, INITIAL_TRADED_PRICE];
+
                             SortedList<decimal, Instrument> putUniverse = strangleNode.PutUniverse;
                             KeyValuePair<decimal, Instrument> putNode = putUniverse.
-                                 Where(x => x.Key < strike && x.Key <= strangleNode.BaseInstrumentPrice - strangleNode.MinDistanceFromBInstrument).OrderByDescending(x => x.Key).First();
+                                 Where(x => x.Key < strike && x.Key <= strangleNode.BaseInstrumentPrice - strangleNode.MinDistanceFromBInstrument + strangleNode.StrikePriceIncrement * 2).OrderByDescending(x => x.Key).First();
 
                             quantityAvailable = quantityAvailable + quantity;
                             quantity = Convert.ToInt32(optionMatrix[i, CURRENT_PRICE] / putNode.Value.LastPrice) * quantity;
                             quantity = quantity < quantityAvailable ? quantity : quantityAvailable;
 
-                            PlaceOrderAndUpdateMatrix(strangleNode.ID, ref optionMatrix, putNode.Value, false, quantity, timeOfOrder, triggerID: i);
+                            PlaceOrderAndUpdateMatrix(strangleNode.ID, ref optionMatrix, putNode.Value, false, quantity, timeOfOrder, triggerID: i, tag: strangleNode.BaseInstrumentPrice.ToString());
                             //strangleNode.OptionMatrix[PE] = optionMatrix; This is getting assigned in the main function, so no need here
+
+                            //Loss Booked.
+                            decimal lossBooked = (oldQty * oldCurrentPrice) - quantity * optionMatrix[optionMatrix.GetLength(0) - 1, CURRENT_PRICE];
+                            if (lossBooked > 0)
+                            {
+                                decimal[,] oppositeMatrix = optionMatrices[j == CE ? PE : CE];
+                                BookProfitFromStrangleNode(lossBooked, strangleNode, optionType == InstrumentType.CE ? InstrumentType.PE : InstrumentType.CE, ref oppositeMatrix, timeOfOrder);
+                            }
                         }
                     }
                 }
@@ -659,7 +817,75 @@ namespace Algos.TLogics
                 }
             }
         }
-        
+
+        private void CloseAllOpenTrades(ref decimal[][,] optionMatrix, StrangleDataStructure strangleNode, DateTime? timeOfOrder)
+        {
+            try
+            {
+                for (int i = 0; i < optionMatrix.GetLength(0); i++)
+                {
+                    SortedList<decimal, Instrument> optionUniverse = i == CE ? strangleNode.CallUniverse : strangleNode.PutUniverse;
+                    for (int j = 0; j < optionMatrix[i].GetLength(0); j++)
+                    {
+                        uint instrumentToken = Convert.ToUInt32(optionMatrix[i][j, INSTRUMENT_TOKEN]);
+
+                        if (instrumentToken == 0 || optionMatrix[i][j, TRADING_STATUS] == (decimal)TradeStatus.Closed)
+                        {
+                            continue;
+                        }
+
+                        Instrument option = optionUniverse.FirstOrDefault(x => x.Value.InstrumentToken == instrumentToken).Value;
+
+                        //Order order = MarketOrders.PlaceOrder(strangleNode.ID, option.TradingSymbol, option.InstrumentType,
+                        //    optionMatrix[i][j, CURRENT_PRICE], instrumentToken, true, Convert.ToInt32(optionMatrix[i][j, QUANTITY]), algoIndex, timeOfOrder, Tag: strangleNode.BaseInstrumentPrice.ToString(), broker: Constants.KOTAK);
+
+                        //Task<Order> orderTask = MarketOrders.PlaceKotakOrderAsync(strangleNode.ID, option.TradingSymbol, option.InstrumentType,
+                        //    optionMatrix[i][j, CURRENT_PRICE], MappedTokens[instrumentToken], true, Convert.ToInt32(optionMatrix[i][j, QUANTITY]), algoIndex, timeOfOrder, Tag: strangleNode.BaseInstrumentPrice.ToString(),
+                        //    httpClient: _httpClient);
+                        //orderTask.Wait();
+                        //Order order = orderTask.Result;
+
+                        Order order = MarketOrders.PlaceOrder(strangleNode.ID, option.TradingSymbol, option.InstrumentType.ToLower(), optionMatrix[i][j, CURRENT_PRICE],
+                                option.KToken, true, Convert.ToInt32(optionMatrix[i][j, QUANTITY]), algoIndex, timeOfOrder, Tag: strangleNode.BaseInstrumentPrice.ToString(), 
+                                product: _intraday ? Constants.PRODUCT_MIS : Constants.KPRODUCT_NRML,
+                                broker: Constants.KOTAK, HsServerId: _user.HsServerId, httpClient: _httpClientFactory == null ? null : KoConnect.ConfigureHttpClient(_user, _httpClientFactory.CreateClient()), user: _user);
+
+
+                        OnTradeExit(order);
+                    }
+                }
+
+                DataLogic dl = new DataLogic();
+                dl.UpdateAlgoPnl(_algoInstance, strangleNode.UnBookedPnL + strangleNode.BookedPnL);
+                _stopTrade = true;
+            }
+            catch (Exception ex)
+            {
+                _stopTrade = true;
+                Logger.LogWrite(ex.Message);
+                Logger.LogWrite(String.Format("{0}, {1}", ex.Message, ex.StackTrace));
+                Logger.LogWrite("Trading Stopped as algo encountered an error");
+                //throw new Exception("Trading Stopped as algo encountered an error. Check log file for details");
+                LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Error, timeOfOrder.GetValueOrDefault(DateTime.UtcNow),
+                    String.Format(@"Error occurred! Trading has stopped. \r\n {0}", ex.Message), "ManageStrangle");
+                Thread.Sleep(100);
+                //Environment.Exit(0);
+            }
+        }
+
+
+        private void TriggerEODPositionClose(ref decimal[][,] optionMatrix, StrangleDataStructure strangleNode, DateTime? timeOfOrder)
+        {
+            if (timeOfOrder.Value.TimeOfDay >= new TimeSpan(15, 12, 00))
+            {
+                CloseAllOpenTrades(ref optionMatrix, strangleNode, timeOfOrder);
+                DataLogic dl = new DataLogic();
+                dl.UpdateAlgoPnl(_algoInstance, strangleNode.UnBookedPnL + strangleNode.BookedPnL);
+                //_pnl = 0;
+                _stopTrade = true;
+            }
+        }
+
         private void BookProfitFromStrangleNode(decimal profitTobeBooked, StrangleDataStructure strangleNode, 
             InstrumentType optionType, ref decimal[,] optionMatrix, DateTime? timeOfOrder)
         {
@@ -667,12 +893,12 @@ namespace Algos.TLogics
             {
                 SortedList<decimal, Instrument> optionUniverse = optionType == CE ? strangleNode.CallUniverse : strangleNode.PutUniverse;
                 SortMatrixByPrice(ref optionMatrix);
-                int lotSize = GetLotSize();
+                int lotSize = GetLotSize(); //Corrected it to step qty as all trades should take at step qty level only. On second thought this will create problem if initial trade is not a multiple of stepqty
                 int closeCounter = 0;
                 
                 for (int i = 0; i < optionMatrix.GetLength(0); i++)
                 {
-                    if (optionMatrix[i, POSITION_PnL] > 0 && optionMatrix[i, POSITION_PnL] * lotSize <= profitTobeBooked)
+                    if (optionMatrix[i, POSITION_PnL] > 0 && optionMatrix[i, POSITION_PnL] * lotSize <= profitTobeBooked && optionMatrix[i, TRADING_STATUS] == (decimal)TradeStatus.Open)
                     {
                         decimal optionValue = optionMatrix[i, POSITION_PnL] * optionMatrix[i, QUANTITY];
                         decimal qtyToBeClosed = Math.Ceiling(profitTobeBooked / optionMatrix[i, CURRENT_PRICE] / lotSize) * lotSize;
@@ -683,11 +909,24 @@ namespace Algos.TLogics
 
                         //ShortTrade trade = MarketOrders.PlaceOrder(strangleNode.ID, option, true, Convert.ToInt32(quantity), timeOfOrder, triggerID: i);
 
-                        Order order = MarketOrders.PlaceOrder(strangleNode.ID, option.TradingSymbol, option.InstrumentType,
-                            optionMatrix[i, CURRENT_PRICE], instrumentToken, true, Convert.ToInt32(quantity), algoIndex, timeOfOrder, Tag: strangleNode.ID.ToString());
+                        //Order order = MarketOrders.PlaceOrder(strangleNode.ID, option.TradingSymbol, option.InstrumentType,
+                        //    optionMatrix[i, CURRENT_PRICE], instrumentToken, true, Convert.ToInt32(quantity), algoIndex, timeOfOrder, Tag: strangleNode.BaseInstrumentPrice.ToString(), broker: Constants.KOTAK);
+
+                        //Task<Order> orderTask = MarketOrders.PlaceKotakOrderAsync(strangleNode.ID, option.TradingSymbol, option.InstrumentType,
+                        //    optionMatrix[i, CURRENT_PRICE], MappedTokens[instrumentToken], true, Convert.ToInt32(quantity), algoIndex, timeOfOrder, Tag: strangleNode.BaseInstrumentPrice.ToString(),  httpClient: _httpClient);
+
+                        //orderTask.Wait();
+                        //Order order = orderTask.Result;
+
+
+                        Order order = MarketOrders.PlaceOrder(strangleNode.ID, option.TradingSymbol, option.InstrumentType.ToLower(), optionMatrix[i, CURRENT_PRICE],
+                                option.KToken, true, Convert.ToInt32(quantity), algoIndex, timeOfOrder, Tag: strangleNode.BaseInstrumentPrice.ToString(),
+                                product: _intraday ? Constants.PRODUCT_MIS : Constants.KPRODUCT_NRML,
+                                broker: Constants.KOTAK, HsServerId: _user.HsServerId, httpClient: _httpClientFactory == null ? null : KoConnect.ConfigureHttpClient(_user, _httpClientFactory.CreateClient()), user: _user);
 
                         OnTradeEntry(order);
                         optionMatrix[i, CURRENT_PRICE] = order.AveragePrice;
+                        strangleNode.BookedPnL += (optionMatrix[i, INITIAL_TRADED_PRICE] - optionMatrix[i, CURRENT_PRICE]) * quantity;
 
                         if (quantity == optionMatrix[i, QUANTITY])
                         {
@@ -755,8 +994,9 @@ namespace Algos.TLogics
             //    }
             //}
         }
-        private void UpdateMatrix(SortedList<decimal, Instrument> optionUniverse, ref decimal[,] optionMatrix)
+        private decimal UpdateMatrix(SortedList<decimal, Instrument> optionUniverse, ref decimal[,] optionMatrix)
         {
+            decimal unBookedPnl = 0;
             for (int i = 0; i < optionMatrix.GetLength(0); i++)
             {
                 if (optionMatrix[i, TRADING_STATUS] == (decimal)TradeStatus.Open)
@@ -767,11 +1007,13 @@ namespace Algos.TLogics
                         throw new Exception("Incorrect Option");
                     }
                     optionMatrix[i, CURRENT_PRICE] = option.LastPrice; //CurrentPrice
-                    optionMatrix[i, POSITION_PnL] = optionMatrix[i, INITIAL_TRADED_PRICE] - optionMatrix[i, CURRENT_PRICE];// PnL of trade as price updates
+                    optionMatrix[i, POSITION_PnL] = (optionMatrix[i, INITIAL_TRADED_PRICE] - optionMatrix[i, CURRENT_PRICE]) * optionMatrix[i, QUANTITY];// PnL of trade as price updates
                     optionMatrix[i, STRIKE] = option.Strike;// Strike Price of Instrument
                     //optionMatrix[i, PRICEDELTA] = putTrade[1];// Price detal between consicutive positions
+                    unBookedPnl += optionMatrix[i, POSITION_PnL];
                 }
             }
+            return unBookedPnl;
         }
         private int GetLotSize()
         {
@@ -901,22 +1143,41 @@ namespace Algos.TLogics
                     //move all nodes less than J to I
                     for (int j = 0; j < endNode; j++)//TODO: take length of only those items that are open
                     {
+                        if(lowerMatrix[j, TRADING_STATUS] == (decimal) TradeStatus.Closed)
+                        {
+                            continue;
+                        }
+
                         option = lowerValueOptionType == CE ? strangleNode.CallUniverse.Values.First(x => x.InstrumentToken == lowerMatrix[j, INSTRUMENT_TOKEN])
                             : strangleNode.PutUniverse.Values.First(x => x.InstrumentToken == lowerMatrix[j, INSTRUMENT_TOKEN]);
 
-                        Order order = MarketOrders.PlaceOrder(strangleNode.ID, option.TradingSymbol, option.InstrumentType, lowerMatrix[j, CURRENT_PRICE],
-                            option.InstrumentToken, true, Convert.ToInt32(lowerMatrix[j, QUANTITY]), algoIndex,
-                            timeOfTrade, Tag: strangleNode.ID.ToString());
+                        //Order order = MarketOrders.PlaceOrder(strangleNode.ID, option.TradingSymbol, option.InstrumentType, lowerMatrix[j, CURRENT_PRICE],
+                        //    option.InstrumentToken, true, Convert.ToInt32(lowerMatrix[j, QUANTITY]), algoIndex,
+                        //    timeOfTrade, Tag: strangleNode.BaseInstrumentPrice.ToString(), broker: Constants.KOTAK);
+
+                        //Task<Order> orderTask = MarketOrders.PlaceKotakOrderAsync(strangleNode.ID, option.TradingSymbol, option.InstrumentType, lowerMatrix[j, CURRENT_PRICE],
+                        //    MappedTokens[option.InstrumentToken], true, Convert.ToInt32(lowerMatrix[j, QUANTITY]), algoIndex,
+                        //    timeOfTrade, Tag: strangleNode.BaseInstrumentPrice.ToString(), httpClient: _httpClient);
+
+                        //orderTask.Wait();
+                        //Order order = orderTask.Result;
+
+                        Order order = MarketOrders.PlaceOrder(strangleNode.ID, option.TradingSymbol, option.InstrumentType.ToLower(), lowerMatrix[j, CURRENT_PRICE],
+                                option.KToken, true, Convert.ToInt32(lowerMatrix[j, QUANTITY]), algoIndex, timeOfTrade, Tag: strangleNode.BaseInstrumentPrice.ToString(),
+                                product: _intraday ? Constants.PRODUCT_MIS : Constants.KPRODUCT_NRML,
+                                broker: Constants.KOTAK, HsServerId: _user.HsServerId, httpClient: _httpClientFactory == null ? null : KoConnect.ConfigureHttpClient(_user, _httpClientFactory.CreateClient()), user: _user);
 
                         OnTradeEntry(order);
                         lowerMatrix[j, TRADING_STATUS] = (decimal)TradeStatus.Closed;
+                        lowerMatrix[j, POSITION_PnL] = Convert.ToInt32(lowerMatrix[j, QUANTITY]) * (lowerMatrix[j, INITIAL_TRADED_PRICE] - order.AveragePrice);
+                        strangleNode.BookedPnL += lowerMatrix[j, POSITION_PnL];
                         lowerMatrix[j, CURRENT_PRICE] = order.AveragePrice;
                         closeCounter++;
 
                         option = lowerValueOptionType == CE ? strangleNode.CallUniverse.Values.First(x => x.InstrumentToken == lowerMatrix[startNode, INSTRUMENT_TOKEN])
                             : strangleNode.PutUniverse.Values.First(x => x.InstrumentToken == lowerMatrix[startNode, INSTRUMENT_TOKEN]);
 
-                        PlaceOrderAndUpdateMatrix(strangleNode.ID, ref lowerMatrix, option, false, Convert.ToInt32(lowerMatrix[j, QUANTITY]), timeOfTrade, triggerID: lowerMatrix[j, TRADE_ID]);
+                        PlaceOrderAndUpdateMatrix(strangleNode.ID, ref lowerMatrix, option, false, Convert.ToInt32(lowerMatrix[j, QUANTITY]), timeOfTrade, triggerID: lowerMatrix[j, TRADE_ID], tag: strangleNode.BaseInstrumentPrice.ToString());
 
                         //PlaceOrder(strangleNode.ID, option, false, Convert.ToInt32(lowerMatrix[j, QUANTITY]), timeOfTrade, triggerID: lowerMatrix[j, TRADE_ID]);
                         //lowerMatrix[startNode, TRADING_STATUS] = (decimal)TradeStatus.Open;
@@ -938,20 +1199,37 @@ namespace Algos.TLogics
 
 
                                 //ShortTrade order = PlaceOrder(strangleNode.ID, option, true, Convert.ToInt32(lowerMatrix[endNode, QUANTITY]), timeOfTrade, triggerID: lowerMatrix[endNode, TRADE_ID]);
-                                Order order = MarketOrders.PlaceOrder(strangleNode.ID, option.TradingSymbol, option.InstrumentType, lowerMatrix[p, CURRENT_PRICE],
-                            option.InstrumentToken, true, Convert.ToInt32(lowerMatrix[endNode, QUANTITY]), algoIndex,
-                            timeOfTrade, Tag: strangleNode.ID.ToString());
+                            //    Order order = MarketOrders.PlaceOrder(strangleNode.ID, option.TradingSymbol, option.InstrumentType, lowerMatrix[p, CURRENT_PRICE],
+                            //option.InstrumentToken, true, Convert.ToInt32(lowerMatrix[endNode, QUANTITY]), algoIndex,
+                            //timeOfTrade, Tag: strangleNode.BaseInstrumentPrice.ToString(), broker: Constants.KOTAK);
+
+                            //    Task<Order> orderTask = MarketOrders.PlaceKotakOrderAsync(strangleNode.ID, option.TradingSymbol, option.InstrumentType, lowerMatrix[p, CURRENT_PRICE],
+                            //MappedTokens[option.InstrumentToken], true, Convert.ToInt32(lowerMatrix[endNode, QUANTITY]), algoIndex,
+                            //timeOfTrade, Tag: strangleNode.BaseInstrumentPrice.ToString(), httpClient: _httpClient);
+
+                            //    orderTask.Wait();
+                            //    Order order = orderTask.Result;
+
+
+                                Order order = MarketOrders.PlaceOrder(strangleNode.ID, option.TradingSymbol, option.InstrumentType.ToLower(), lowerMatrix[p, CURRENT_PRICE],
+                                        option.KToken, true, Convert.ToInt32(lowerMatrix[endNode, QUANTITY]), algoIndex, timeOfTrade, Tag: strangleNode.BaseInstrumentPrice.ToString(),
+                                        product: _intraday ? Constants.PRODUCT_MIS : Constants.KPRODUCT_NRML,
+                                        broker: Constants.KOTAK, HsServerId: _user.HsServerId, httpClient: _httpClientFactory == null ? null : KoConnect.ConfigureHttpClient(_user, _httpClientFactory.CreateClient()), user: _user);
+
 
                                 OnTradeEntry(order);
 
                                 lowerMatrix[endNode, TRADING_STATUS] = (decimal)TradeStatus.Closed;
+                                lowerMatrix[endNode, POSITION_PnL] = Convert.ToInt32(lowerMatrix[endNode, QUANTITY]) * (lowerMatrix[endNode, INITIAL_TRADED_PRICE] - order.AveragePrice);
+                                strangleNode.BookedPnL += lowerMatrix[endNode, POSITION_PnL];
+
                                 closeCounter++;
                                 lowerMatrix[endNode, CURRENT_PRICE] = order.AveragePrice;
 
                                 option = lowerValueOptionType == CE ? strangleNode.CallUniverse.Values.First(x => x.InstrumentToken == lowerMatrix[p, INSTRUMENT_TOKEN])
                            : strangleNode.PutUniverse.Values.First(x => x.InstrumentToken == lowerMatrix[p, INSTRUMENT_TOKEN]);
 
-                                PlaceOrderAndUpdateMatrix(strangleNode.ID, ref lowerMatrix, option, false, Convert.ToInt32(lowerMatrix[endNode, QUANTITY]), timeOfTrade, triggerID: lowerMatrix[endNode, TRADE_ID]);
+                                PlaceOrderAndUpdateMatrix(strangleNode.ID, ref lowerMatrix, option, false, Convert.ToInt32(lowerMatrix[endNode, QUANTITY]), timeOfTrade, triggerID: lowerMatrix[endNode, TRADE_ID], tag: strangleNode.BaseInstrumentPrice.ToString());
 
                                 //PlaceOrder(strangleNode.ID, option, false, Convert.ToInt32(lowerMatrix[endNode, QUANTITY]), timeOfTrade, triggerID: lowerMatrix[endNode, TRADE_ID]);
                                 //lowerMatrix[p, QUANTITY] += lowerMatrix[endNode, QUANTITY];
@@ -970,15 +1248,23 @@ namespace Algos.TLogics
                     SortMatrixByPrice(ref lowerMatrix);
                     //List<KeyValuePair<decimal, Instrument>> lowerValueOptions = lowerOptionUniverse.Where(x => x.Value.LastPrice > lowerMatrix[lowerMatrix.GetLength(0) - 1, CURRENT_PRICE]).OrderBy(x => x.Value.LastPrice).ToList();
                     List<KeyValuePair<decimal, Instrument>> lowerValueOptions = lowerOptionUniverse.Where(x => x.Value.LastPrice > lowerMatrix[lowerMatrix.GetLength(0) - 1, CURRENT_PRICE] 
-                    && ((x.Value.InstrumentType.Trim(' ').ToLower() == "ce" && x.Value.Strike >= (strangleNode.BaseInstrumentPrice + strangleNode.StrikePriceIncrement * 0.6m))
-                            ||(x.Value.InstrumentType.Trim(' ').ToLower() == "pe" && x.Value.Strike <= (strangleNode.BaseInstrumentPrice - strangleNode.StrikePriceIncrement * 0.6m)))).OrderBy(x => x.Value.LastPrice).ToList();
+                    && ((x.Value.InstrumentType.Trim(' ').ToLower() == "ce" && x.Value.Strike > (strangleNode.BaseInstrumentPrice + strangleNode.MinDistanceFromBInstrument))
+                            ||(x.Value.InstrumentType.Trim(' ').ToLower() == "pe" && x.Value.Strike < (strangleNode.BaseInstrumentPrice - strangleNode.MinDistanceFromBInstrument)))).OrderBy(x => x.Value.LastPrice).ToList();
 
                     decimal currentQty = currentCallQty + currentPutQty;
                     int lotSize = GetLotSize();
                     decimal qtyAvailable = strangleNode.MaxQty * lotSize - currentQty; //qtyavailable should be 0 here as all the qtys have been checked and taken out already
 
                     //close existing ones and get new ones
+                    if(lowerValueOptions.Count == 0)
+                    {
+                        CloseAllOpenTrades(ref optionMatrix, strangleNode, timeOfTrade);
+                        strangleNode.CallUniverse = new SortedList<decimal, Instrument>();
+                        strangleNode.PutUniverse = new SortedList<decimal, Instrument>();
+                        strangleNode.OptionMatrix = null;
 
+                        _stopTrade = false;
+                    }
                     for (int i = 0; i < lowerValueOptions.Count; i++)
                     {
                         KeyValuePair<decimal, Instrument> lowerOption = lowerValueOptions.ElementAt(i);
@@ -986,6 +1272,7 @@ namespace Algos.TLogics
                             || (i == lowerValueOptions.Count - 1) //In case no options can cross the high value option, then just take the maximum possible.
                             )
                         {
+
                             decimal optionPrice = lowerOption.Value.LastPrice;
                             decimal qty = Math.Ceiling(higherOptionValue / optionPrice / lotSize) * lotSize;
                             //decimal qtyRollover = 0;
@@ -1021,19 +1308,46 @@ namespace Algos.TLogics
                             Order order;
                             for (int j = 0; j < lowerMatrix.GetLength(0); j++)
                             {
-                                Instrument instrument = lowerOptionUniverse.Values.First(x => x.InstrumentToken == lowerMatrix[j, INSTRUMENT_TOKEN]);
+                                if(lowerMatrix[j, TRADING_STATUS] == (decimal)TradeStatus.Closed)
+                                {
+                                    continue;
+                                }
+
+                                Instrument instrument = lowerOptionUniverse.Values.FirstOrDefault(x => x.InstrumentToken == lowerMatrix[j, INSTRUMENT_TOKEN]);
+                                if(instrument == null)
+                                {
+                                    lowerMatrix[j, TRADING_STATUS] = (decimal)TradeStatus.Closed;
+                                    closeCounter++;
+                                    continue;
+                                }
                                 int quantity = Convert.ToInt32(lowerMatrix[j, QUANTITY]);
                                 if (j != nodeCount)
                                 {
                                     //ShortTrade order1 = PlaceOrder(strangleNode.ID, instrument1, true, Convert.ToInt32(lowerMatrix[j, QUANTITY]), timeOfTrade, triggerID: lowerMatrix[j, TRADE_ID]);
 
-                                    order = MarketOrders.PlaceOrder(strangleNode.ID, instrument.TradingSymbol, instrument.InstrumentType,
-                                        lowerMatrix[j, CURRENT_PRICE], instrument.InstrumentToken, true, Convert.ToInt32(lowerMatrix[j, QUANTITY]),
-                                        algoIndex, timeOfTrade, Tag: strangleNode.ID.ToString());
+                                    //order = MarketOrders.PlaceOrder(strangleNode.ID, instrument.TradingSymbol, instrument.InstrumentType,
+                                    //    lowerMatrix[j, CURRENT_PRICE], instrument.InstrumentToken, true, Convert.ToInt32(lowerMatrix[j, QUANTITY]),
+                                    //    algoIndex, timeOfTrade, Tag: strangleNode.BaseInstrumentPrice.ToString(), broker: Constants.KOTAK);
+
+                                    //Task<Order> orderTask = MarketOrders.PlaceKotakOrderAsync(strangleNode.ID, instrument.TradingSymbol, instrument.InstrumentType,
+                                    //    lowerMatrix[j, CURRENT_PRICE], MappedTokens[instrument.InstrumentToken], true, Convert.ToInt32(lowerMatrix[j, QUANTITY]),
+                                    //    algoIndex, timeOfTrade, Tag: strangleNode.BaseInstrumentPrice.ToString(), httpClient: _httpClient);
+
+                                    //orderTask.Wait();
+                                    //order = orderTask.Result;
+
+
+                                    order = MarketOrders.PlaceOrder(strangleNode.ID, instrument.TradingSymbol, instrument.InstrumentType.ToLower(), lowerMatrix[j, CURRENT_PRICE],
+                                            instrument.KToken, true, Convert.ToInt32(lowerMatrix[j, QUANTITY]), algoIndex, timeOfTrade, Tag: strangleNode.BaseInstrumentPrice.ToString(),
+                                            product: _intraday ? Constants.PRODUCT_MIS : Constants.KPRODUCT_NRML,
+                                            broker: Constants.KOTAK, HsServerId: _user.HsServerId, httpClient: _httpClientFactory == null ? null : KoConnect.ConfigureHttpClient(_user, _httpClientFactory.CreateClient()), user: _user);
+
 
                                     OnTradeEntry(order);
 
                                     lowerMatrix[j, TRADING_STATUS] = (decimal)TradeStatus.Closed;
+                                    lowerMatrix[j, POSITION_PnL] = Convert.ToInt32(lowerMatrix[j, QUANTITY]) * (lowerMatrix[j, INITIAL_TRADED_PRICE] - order.AveragePrice);
+                                    strangleNode.BookedPnL += lowerMatrix[j, POSITION_PnL];
                                     closeCounter++;
                                     lowerMatrix[j, CURRENT_PRICE] = order.AveragePrice;
                                 }
@@ -1044,19 +1358,36 @@ namespace Algos.TLogics
                                         quantity = Convert.ToInt32(lowerMatrix[j, QUANTITY] - qty2);
                                         //ShortTrade order1 = PlaceOrder(strangleNode.ID, instrument1, true, quantity, timeOfTrade, triggerID: lowerMatrix[j, TRADE_ID]);
 
-                                        order = MarketOrders.PlaceOrder(strangleNode.ID, instrument.TradingSymbol, instrument.InstrumentType, lowerMatrix[j, CURRENT_PRICE],
-                                                      instrument.InstrumentToken, true, quantity, algoIndex,
-                                                      timeOfTrade, Tag: strangleNode.ID.ToString());
+                                        //order = MarketOrders.PlaceOrder(strangleNode.ID, instrument.TradingSymbol, instrument.InstrumentType, lowerMatrix[j, CURRENT_PRICE],
+                                        //              instrument.InstrumentToken, true, quantity, algoIndex,
+                                        //              timeOfTrade, Tag: strangleNode.BaseInstrumentPrice.ToString(), broker: Constants.KOTAK);
+
+                                        //Task<Order> orderTask = MarketOrders.PlaceKotakOrderAsync(strangleNode.ID, instrument.TradingSymbol, instrument.InstrumentType, lowerMatrix[j, CURRENT_PRICE],
+                                        //              MappedTokens[instrument.InstrumentToken], true, quantity, algoIndex,
+                                        //              timeOfTrade, Tag: strangleNode.BaseInstrumentPrice.ToString(), httpClient: _httpClient);
+
+                                        //orderTask.Wait();
+                                        //order = orderTask.Result;
+
+
+                                        order = MarketOrders.PlaceOrder(strangleNode.ID, instrument.TradingSymbol, instrument.InstrumentType.ToLower(), lowerMatrix[j, CURRENT_PRICE],
+                                                instrument.KToken, true, quantity, algoIndex, timeOfTrade, Tag: strangleNode.BaseInstrumentPrice.ToString(),
+                                                product: _intraday ? Constants.PRODUCT_MIS : Constants.KPRODUCT_NRML,
+                                                broker: Constants.KOTAK, HsServerId: _user.HsServerId, httpClient: _httpClientFactory == null ? null : KoConnect.ConfigureHttpClient(_user, _httpClientFactory.CreateClient()), user: _user);
+
+
                                         OnTradeEntry(order);
 
                                         lowerMatrix[j, TRADING_STATUS] = (decimal)TradeStatus.Open;
                                         lowerMatrix[j, CURRENT_PRICE] = order.AveragePrice;
                                         lowerMatrix[j, QUANTITY] = qty2;
+
+                                        strangleNode.BookedPnL += quantity * (lowerMatrix[j, INITIAL_TRADED_PRICE] - order.AveragePrice);
                                     }
                                     else
                                     {
                                         //Instrument instrument = lowerOptionUniverse.Where(x => x.Value.InstrumentToken == lowerMatrix[nodeCount, INSTRUMENT_TOKEN]).First().Value;
-                                        PlaceOrderAndUpdateMatrix(strangleNode.ID, ref lowerMatrix, instrument, false, qty2, timeOfTrade, triggerID: 1);
+                                        PlaceOrderAndUpdateMatrix(strangleNode.ID, ref lowerMatrix, instrument, false, qty2, timeOfTrade, triggerID: 1, tag: strangleNode.BaseInstrumentPrice.ToString());
                                     }
                                 }
                             }
@@ -1091,7 +1422,7 @@ namespace Algos.TLogics
                             //}
 
 
-                            PlaceOrderAndUpdateMatrix(strangleNode.ID, ref lowerMatrix, lowerOption.Value, false, qty, timeOfTrade, triggerID: 1);
+                            PlaceOrderAndUpdateMatrix(strangleNode.ID, ref lowerMatrix, lowerOption.Value, false, qty, timeOfTrade, triggerID: 1, tag: strangleNode.BaseInstrumentPrice.ToString());
                             //PlaceOrderAndUpdateMatrix(strangleNode.ID, ref lowerMatrix, instrument, false, qty2, timeOfTrade, triggerID: 1);
 
 
@@ -1144,7 +1475,7 @@ namespace Algos.TLogics
                 LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Error, timeOfTrade.GetValueOrDefault(DateTime.UtcNow),
                     String.Format(@"Error occurred! Trading has stopped. \r\n {0}", ex.Message), "MoveNearTerm");
                 Thread.Sleep(100);
-                Environment.Exit(0);
+                //Environment.Exit(0);
             }
 
         }
@@ -1214,20 +1545,35 @@ namespace Algos.TLogics
             try
             {
                 decimal baseInstrumentPrice = strangleNode.BaseInstrumentPrice;
-                decimal DistanceFromBaseInstrumentPrice = 150;
-                decimal minPrice = 2;
+                decimal DistanceFromBaseInstrumentPrice = _initialDistanceFromBInstrument;
+                decimal minPrice = _minPremiumToTrade;
                 decimal maxPrice = 1200;
 
                 SortedList<decimal, Instrument> callUniverse = strangleNode.CallUniverse;
                 SortedList<decimal, Instrument> putUniverse = strangleNode.PutUniverse;
 
-                KeyValuePair<decimal, Instrument> callNode = callUniverse.
+                var kvitr = callUniverse.
                     Where(x => x.Value.LastPrice > minPrice && x.Value.LastPrice < maxPrice
-                    && x.Key > baseInstrumentPrice + DistanceFromBaseInstrumentPrice).OrderBy(x => x.Key).First();
+                    && x.Key > baseInstrumentPrice + DistanceFromBaseInstrumentPrice).OrderBy(x => x.Key);
 
-                KeyValuePair<decimal, Instrument> putNode = putUniverse.
+                if(kvitr.Count() == 0)
+                {
+                    _stopTrade = true;
+                    return null;
+                }
+                KeyValuePair<decimal, Instrument> callNode = kvitr.First();
+
+                kvitr = putUniverse.
                     Where(x => x.Value.LastPrice > minPrice && x.Value.LastPrice < maxPrice
-                    && x.Key < baseInstrumentPrice - DistanceFromBaseInstrumentPrice).OrderBy(x => x.Key).Last();
+                    && x.Key < baseInstrumentPrice - DistanceFromBaseInstrumentPrice).OrderBy(x => x.Key);
+
+                if(kvitr.Count() == 0)
+                {
+                    _stopTrade = true;
+                    return null;
+                }
+
+                KeyValuePair<decimal, Instrument> putNode = kvitr.Last();
 
                 Instrument call = callNode.Value;
                 Instrument put = putNode.Value;
@@ -1258,17 +1604,44 @@ namespace Algos.TLogics
 
                 //ShortTrade callSellTrade = PlaceOrder(strangleNode.ID, call, buyOrder: false, callQty, tickTime: ticks[0].LastTradeTime, triggerID: tradeId);
 
-                Order callSellOrder = MarketOrders.PlaceOrder(strangleNode.ID, call.TradingSymbol, call.InstrumentType, callPrice,
-                          call.InstrumentToken, false, callQty, algoIndex,
-                          tick.LastTradeTime, Tag: strangleNode.ID.ToString());
+                //Order callSellOrder = MarketOrders.PlaceOrder(strangleNode.ID, call.TradingSymbol, call.InstrumentType, callPrice,
+                //          call.InstrumentToken, false, callQty, algoIndex,
+                //          tick.LastTradeTime, Tag: strangleNode.BaseInstrumentPrice.ToString(), broker: Constants.KOTAK);
+
+                //Task<Order> callOrderTask = MarketOrders.PlaceKotakOrderAsync(strangleNode.ID, call.TradingSymbol, call.InstrumentType, callPrice,
+                //         MappedTokens[call.InstrumentToken], false, callQty, algoIndex,
+                //          tick.LastTradeTime, Tag: strangleNode.BaseInstrumentPrice.ToString(), httpClient: _httpClient);
+
+                //callOrderTask.Wait();
+
+                Order callSellOrder = MarketOrders.PlaceOrder(strangleNode.ID, call.TradingSymbol.Trim(' '), call.InstrumentType.ToLower(), callPrice,
+                        call.KToken, false, callQty, algoIndex, tick.LastTradeTime, Constants.ORDER_TYPE_MARKET, Tag: strangleNode.BaseInstrumentPrice.ToString(),
+                        broker: Constants.KOTAK, httpClient: _httpClientFactory == null ? null : KoConnect.ConfigureHttpClient(_user, _httpClientFactory.CreateClient()), user: _user);
 
 
                 //tradedStrangle.SellTrades.Add(callSellTrade);
                 //ShortTrade putSellTrade = PlaceOrder(strangleNode.ID, put, buyOrder: false, putQty, tickTime: ticks[0].LastTradeTime, triggerID: tradeId);
 
-                Order putSellOrder = MarketOrders.PlaceOrder(strangleNode.ID, put.TradingSymbol, put.InstrumentType, putPrice,
-                          put.InstrumentToken, false, putQty, algoIndex,
-                          tick.LastTradeTime, Tag: strangleNode.ID.ToString());
+                //Order putSellOrder = MarketOrders.PlaceOrder(strangleNode.ID, put.TradingSymbol, put.InstrumentType, putPrice,
+                //          put.InstrumentToken, false, putQty, algoIndex,
+                //          tick.LastTradeTime, Tag: strangleNode.BaseInstrumentPrice.ToString(), broker: Constants.KOTAK);
+
+                //Task<Order> putOrderTask = MarketOrders.PlaceKotakOrderAsync(strangleNode.ID, put.TradingSymbol, put.InstrumentType, putPrice,
+                //          MappedTokens[put.InstrumentToken], false, putQty, algoIndex,
+                //          tick.LastTradeTime, Tag: strangleNode.BaseInstrumentPrice.ToString(), httpClient: _httpClient);
+
+                //putOrderTask.Wait();
+
+                Order putSellOrder = MarketOrders.PlaceOrder(strangleNode.ID, put.TradingSymbol.Trim(' ').ToLower(), put.InstrumentType.ToLower(), putPrice,
+                        put.KToken, false, putQty, algoIndex, tick.LastTradeTime, Tag: strangleNode.BaseInstrumentPrice.ToString(),
+                        product: _intraday ? Constants.PRODUCT_MIS : Constants.KPRODUCT_NRML,
+                        broker: Constants.KOTAK, httpClient: _httpClientFactory == null ? null : KoConnect.ConfigureHttpClient(_user, _httpClientFactory.CreateClient()), user: _user);
+
+                //                Task.WaitAll(callOrderTask, putOrderTask);
+
+                //Order callSellOrder = callOrderTask.Result;
+                //Order putSellOrder = putOrderTask.Result;
+
 
                 //tradedStrangle.SellTrades.Add(putSellTrade);
 
@@ -1276,7 +1649,7 @@ namespace Algos.TLogics
                 OnTradeEntry(putSellOrder);
 
                 strangleNode.NetCallQtyInTrade += callSellOrder.Quantity + putSellOrder.Quantity;
-                strangleNode.UnBookedPnL += (callSellOrder.Quantity * callSellOrder.AveragePrice + putSellOrder.Quantity * putSellOrder.AveragePrice);
+                //strangleNode.UnBookedPnL += (callSellOrder.Quantity * callSellOrder.AveragePrice + putSellOrder.Quantity * putSellOrder.AveragePrice);
 
                 //tradedStrangle.UnbookedPnl = strangleNode.UnBookedPnL;
                 //tradedStrangle.TradingStatus = PositionStatus.Open;
@@ -1291,7 +1664,7 @@ namespace Algos.TLogics
                 tradeDetails[CE][QUANTITY] = callSellOrder.Quantity;
                 tradeDetails[CE][TRADE_ID] = tradeId;
                 tradeDetails[CE][TRADING_STATUS] = Convert.ToDecimal(TradeStatus.Open);
-                tradeDetails[CE][POSITION_PnL] = callSellOrder.Quantity * callSellOrder.AveragePrice;
+                tradeDetails[CE][POSITION_PnL] = 0;// callSellOrder.Quantity * callSellOrder.AveragePrice;
                 tradeDetails[CE][STRIKE] = call.Strike;
                 tradeDetails[PE] = new decimal[10];
                 tradeDetails[PE][INSTRUMENT_TOKEN] = put.InstrumentToken;
@@ -1300,8 +1673,10 @@ namespace Algos.TLogics
                 tradeDetails[PE][QUANTITY] = putSellOrder.Quantity;
                 tradeDetails[PE][TRADE_ID] = tradeId;
                 tradeDetails[PE][TRADING_STATUS] = Convert.ToDecimal(TradeStatus.Open);
-                tradeDetails[PE][POSITION_PnL] = putSellOrder.Quantity * putSellOrder.AveragePrice;
+                tradeDetails[PE][POSITION_PnL] = 0;// putSellOrder.Quantity * putSellOrder.AveragePrice;
                 tradeDetails[PE][STRIKE] = put.Strike;
+
+                _pnl = callSellOrder.AveragePrice * callSellOrder.Quantity + putSellOrder.AveragePrice * putSellOrder.Quantity;
                 return tradeDetails;
             }
             catch (Exception ex)
@@ -1314,18 +1689,30 @@ namespace Algos.TLogics
                 LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Error, tick.Timestamp.GetValueOrDefault(DateTime.UtcNow),
                     String.Format(@"Error occurred! Trading has stopped. \r\n {0}", ex.Message), "InitialTrade");
                 Thread.Sleep(100);
-                Environment.Exit(0);
+                //Environment.Exit(0);
             }
             return null;
         }
         private void PlaceOrderAndUpdateMatrix(int strangleID, ref decimal[,] optionMatrix, Instrument instrument, 
-            bool buyOrder, decimal quantity, DateTime? tickTime = null, uint token = 0, decimal triggerID = 0)
+            bool buyOrder, decimal quantity, DateTime? tickTime = null, uint token = 0, decimal triggerID = 0, string tag = "")
         {
             //ShortTrade trade = PlaceOrder(strangleID, instrument, buyOrder, Convert.ToInt32(quantity), tickTime, token, triggerID);
             token = token == 0 ? instrument.InstrumentToken : token;
-            Order order = MarketOrders.PlaceOrder(strangleID, instrument.TradingSymbol, instrument.InstrumentType, instrument.LastPrice, // optionMatrix[optionMatrix.GetLength(0) - 1, CURRENT_PRICE],
-                      token, buyOrder, Convert.ToInt32(quantity), algoIndex,
-                      tickTime, Tag: strangleID.ToString());
+            //Order order = MarketOrders.PlaceOrder(strangleID, instrument.TradingSymbol, instrument.InstrumentType, instrument.LastPrice, // optionMatrix[optionMatrix.GetLength(0) - 1, CURRENT_PRICE],
+            //          token, buyOrder, Convert.ToInt32(quantity), algoIndex,
+            //          tickTime, Tag: strangleID.ToString(), broker: Constants.KOTAK);
+
+            //Task<Order> orderTask = MarketOrders.PlaceKotakOrderAsync(strangleID, instrument.TradingSymbol, instrument.InstrumentType, instrument.LastPrice, // optionMatrix[optionMatrix.GetLength(0) - 1, CURRENT_PRICE],
+            //          MappedTokens[token], buyOrder, Convert.ToInt32(quantity), algoIndex,
+            //          tickTime, Tag: strangleID.ToString(), httpClient: _httpClient);
+
+            //orderTask.Wait();
+            //Order order = orderTask.Result;
+
+            Order order = MarketOrders.PlaceOrder(strangleID, instrument.TradingSymbol, instrument.InstrumentType.ToLower(), instrument.LastPrice,
+                        instrument.KToken, buyOrder, Convert.ToInt32(quantity), algoIndex, tickTime, Tag: tag,
+                        product: _intraday ? Constants.PRODUCT_MIS : Constants.KPRODUCT_NRML,
+                        broker: Constants.KOTAK, HsServerId: _user.HsServerId, httpClient: _httpClientFactory == null ? null : KoConnect.ConfigureHttpClient(_user, _httpClientFactory.CreateClient()), user: _user);
 
             OnTradeEntry(order);
             Decimal[,] newMatrix = new decimal[optionMatrix.GetLength(0) + 1, optionMatrix.GetLength(1)];
@@ -1337,7 +1724,7 @@ namespace Algos.TLogics
             newMatrix[newMatrix.GetLength(0) - 1, QUANTITY] = order.Quantity;
             newMatrix[newMatrix.GetLength(0) - 1, TRADE_ID] = triggerID;
             newMatrix[newMatrix.GetLength(0) - 1, TRADING_STATUS] = Convert.ToDecimal(TradeStatus.Open);
-            newMatrix[newMatrix.GetLength(0) - 1, POSITION_PnL] = order.Quantity * order.AveragePrice;
+            newMatrix[newMatrix.GetLength(0) - 1, POSITION_PnL] = 0;// order.Quantity * order.AveragePrice;
             newMatrix[newMatrix.GetLength(0) - 1, STRIKE] = instrument.Strike;
 
             optionMatrix = newMatrix;
@@ -1424,6 +1811,7 @@ namespace Algos.TLogics
                     //    strangleNode.CallUniverse = nodeData[0];
                     //    SubscriptionTokens.AddRange(nodeData[0].Values.Select(x => x.InstrumentToken));
                     //}
+
                     foreach (KeyValuePair<decimal, Instrument> keyValuePair in nodeData[0])
                     {
                         if (!strangleNode.CallUniverse.ContainsKey(keyValuePair.Key))
@@ -1448,13 +1836,14 @@ namespace Algos.TLogics
                         if (!strangleNode.PutUniverse.ContainsKey(keyValuePair.Key))
                         {
                             strangleNode.PutUniverse.Add(keyValuePair.Key, keyValuePair.Value);
-
+                           
                             // if (!SubscriptionTokens.Contains(keyValuePair.Value.InstrumentToken))
                             // {
                             SubscriptionTokens.Add(keyValuePair.Value.InstrumentToken);
                             //}
                         }
                     }
+                    UpdateReferenceInstruments(strangleNode);
                     //}
                     //else
                     //{
@@ -1479,9 +1868,9 @@ namespace Algos.TLogics
 
                     //Tick optionTick = ticks.FirstOrDefault(x => x.InstrumentToken == instrument.InstrumentToken);
 
-                    if ( tick.InstrumentToken == instrument.InstrumentToken && tick.LastPrice != 0)
+                    if (tick.InstrumentToken == instrument.InstrumentToken && tick.LastPrice != 0)
                     {
-                        instrument.LastPrice = tick.LastPrice;                    
+                        instrument.LastPrice = tick.LastPrice;
                         instrument.InstrumentType = "CE";
                         instrument.Bids = tick.Bids;
                         instrument.Offers = tick.Offers;
@@ -1515,7 +1904,9 @@ namespace Algos.TLogics
                     }
                 }
 
-                return !Convert.ToBoolean(strangleNode.CallUniverse.Values.Count(x => x.LastPrice == 0) + strangleNode.PutUniverse.Values.Count(x => x.LastPrice == 0));
+                return !Convert.ToBoolean(strangleNode.CallUniverse.Values.Count(x => x.LastPrice == 0
+                && x.Strike < strangleNode.BaseInstrumentPrice + 5 * strangleNode.StrikePriceIncrement && x.Strike > strangleNode.BaseInstrumentPrice - 3 * strangleNode.StrikePriceIncrement)
+                    + strangleNode.PutUniverse.Values.Count(x => x.LastPrice == 0 && x.Strike > strangleNode.BaseInstrumentPrice - 5 * strangleNode.StrikePriceIncrement && x.Strike < strangleNode.BaseInstrumentPrice + 3 * strangleNode.StrikePriceIncrement));
             }
             catch (Exception ex)
             {
@@ -1537,13 +1928,16 @@ namespace Algos.TLogics
         }
         public SortedList<Decimal, Instrument>[] GetNewStrikes(uint baseInstrumentToken, decimal baseInstrumentPrice, DateTime? expiry)
         {
+            Dictionary<uint, uint> mTokens;
             DataLogic dl = new DataLogic();
             SortedList<Decimal, Instrument>[] nodeData = dl.RetrieveNextStrangleNodes(baseInstrumentToken, expiry.GetValueOrDefault(DateTime.Now), 
-                baseInstrumentPrice, baseInstrumentPrice, 0);
+                baseInstrumentPrice, baseInstrumentPrice, 0, out mTokens);
+
+            MappedTokens = mTokens;
             return nodeData;
         }
 
-        public Task<bool> OnNext(Tick[] ticks)
+        public void OnNext(Tick tick)
         {
             try
             {
@@ -1551,13 +1945,13 @@ namespace Algos.TLogics
                 {
                     for (int i = 0; i < ActiveStrangles.Count; i++)
                     {
-                        if (_stopTrade || !ticks[0].Timestamp.HasValue)
+                        if (_stopTrade || !tick.Timestamp.HasValue)
                         {
-                            return Task.FromResult(false);
+                            return;
                         }
                         //ReviewStrangle(ActiveStrangles.ElementAt(i).Value, ticks);
-                        ManageStrangle(ActiveStrangles.ElementAt(i).Value, ticks[0]);
-                        return Task.FromResult(true);
+                        ManageStrangle(ActiveStrangles.ElementAt(i).Value, tick);
+                        return;
                     }
                 }
             }
@@ -1569,12 +1963,12 @@ namespace Algos.TLogics
                 Logger.LogWrite("Trading Stopped as algo encountered an error");
                 //throw new Exception("Trading Stopped as algo encountered an error. Check log file for details");
                 LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Error, 
-                    ticks[0].Timestamp.GetValueOrDefault(DateTime.UtcNow), String.Format(@"Error occurred! Trading has stopped. \r\n {0}", ex.Message), "OnNext");
+                    tick.Timestamp.GetValueOrDefault(DateTime.UtcNow), String.Format(@"Error occurred! Trading has stopped. \r\n {0}", ex.Message), "OnNext");
                 Thread.Sleep(100);
                 Environment.Exit(0);
-                return Task.FromResult(false);
+                return;
             }
-            return Task.FromResult(true);
+            return;
         }
 
         //public void OnEvent(IEnumerable<ICacheEntryEvent<TickKey, Tick>> events)
@@ -1613,9 +2007,9 @@ namespace Algos.TLogics
         //    bool buyOrder, int quantity, DateTime? tickTime = null, uint token = 0, decimal triggerID = 0)
         //{
         //    //quantity = 25;
-        //    string tradingSymbol = instrument_tradingsymbol;
+        //    string tradingSymbol.TrimEnd(' ') = instrument_tradingsymbol;
         //    decimal currentPrice = instrument_currentPrice;
-        //    Dictionary<string, dynamic> orderStatus = ZObjects.kite.PlaceOrder(Constants.EXCHANGE_NFO, tradingSymbol.TrimEnd(),
+        //    Dictionary<string, dynamic> orderStatus = ZObjects.kite.PlaceOrder(Constants.EXCHANGE_NFO, tradingSymbol.TrimEnd(' ').TrimEnd(),
         //                              buyOrder ? Constants.TRANSACTION_TYPE_BUY : Constants.TRANSACTION_TYPE_SELL, quantity, Product: Constants.PRODUCT_MIS,
         //                              OrderType: Constants.ORDER_TYPE_MARKET, Validity: Constants.VALIDITY_DAY);
 
@@ -1663,10 +2057,10 @@ namespace Algos.TLogics
         //private ShortTrade PlaceOrder(int strangleID, Instrument instrument, bool buyOrder, int quantity, DateTime? tickTime = null, uint token = 0, decimal triggerID = 0)
         //{
         //    //quantity = 25;
-        //    string tradingSymbol = instrument.TradingSymbol;
+        //    string tradingSymbol.TrimEnd(' ') = instrument.TradingSymbol;
         //    decimal currentPrice = instrument.LastPrice;
 
-        //    Dictionary<string, dynamic> orderStatus = ZObjects.kite.PlaceOrder(Constants.EXCHANGE_NFO, tradingSymbol.TrimEnd(),
+        //    Dictionary<string, dynamic> orderStatus = ZObjects.kite.PlaceOrder(Constants.EXCHANGE_NFO, tradingSymbol.TrimEnd(' ').TrimEnd(),
         //                              buyOrder ? Constants.TRANSACTION_TYPE_BUY : Constants.TRANSACTION_TYPE_SELL, quantity, Product: Constants.PRODUCT_MIS,
         //                              OrderType: Constants.ORDER_TYPE_MARKET, Validity: Constants.VALIDITY_DAY);
 
@@ -1801,10 +2195,14 @@ namespace Algos.TLogics
             for (int i = 0; i < ActiveStrangles.Count; i++)
             {
                 Decimal[][,] optionMatix = ActiveStrangles.ElementAt(i).Value.OptionMatrix;
-                decimal callValue = GetMatrixCurrentValue(optionMatix[CE]);
-                decimal putValue = GetMatrixCurrentValue(optionMatix[PE]);
+                if (optionMatix != null)
+                {
+                    decimal callValue = optionMatix[CE] != null ? GetMatrixCurrentValue(optionMatix[CE]) : 0;
+                    decimal putValue = optionMatix[PE] != null ? GetMatrixCurrentValue(optionMatix[PE]) : 0;
 
-                LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Info, e.SignalTime, string.Format("Strangle Value. Call side: {0}  |  Put side: {1}", callValue, putValue) , "Logger");
+
+                    LoggerCore.PublishLog(_algoInstance, algoIndex, LogLevel.Info, e.SignalTime, string.Format("Strangle Value. Call side: {0}  |  Put side: {1}", callValue, putValue), "Logger");
+                }
             }
         }
 
@@ -1834,6 +2232,10 @@ namespace Algos.TLogics
         //    UnsubscriptionToken = publisher.Subscribe(this);
         //}
 
+        public void StopTrade(bool stop)
+        {
+            _stopTrade = stop;
+        }
 
         public int AlgoInstance
         {

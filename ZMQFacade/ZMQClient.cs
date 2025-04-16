@@ -9,6 +9,8 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using NetMQ.Sockets;
 using NetMQ;
+using System.IO;
+using System.Runtime.Serialization.Formatters.Binary;
 
 namespace ZMQFacade
 {
@@ -79,21 +81,47 @@ namespace ZMQFacade
 
         public static void SendData(IZMQ algoObject, byte[] tickData)
         {
+#if LOCAL
             Tick tick = TickDataSchema.ParseTick(tickData, shortenedTick: true);
+#else
+            Tick tick = TickDataSchema.ParseTick(tickData, shortenedTick: false);
+#endif
 
             if (tick.InstrumentToken != 0 && tick.Timestamp != null)
-                algoObject.OnNext(new Tick[] { tick });
+                //algoObject.OnNext(new Tick[] { tick });
+                algoObject.OnNext(tick);
+        }
+        public static object DeserializeObject(byte[] byteArray)
+        {
+            using (MemoryStream memoryStream = new MemoryStream(byteArray))
+            {
+                BinaryFormatter formatter = new BinaryFormatter();
+                return formatter.Deserialize(memoryStream);
+            }
         }
 
-        //public static async Task<bool> SendData(IZMQ algoObject, byte[] tickData)
-        //{
-        //    Tick tick = TickDataSchema.ParseTick(tickData);
+//        public static void SendFyersData(IZMQ algoObject, byte[] tickData)
+//        {
+//#if LOCAL
+//            Tick tick = TickDataSchema.ParseTick(tickData, shortenedTick: true);
+//#else
+//            FyerTick tick = (FyerTick) DeserializeObject(tickData);
+//#endif
 
-        //    if (tick.InstrumentToken != 0 && tick.Timestamp != null)
-        //        await algoObject.OnNext(new Tick[] { tick });
+//            //if (tick.InstrumentToken != 0 && tick.Timestamp != null)
+//                //algoObject.OnNext(new Tick[] { tick });
+//              //  algoObject.OnNext(Tick.);
+//        }
 
-        //    return true;
-        //}
+//        //public static async Task<bool> SendData(IZMQ algoObject, byte[] tickData)
+//        //{
+//        //    Tick tick = TickDataSchema.ParseTick(tickData);
+
+//        //    if (tick.InstrumentToken != 0 && tick.Timestamp != null)
+//        //        await algoObject.OnNext(new Tick[] { tick });
+
+//        //    return true;
+//        //}
 
 
 

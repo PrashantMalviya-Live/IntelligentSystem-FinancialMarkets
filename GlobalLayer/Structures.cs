@@ -12,6 +12,10 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Reflection;
+using GlobalLayer;
+using System.Security.Cryptography;
+using Newtonsoft.Json.Linq;
+using Google.Protobuf.WellKnownTypes;
 
 namespace GlobalLayer
 {
@@ -49,8 +53,66 @@ namespace GlobalLayer
         OptionBuyWithStraddle = 23,
         ManageReferenceStraddle = 24,
         IVSpreadTrade = 25,
-        KiteConnect = 1001
+        ChartSpreadTrade = 26,
+        OptionOptimizer = 27,
+        ValueSpreadTrade = 28,
+        DeltaStrangleWithLevels = 29,
+        GenerateAlert = 30,
+        SellOnHistoricalAverage = 31,
+        PAWithLevels = 32,
+        StraddleOnIndexRange = 33,
+        SchScalping = 34,
+        CandleWickScalping = 35,
+        InitialRangeBreakout = 36,
+        StockInitialMomentum = 37,
+        StraddleWithEachLegCutOff= 38,
+        EMAScalpingKB = 39,
+        MultipleEMAPriceAction = 40,
+        MultiEMADirectionalLevels = 41,
+        TJ2 = 42,
+        MA = 43, //Market Alerts
+        TJ3 = 44,
+        TJ4 = 45,
+        SARScalping = 46,
+        OptionSellonHT = 47,
+        MultiTimeFrameSellOnHT = 48,
+        OptionSellOnOITrend = 49,
+        TJ5 = 50,
+        BC = 51,
+        BC2 = 52,
+        EST = 53,
+        RangeBreakoutCandle = 54,
+        EICT = 55,
+        OptionSellOnEMA = 1032,
+        KiteConnect = 1001,
+
+        Crypto_PriceDirectionWithOption = 56,
+        Crypto_ActiveStrangleBuy = 57,
+
     }
+    public enum IndicatorType
+    {
+        EMA = 1,
+        SMA = 2,
+        RSI = 3,
+        MACD = 4,
+        Stochastic = 5,
+        Candle_Open = 6,
+        Candle_High = 7,
+        Candle_Low = 8,
+        Candle_Close = 9,
+        Price = 10,
+        Range_Breakout = 11
+    }
+
+    public enum CandlePrices
+    {
+        Open = 1,
+        High = 2,
+        Low = 3,
+        Close = 4,
+    }
+
     public enum MarketOpenRange
     {
         Sideways = 0,
@@ -134,6 +196,7 @@ namespace GlobalLayer
         public string SourceMethod { get; set; }
     }
 
+
     //
     // Summary:
     //     Defines log levels.
@@ -154,6 +217,131 @@ namespace GlobalLayer
         public UInt32 InstrumentToken { get; set; }
         public DateTime? Timestamp { get; set; }
     }
+    [Serializable]
+    public class FyerTick
+    {
+        public decimal Ltp { get; set; }
+        public decimal Vol_traded_today { get; set; }
+        public decimal Last_traded_time { get; set; }
+        public decimal Exch_feed_time { get; set; }
+        public decimal Bid_size { get; set; }
+        public decimal Ask_size { get; set; }
+        public decimal Bid_price { get; set; }
+        public decimal Ask_price { get; set; }
+        public uint Last_traded_qty { get; set; }
+        public uint Tot_buy_qty { get; set; }
+        public uint Tot_sell_qty { get; set; }
+        public decimal Avg_trade_price { get; set; }
+        public decimal Low_price { get; set; }
+        public decimal High_price { get; set; }
+        public decimal Yhigh { get; set; }
+        public decimal Ylow { get; set; }
+        public decimal Lower_ckt { get; set; }
+        public decimal Upper_ckt { get; set; }
+        public decimal Open_price { get; set; }
+        public decimal Prev_close_price { get; set; }
+        public decimal Ch { get; set; }
+        public decimal Chp { get; set; }
+        public decimal Turnover { get; set; }
+        public string Type { get; set; }
+        public string Symbol { get; set; }
+
+
+    //      "ltp": 1163.95,
+    //"vol_traded_today": 573412.0,
+    //"last_traded_time": 1713165342.0,
+    //"exch_feed_time": 1713165342.0,
+    //"bid_size": 8.0,
+    //"ask_size": 5.0,
+    //"bid_price": 1163.75,
+    //"ask_price": 1164.3,
+    //"last_traded_qty": 12.0,
+    //"tot_buy_qty": 109026.0,
+    //"tot_sell_qty": 120039.0,
+    //"avg_trade_price": 1164.05,
+    //"low_price": 1155.0,
+    //"high_price": 1176.5,
+    //"Yhigh": 1330.0,
+    //"Ylow": 748.4,
+    //"lower_ckt": 1052.15,
+    //"upper_ckt": 1285.95,
+    //"open_price": 1155.0,
+    //"prev_close_price": 1169.05,
+    //"ch": -5.1,
+    //"chp": -0.44,
+    //"turnover": 66748023860.0,
+    //"type": "sf",
+    //"symbol": "NSE:BHARATFORG-EQ"
+    //public Tick ToTick(bool tradable)
+    //    {
+    //        new Tick()
+    //        {
+    //            AveragePrice = Avg_trade_price,
+    //            BuyQuantity = Tot_buy_qty,
+    //            Change = Ch,
+    //            Close = Ltp,
+    //            High = High_price,
+    //            LastPrice = Ltp,
+    //            LastQuantity = Last_traded_qty,
+    //            LastTradeTime = Date Last_traded_time,
+    //            Low = Low_price,
+    //            Open = Open_price,
+    //            SellQuantity = Tot_sell_qty,
+    //            Timestamp = Exch_feed_time,
+    //            Tradable=tradable,
+    //             Volume=Vol_traded_today
+    //        }
+    //    }
+    }
+
+
+    [Serializable]
+    public class FyerTickIndex
+    {
+        public decimal Ltp { get; set; }
+        public decimal Exch_feed_time { get; set; }
+        public decimal prev_close_price { get; set; }
+        public decimal Low_price { get; set; }
+        public decimal High_price { get; set; }
+        public decimal Open_price { get; set; }
+        public decimal Ch { get; set; }
+        public decimal Chp { get; set; }
+        public string Type { get; set; }
+        public string Symbol { get; set; }
+
+        /*
+         * "ltp": 22373.45,
+    "prev_close_price": 22519.4,
+    "exch_feed_time": 1713165343.0,
+    "high_price": 22427.45,
+    "low_price": 22263.55,
+    "open_price": 22339.05,
+    "ch": -145.95,
+    "chp": -0.65,
+    "type": "if",
+    "symbol": "NSE:NIFTY50-INDEX"
+         */
+
+    }
+
+    [Serializable]
+    public class FyerTickLite
+    {
+        public decimal Ltp { get; set; }
+        public decimal Ch { get; set; }
+        public decimal Chp { get; set; }
+        public string Type { get; set; }
+        public string Symbol { get; set; }
+
+        /*
+             "ltp": 1164.35,
+            "ch": -4.7,
+            "chp": -0.4,
+            "type": "sf",
+            "symbol": "NSE:BHARATFORG-EQ"
+         */
+
+    }
     /// <summary>
     /// Tick data structure
     /// </summary>
@@ -162,7 +350,10 @@ namespace GlobalLayer
     {
         public string Mode { get; set; }
         public UInt32 InstrumentToken { get; set; }
-        public bool Tradable { get; set; }
+
+            public string Symbol { get; set; }
+            
+            public bool Tradable { get; set; }
         public decimal LastPrice { get; set; }
         public UInt32 LastQuantity { get; set; }
         public decimal AveragePrice { get; set; }
@@ -184,6 +375,121 @@ namespace GlobalLayer
         public UInt32 OIDayHigh { get; set; }
         public UInt32 OIDayLow { get; set; }
         public DateTime? Timestamp { get; set; }
+
+        public Tick(JToken data)
+        {
+                //      "ltp": 1163.95,
+                //"vol_traded_today": 573412.0,
+                //"last_traded_time": 1713165342.0,
+                //"exch_feed_time": 1713165342.0,
+                //"bid_size": 8.0,
+                //"ask_size": 5.0,
+                //"bid_price": 1163.75,
+                //"ask_price": 1164.3,
+                //"last_traded_qty": 12.0,
+                //"tot_buy_qty": 109026.0,
+                //"tot_sell_qty": 120039.0,
+                //"avg_trade_price": 1164.05,
+                //"low_price": 1155.0,
+                //"high_price": 1176.5,
+                //"Yhigh": 1330.0,
+                //"Ylow": 748.4,
+                //"lower_ckt": 1052.15,
+                //"upper_ckt": 1285.95,
+                //"open_price": 1155.0,
+                //"prev_close_price": 1169.05,
+                //"ch": -5.1,
+                //"chp": -0.44,
+                //"turnover": 66748023860.0,
+                //"type": "sf",
+                //"symbol": "NSE:BHARATFORG-EQ"
+
+            
+                LastPrice= Convert.ToDecimal(data[0]);
+                Volume = Convert.ToUInt32(data[1]);
+                LastTradeTime = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified).AddSeconds((double)data[2]);
+                Timestamp = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified).AddSeconds((double)data[3]);
+                LastQuantity = Convert.ToUInt32(data[8]);
+                BuyQuantity = Convert.ToUInt32(data[9]);
+                SellQuantity = Convert.ToUInt32(data[10]);
+                AveragePrice = Convert.ToDecimal(data[11]);
+                Low = Convert.ToDecimal(data[12]);
+                High = Convert.ToDecimal(data[13]);
+                Open = Convert.ToUInt32(data[18]);
+                Symbol = Convert.ToString(data[24]);
+        }
+        public Tick()
+        {
+
+        }
+    }
+    public class AlgoMetaData
+    {
+        public int AlgoID { get; set; }
+
+        public string AlgoName { get; set; }
+
+        public int AlgoInstance { get; set; }
+
+    }
+
+    [Serializable]
+    public class MData
+    {
+        //this is like a algo id to segreate data between different types. Once may be filling one table and another for another table.
+        public int AlgoID { get; set; }
+        public UInt32 InstrumentToken { get; set; }
+        public decimal LastPrice { get; set; }
+        public int CandleTimeSpan { get; set; }
+        public UInt32 BaseInstrumentToken { get; set; }
+        
+        //collate with * different properties
+        public string Message { get; set; }
+
+        //include all the below under messages. This will make it generic
+        //try for RSI during that period or macd during this period. correlation price change within this period.
+        //public decimal OIChange { get; set; }
+        //public decimal PriceChange { get; set; }
+        //public decimal VolumeChange { get; set; }
+
+        public DateTime? Timestamp { get; set; }
+    }
+
+    [Serializable]
+    public class Alert
+    {
+        public Guid ID { get; set; }
+        public int AlertTriggerID { get; set; }
+        public uint InstrumentToken { get; set; }
+        public string TradingSymbol { get; set; }
+
+        public string UserId { get; set; }
+
+        public decimal LastPrice { get; set; }
+
+        //this may not be needed, but message is needed at the trigger level while setting an alert
+        //public string Message { get; set; }
+        public int CandleTimeSpan { get; set; }
+
+        //Time when the alert was triggered. Once alert with ID will trigger only once. AlertTrigger can trigger multile alerts.
+        public DateTime TriggeredDateTime { get; set; }
+
+        //collection of alert mode ids
+        public string AlertModes { get; set; }
+
+        public string Message { get; set; }
+
+        //Criteria that triggered the alert
+        public string Criteria { get; set; }
+    }
+
+    public enum AlertModes
+    {
+        WEB_PAGE = 1,
+        MOBILE_APP = 2,
+        PHONE_SMS = 3,
+        WHATSAPP = 4,
+        EMAIL = 5
     }
 
     /// <summary>
@@ -191,7 +497,7 @@ namespace GlobalLayer
 	/// </summary>
 	[DataContract]
     [Serializable]
-    public abstract class Candle //: Cloneable<Candle>
+    public abstract class Candle : IConvertible
     {
         ///// <summary>
         ///// Instrument.
@@ -311,6 +617,13 @@ namespace GlobalLayer
         /// </summary>
         [DataMember]
         public int? UpTicks { get; set; }
+        
+        /// <summary>
+        /// Number of up trending ticks.
+        /// </summary>
+        [DataMember]
+        public bool? Final { get; set; }
+
         /// <summary>
         /// Number of up trending ticks.
         /// </summary>
@@ -338,7 +651,7 @@ namespace GlobalLayer
                 _state = value;
             }
         }
-
+        public CandlePrices CandlePrices { get; set; }
         /// <summary>
         /// Price levels.
         /// </summary>
@@ -418,6 +731,138 @@ namespace GlobalLayer
             State = CandleStates.Finished;
 
             //Arg = Convert.ToUInt32(candleRow["Arg"]);
+        }
+
+        public TypeCode GetTypeCode()
+        {
+            throw new NotImplementedException();
+        }
+
+        public bool ToBoolean(IFormatProvider provider)
+        {
+            throw new NotImplementedException();
+        }
+
+        public byte ToByte(IFormatProvider provider)
+        {
+            throw new NotImplementedException();
+        }
+
+        public char ToChar(IFormatProvider provider)
+        {
+            throw new NotImplementedException();
+        }
+
+        public DateTime ToDateTime(IFormatProvider provider)
+        {
+            throw new NotImplementedException();
+        }
+
+        public decimal ToDecimal(IFormatProvider provider)
+        {
+            decimal currentValue = 0;
+            switch (CandlePrices)
+            {
+                case CandlePrices.Open:
+                    currentValue = OpenPrice;
+                    break;
+                case CandlePrices.High:
+                    currentValue = HighPrice;
+                    break;
+                case CandlePrices.Low:
+                    currentValue = LowPrice;
+                    break;
+                case CandlePrices.Close:
+                    currentValue = ClosePrice;
+                    break;
+                default:
+                    currentValue = ClosePrice;
+                    break;
+            }
+            return currentValue;
+        }
+
+        public double ToDouble(IFormatProvider provider)
+        {
+            return (double)Convert.ChangeType(ClosePrice, typeof(double));
+        }
+
+        public short ToInt16(IFormatProvider provider)
+        {
+            throw new NotImplementedException();
+        }
+
+        public int ToInt32(IFormatProvider provider)
+        {
+            throw new NotImplementedException();
+        }
+
+        public long ToInt64(IFormatProvider provider)
+        {
+            throw new NotImplementedException();
+        }
+
+        public sbyte ToSByte(IFormatProvider provider)
+        {
+            throw new NotImplementedException();
+        }
+
+        public float ToSingle(IFormatProvider provider)
+        {
+            throw new NotImplementedException();
+        }
+
+        public string ToString(IFormatProvider provider)
+        {
+            throw new NotImplementedException();
+        }
+
+        public object ToType(System.Type TimeFrameCandle, IFormatProvider provider)
+        {
+            return new TimeFrameCandle()
+            {
+                Final = this.Final,
+                OpenTime = this.OpenTime,
+                CloseTime = this.CloseTime,
+                HighTime = this.HighTime,
+                LowTime = this.LowTime,
+                ClosePrice = this.ClosePrice,
+                HighPrice = this.HighPrice,
+                LowPrice = this.LowPrice,
+                OpenPrice = this.OpenPrice,
+                InstrumentToken = this.InstrumentToken,
+                State = this.State,
+                CandlePrices = this.CandlePrices
+            };
+        }
+        
+        //public object ToType(Type Candle, IFormatProvider provider)
+        //{
+        //    return new TimeFrameCandle() { ClosePrice = this.ClosePrice, HighPrice = this.HighPrice, LowPrice = this.LowPrice, OpenPrice = this.OpenPrice };
+        //}
+
+        public ushort ToUInt16(IFormatProvider provider)
+        {
+            throw new NotImplementedException();
+        }
+
+        public uint ToUInt32(IFormatProvider provider)
+        {
+            throw new NotImplementedException();
+        }
+
+        public ulong ToUInt64(IFormatProvider provider)
+        {
+            throw new NotImplementedException();
+        }
+        public T GetValue<T>(IFormatProvider provider)
+        {
+            throw new NotImplementedException();
+        }
+
+        public  T GetValue<T>()
+        {
+            return (T)Convert.ChangeType(ClosePrice, typeof(T));
         }
 
         ////public void LoadCandles(DataSet dsCandles, Candle candle)
@@ -519,12 +964,20 @@ namespace GlobalLayer
         //}
     }
 
+    public class TickComparer : IComparer<Tick>
+    {
+        public int Compare(Tick x, Tick y)
+        {
+            return (new CaseInsensitiveComparer()).Compare(x.LastTradeTime, y.LastTradeTime);
+        }
+    }
+
     /// <summary>
     /// Time-frame candle.
     /// </summary>
     [DataContract]
     [Serializable]
-    public class TimeFrameCandle : Candle
+    public class TimeFrameCandle : Candle, IConvertible
     {
         /// <summary>
         /// Time-frame.
@@ -549,13 +1002,13 @@ namespace GlobalLayer
         //	get => StartTime;
         //	set => StartTime = (DateTime)value;
         //}
-        /// <summary>
-        /// Create a copy of <see cref="TimeFrameCandle"/>.
-        /// </summary>
-        /// <returns>Copy.</returns>
+        /////<summary>
+        // ///Create a copy of<see cref= "TimeFrameCandle" />.
+        /////</ summary >
+        // ///< returns > Copy.</ returns >
         //public override Candle Clone()
         //{
-        //	return CopyTo(new TimeFrameCandle());
+        //    return CopyTo(new TimeFrameCandle());
         //}
 
     }
@@ -856,22 +1309,22 @@ namespace GlobalLayer
         }
     }
 
-    ///// <summary>
-    ///// Heikin ashi candle.
-    ///// </summary>
-    //[DataContract]
-    //[Serializable]
-    //public class HeikinAshiCandle : TimeFrameCandle
-    //{
-    //	/// <summary>
-    //	/// Create a copy of <see cref="HeikinAshiCandle"/>.
-    //	/// </summary>
-    //	/// <returns>Copy.</returns>
-    //	public override Candle Clone()
-    //	{
-    //		return CopyTo(new HeikinAshiCandle());
-    //	}
-    //}
+    /// <summary>
+    /// Heikin ashi candle.
+    /// </summary>
+    [DataContract]
+    [Serializable]
+    public class HeikinAshiCandle : TimeFrameCandle
+    {
+        /// <summary>
+        /// Create a copy of <see cref="HeikinAshiCandle"/>.
+        /// </summary>
+        ///// <returns>Copy.</returns>
+        //public override Candle Clone()
+        //{
+        //    return CopyTo(new HeikinAshiCandle());
+        //}
+    }
 
     /// <summary>
     /// Market depth item structure
@@ -894,7 +1347,7 @@ namespace GlobalLayer
     /// <summary>
     /// Historical structure
     /// </summary>
-    public struct Historical
+    public class Historical : IComparable<Historical>
     {
         public Historical(ArrayList data)
         {
@@ -904,14 +1357,71 @@ namespace GlobalLayer
             Low = Convert.ToDecimal(data[3]);
             Close = Convert.ToDecimal(data[4]);
             Volume = Convert.ToUInt32(data[5]);
+            InstrumentToken = data.Count > 6 ? Convert.ToUInt32(data[6]) : 0;
+        }
+        public Historical(DataRow data)
+        {
+            TimeStamp = Convert.ToDateTime(data[0]);
+            Open = Convert.ToDecimal(data[1]);
+            High = Convert.ToDecimal(data[2]);
+            Low = Convert.ToDecimal(data[3]);
+            Close = Convert.ToDecimal(data[4]);
+            Volume = Convert.ToUInt32(data[5]);
+            InstrumentToken = Convert.ToUInt32(data[6]);
+        }
+        public Historical(JToken data)
+        {
+            TimeStamp = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified).AddSeconds((double)data[0]); 
+            Open = Convert.ToDecimal(data[1]);
+            High = Convert.ToDecimal(data[2]);
+            Low = Convert.ToDecimal(data[3]);
+            Close = Convert.ToDecimal(data[4]);
+            Volume = Convert.ToUInt32(data[5]);
         }
 
-        public DateTime TimeStamp { get; }
-        public decimal Open { get; }
-        public decimal High { get; }
-        public decimal Low { get; }
-        public decimal Close { get; }
-        public UInt32 Volume { get; }
+        public Historical()
+        {
+        }
+
+        public DateTime TimeStamp { get; set; }
+        public decimal Open { get; set; }
+        public decimal High { get; set; }
+        public decimal Low { get; set; }
+        public decimal Close { get; set; }
+        public UInt32 Volume { get; set; }
+
+        public uint InstrumentToken { set; get; }
+
+        public int CompareTo(Historical x)
+        {
+            int result = TimeStamp.CompareTo(x.TimeStamp);
+
+            //if (result == 0)
+            //    return 1; // Handle equality as being greater. Note: this will break Remove(key) or
+            //else          // IndexOfKey(key) since the comparer never returns 0 to signal key equality
+                return result;
+        }
+    }
+    //public class HistoricalComparer<Historical> : IComparer<Historical> where Historical : IComparable
+    //{
+    //    #region IComparer<TKey> Members
+
+    //    public int Compare(Historical x, Historical y)
+    //    {
+    //        int result = x.TimeStamp.CompareTo(y.TimeStamp);
+
+    //        if (result == 0)
+    //            return 1; 
+    //        else          
+    //            return result;
+    //    }
+
+    //    #endregion
+    //}
+    public class HistoricalData
+    {
+        public Historical HistoricalValue { get; set; }
+        public uint InstrumentToken { get; set; }
     }
 
     /// <summary>
@@ -1104,6 +1614,151 @@ namespace GlobalLayer
         public decimal MISMargin { get; set; }
         public decimal NRMLMargin { get; set; }
     }
+
+    public class PositionSummary
+    {
+        public int Id { get; set; }
+        public int OvernightQuantity { get; set; }
+        public decimal SellValue { get; set; }
+        public decimal LastPrice { get; set; }
+        public  string TradingSymbol { get; set; }
+        public decimal Realised { get; set; }
+        public decimal TodayPNL { get; set; }
+        public decimal PNL { get; set; }
+        public decimal Multiplier { get; set; }
+        public int SellQuantity { get; set; }
+        public decimal BuyValue { get; set; }
+        public int BuyQuantity { get; set; }
+        public decimal AveragePrice { get; set; }
+        public decimal Unrealised { get; set; }
+        public decimal Value { get; set; }
+        public decimal BuyPrice { get; set; }
+        public decimal BuySLPrice { get; set; }
+        public decimal SellPrice { get; set; }
+        public decimal SellSLPrice { get; set; }
+        public UInt32 InstrumentToken { get; set; }
+        public decimal ClosePrice { get; set; }
+        public int Quantity { get; set; }
+        public decimal Target { get; set; }
+        public decimal StopLoss { get; set; }
+    }
+    public class KotakPosition
+    {
+        dynamic dynamicValue = 0;
+        public KotakPosition(Dictionary<string, dynamic> data)
+        {
+            //{ "buyAmt":"0.00",
+            //        "cfSellAmt":"0.00",
+            //        "prod":"NRML",
+            //        "exSeg":"nse_fo",
+            //        "sqrFlg":"Y",
+            //        "actId":"ZDOKN",
+            //        "cfBuyQty":"400",
+            //        "hsUpTm":"2024/07/20 12:28:55",
+            //        "cfSellQty":"0",
+            //        "tok":"63896",
+            //        "upldPrc":"0.00",
+            //        "flBuyQty":"0",
+            //        "flSellQty":"0",
+            //        "sellAmt":"0.00",
+            //        "posFlg":"true",
+            //        "cfBuyAmt":"813500.00",
+            //        "stkPrc":"0.00",
+            //        "trdSym":"UBL24JULFUT",
+            //        "sym":"UBL","multiplier":"1",
+            //        "precision":"2",
+            //        "expDt":"25 Jul, 2024",
+            //        "type":"FUTSTK",
+            //        "genNum":"1",
+            //        "series":"XX",
+            //        "prcNum":"1",
+            //        "genDen":"1",
+            //        "brdLtQty":400,
+            //        "exp":"1721917800",
+            //        "lotSz":"400",
+            //        "optTp":"XX",
+            //        "prcDen":"1"}
+
+            try
+            {
+                Product = data.TryGetValue("prod", out dynamicValue) ? dynamicValue : string.Empty;
+                //OvernightQuantity = data["overnight_quantity"];
+                Exchange = data.TryGetValue("exSeg", out dynamicValue) ? dynamicValue : string.Empty;
+                
+                ;// data["cfSellAmt"] != string.Empty? Convert.ToDecimal(data["cfSellAmt"]) : 0;
+                SellValue = data.TryGetValue("cfSellAmt", out dynamicValue) ? Convert.ToDecimal(dynamicValue) : 0;
+                //BuyM2M = data["buy_m2m"];
+                //LastPrice = data["last_price"];
+                TradingSymbol = data.TryGetValue("trdSym", out dynamicValue) ? dynamicValue : string.Empty;
+                //Realised = data["realised"];
+                //PNL = data["pnl"];
+                ExpiryDate = data.TryGetValue("expDt", out dynamicValue) ? data["expDt"] != "NA" ? Convert.ToDateTime(data["expDt"]) : DateTime.MaxValue : DateTime.MaxValue;
+                
+                //Multiplier = data["multiplier"];
+                SellQuantity = data.TryGetValue("cfSellQty", out dynamicValue) ? Convert.ToInt32(dynamicValue): 0;
+                //SellM2M = data["sell_m2m"];
+                BuyValue = data["cfBuyAmt"] != string.Empty ? Convert.ToDecimal(data["cfBuyAmt"]) : 0;
+                BuyQuantity = data.TryGetValue("cfBuyQty", out dynamicValue) ? Convert.ToInt32(dynamicValue) : 0;
+                //AveragePrice = data["average_price"];
+                //Unrealised = data["unrealised"];
+                //Value = data["value"];
+                AveragePrice = BuyQuantity != 0 ? BuyValue / BuyQuantity : SellQuantity != 0 ? SellValue / SellQuantity : 0;
+                //SellPrice = data["sell_price"];
+                //M2M = data["m2m"];
+                InstrumentToken = data.TryGetValue("tok", out dynamicValue) ? Convert.ToUInt32(dynamicValue) : 0;
+                //ClosePrice = data["close_price"];
+                //Quantity = data["quantity"];
+                //DayBuyQuantity = data["day_buy_quantity"];
+                //DayBuyValue = data["day_buy_value"];
+                //DayBuyPrice = data["day_buy_price"];
+                //DaySellQuantity = data["day_sell_quantity"];
+                //DaySellValue = data["day_sell_value"];
+                //DaySellPrice = data["day_sell_price"];
+                //ActiveState = data["active_state"];
+            }
+            catch (Exception ex)
+            {
+                //throw new Exception("Unable to parse data. " + Utils.JsonSerialize(data));
+            }
+
+        }
+
+        public string Product { get; set; }
+        //public int OvernightQuantity { get; set; }
+        public string Exchange { get; set; }
+        public decimal SellValue { get; set; }
+      //  public decimal BuyM2M { get; set; }
+        //public decimal LastPrice { get; set; }
+        public string TradingSymbol { get; set; }
+        //public decimal Realised { get; set; }
+        //public decimal PNL { get; set; }
+        //public decimal Multiplier { get; set; }
+        public int SellQuantity { get; set; }
+        //public decimal SellM2M { get; set; }
+        public decimal BuyValue { get; set; }
+        public int BuyQuantity { get; set; }
+        public decimal AveragePrice { get; set; }
+       // public decimal Unrealised { get; set; }
+       // public decimal Value { get; set; }
+      //  public decimal BuyPrice { get; set; }
+       // public decimal SellPrice { get; set; }
+        //public decimal M2M { get; set; }
+        public UInt32 InstrumentToken { get; set; }
+        //public decimal ClosePrice { get; set; }
+        //public int Quantity { get; set; }
+        //public int DayBuyQuantity { get; set; }
+        //public decimal DayBuyPrice { get; set; }
+        //public decimal DayBuyValue { get; set; }
+        //public int DaySellQuantity { get; set; }
+        //public decimal DaySellPrice { get; set; }
+        //public decimal DaySellValue { get; set; }
+
+        public DateTime ExpiryDate { get; set; }
+
+
+       // public CurrentPostion ActiveState { get; set; }
+    }
+
     /// <summary>
     /// Position structure
     /// </summary>
@@ -1184,6 +1839,11 @@ namespace GlobalLayer
         public CurrentPostion ActiveState { get; set; }
     }
 
+    public class PriceTime
+    {
+        public decimal LastPrice;
+        public DateTime? TradeTime;
+    }
     public class OptionChain
     {
         [Key]
@@ -1208,21 +1868,46 @@ namespace GlobalLayer
     [Serializable]
     public class Option : Instrument
     {
-        //[Key]
-        //public uint InstrumentToken { get; set; }
-        //public decimal LTP { get; set; }
+        public Option(Instrument instrument, DateTime lastTradeTime, Instrument baseInstrument)
+        {
+            this.InstrumentToken = instrument.InstrumentToken;
+            this.ExchangeToken = instrument.ExchangeToken;
+            this.TradingSymbol = instrument.TradingSymbol;
+            this.Name = instrument.Name;
+            this.LastPrice = instrument.LastPrice;
+            this.TickSize = instrument.TickSize;
+            this.Expiry = instrument.Expiry;
+            this.InstrumentType = instrument.InstrumentType;
+            this.Segment = instrument.Segment;
+            this.Exchange = instrument.Exchange;
+            this.Strike = instrument.Strike;
+            this.LotSize = instrument.LotSize;
+            this.Bids = instrument.Bids;
+            this.Offers = instrument.Offers;
+            this.Pain = instrument.Pain;
+            this.OI = instrument.OI;
+            this.BeginingPeriodOI = instrument.BeginingPeriodOI;
+            this.OIDayHigh = instrument.OIDayHigh;
+            this.OIDayLow = instrument.OIDayLow;
+            this.BaseInstrumentToken = instrument.BaseInstrumentToken;
+            this.IsTraded = instrument.IsTraded;
+            this.LastTradeTime = lastTradeTime;
+            this.BaseInstrument = baseInstrument;
+        }
+        public Option()
+        { }
 
-        //public decimal IntrinsicValue { get; set; }
         public decimal OI { get; set; }
         public decimal DeltaOI { get; set; }
         public decimal? IV { get; set; }
-        public decimal Delta { get; set; }
+        public new decimal Delta { get; set; }
         public decimal Vega { get; set; }
         public decimal Gamma { get; set; }
         public decimal Theta { get; set; }
         public string Symbol { get; set; }
 
         public decimal BaseInstrumentPrice { get; set; }
+        public Instrument BaseInstrument { get; set; }
         public DateTime? LastTradeTime { get; set; }
 
         public decimal GetIntrinsicValue(decimal baseInstrumentPrice)
@@ -1246,7 +1931,7 @@ namespace GlobalLayer
 
             if (expDate.TimeOfDay == TimeSpan.Zero)
             {
-                TimeSpan closingTime = new TimeSpan(3, 30, 0);
+                TimeSpan closingTime = new TimeSpan(15, 30, 0);
                 expDate += closingTime;
             }
 
@@ -1254,7 +1939,7 @@ namespace GlobalLayer
         }
         public Instrument GetUnderlyingAsset()
         {
-            return new Instrument();
+            return BaseInstrument;
         }
 
 
@@ -1407,6 +2092,8 @@ namespace GlobalLayer
 
     }
 
+    
+
     /// <summary>
     /// Position response structure
     /// </summary>
@@ -1473,16 +2160,219 @@ namespace GlobalLayer
     }
 
     public class ChartData
-    { 
+    {
+        public int AlgoId { get; set; } = 0;
         public UInt32 InstrumentToken { get; set; }
         public int AlgoInstance { get; set; }
+        public int ChartId { get; set; }
+        public int ChartDataId { get; set; }
         public decimal d { get; set; }
         public string xLabel { get; set; }
         public string yLabel { get; set; }
-        public int AlgoId { get; set; } = 0;
         public string Arg { get; set; }
-
+        public decimal Arg2 { get; set; }
         public DateTime T { get; set; }
+}
+    public class KotakNeoOrder
+    {
+        public KotakNeoOrder(Dictionary<string, dynamic> data, decimal disclosedQuantity, uint instrumentToken, string status, string statusMessage,
+            string product, string validity, string variety, string orderType, string tradingSymbol, string transactionType, int algoInstance, int algoIndex)
+        {
+            try
+            {
+                OrderId = Convert.ToString(data["orderId"]);
+                Price = Convert.ToDecimal(data["price"]);
+                AveragePrice = Convert.ToDecimal(data["price"]);
+                Tag = data["tag"];
+                Quantity = Convert.ToInt32(data["quantity"]);
+                Status = status;
+                StatusMessage = statusMessage;
+                DisclosedQuantity = Quantity;
+                Exchange = "NSE";
+                InstrumentToken = instrumentToken;
+                OrderType = orderType;
+                Product = product;
+                Tradingsymbol = tradingSymbol;
+                TransactionType = transactionType;
+                TriggerPrice = AveragePrice;
+                Validity = validity;
+                Variety = variety;
+                AlgoInstance = algoInstance;
+                AlgoIndex = algoIndex;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Unable to parse data. " + Utils.JsonSerialize(data));
+            }
+
+        }
+
+        public KotakNeoOrder(Dictionary<string, dynamic> data)
+        {
+            try
+            {
+                OrderId = Convert.ToString(data["nOrdNo"]);
+                //Variety = Convert.ToString(data["variety"]);
+                Tradingsymbol = Convert.ToString(data["trdSym"]);
+                InstrumentToken = Convert.ToUInt32(data["tok"]);
+                Exchange = Convert.ToString(data["exch"]);
+                Quantity = Convert.ToInt32(data["qty"]);
+                PendingQuantity = Convert.ToInt32(data["unFldSz"]);
+                //CancelledQuantity = Convert.ToInt32(data["cancelledQuantity"]);
+                FilledQuantity = Convert.ToInt32(data["fldQty"]);
+                DisclosedQuantity = Convert.ToInt32(data["dclQty"]);
+                TriggerPrice = Convert.ToDecimal(data["trgPrc"]);
+                Price = Convert.ToDecimal(data["prc"]);
+                AveragePrice = Convert.ToDecimal(data["avgPrc"]);
+                Product = Convert.ToString(data["prod"]);
+                TransactionType = Convert.ToString(data["trnsTp"]);
+                OrderTimestamp = Utils.StringToDate(data["flDtTm"]);
+                //Validity = Convert.ToString(data["validity"]);
+                //StatusMessage = Convert.ToString(data["statusMessage"]);
+                Tag = Convert.ToString(data["rejRsn"]);
+                Status = Convert.ToString(data["ordSt"]);
+                //info = Convert.ToString(data["statusInfo"]);
+                //isfno = Convert.ToString(data["isFNO"]);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Unable to parse data. " + Utils.JsonSerialize(data));
+            }
+
+        }
+
+        public decimal AveragePrice { get; set; }
+        public int CancelledQuantity { get; set; }
+        public int DisclosedQuantity { get; set; }
+        public string Exchange { get; set; }
+        public string ExchangeOrderId { get; set; }
+        public DateTime? ExchangeTimestamp { get; set; }
+        public int FilledQuantity { get; set; }
+        public UInt32 InstrumentToken { get; set; }
+        public string OrderId { get; set; }
+        public DateTime? OrderTimestamp { get; set; }
+        public string OrderType { get; set; }
+        public string ParentOrderId { get; set; }
+        public int PendingQuantity { get; set; }
+        public string PlacedBy { get; set; }
+        public decimal Price { get; set; }
+        public string Product { get; set; }
+        public int Quantity { get; set; }
+        public string Status { get; set; }
+        public string StatusMessage { get; set; }
+        public string Tag { get; set; }
+        public string Tradingsymbol { get; set; }
+        public string TransactionType { get; set; }
+        public decimal TriggerPrice { get; set; }
+        public string Validity { get; set; }
+        public string Variety { get; set; }
+
+        public int AlgoIndex { get; set; } = 0;
+        public bool UpOrder { get; set; } = true;
+        public int AlgoInstance { get; set; } = 0;
+    }
+
+    public class KotakOrder
+    {
+        public KotakOrder()
+        {
+
+        }
+        public KotakOrder(Dictionary<string, dynamic> data, decimal disclosedQuantity, uint instrumentToken, string status, string statusMessage,
+            string product, string validity, string variety, string orderType, string tradingSymbol, string transactionType, int algoInstance, int algoIndex)
+        {
+            try
+            {
+                OrderId = Convert.ToString(data["orderId"]);
+                Price = Convert.ToDecimal(data["price"]);
+                AveragePrice = Convert.ToDecimal(data["price"]);
+                Tag = data["tag"];
+                Quantity = Convert.ToInt32(data["quantity"]);
+                Status = status;
+                StatusMessage = statusMessage;
+                DisclosedQuantity = Quantity;
+                Exchange = "NSE";
+                InstrumentToken = instrumentToken;
+                OrderType = orderType;
+                Product = product;
+                Tradingsymbol = tradingSymbol;
+                TransactionType = transactionType;
+                TriggerPrice = AveragePrice;
+                Validity = validity;
+                Variety = variety;
+                AlgoInstance = algoInstance;
+                AlgoIndex = algoIndex;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Unable to parse data. " + Utils.JsonSerialize(data));
+            }
+
+        }
+
+        public KotakOrder(Dictionary<string, dynamic> data)
+        {
+            try
+            {
+                OrderId = Convert.ToString(data["orderId"]);
+                Variety = Convert.ToString(data["variety"]);
+                Tradingsymbol = Convert.ToString(data["instrumentName"]);
+                InstrumentToken = Convert.ToUInt32(data["instrumentToken"]);
+                Exchange = Convert.ToString(data["exchange"]);
+                Quantity = Convert.ToInt32(data["orderQuantity"]);
+                PendingQuantity = Convert.ToInt32(data["pendingQuantity"]);
+                CancelledQuantity = Convert.ToInt32(data["cancelledQuantity"]);
+                FilledQuantity = Convert.ToInt32(data["filledQuantity"]);
+                DisclosedQuantity = Convert.ToInt32(data["disclosedQuantity"]);
+                TriggerPrice = Convert.ToDecimal(data["triggerPrice"]);
+                Price = Convert.ToDecimal(data["price"]);
+                AveragePrice = Convert.ToDecimal(data["price"]);
+                Product = Convert.ToString(data["product"]);
+                TransactionType = Convert.ToString(data["transactionType"]);
+                OrderTimestamp = Utils.StringToDate(data["orderTimestamp"]);
+                Validity = Convert.ToString(data["validity"]);
+                StatusMessage = Convert.ToString(data["statusMessage"]);
+                Tag = Convert.ToString(data["tag"]);
+                Status = Convert.ToString(data["status"]);
+                //info = Convert.ToString(data["statusInfo"]);
+                //isfno = Convert.ToString(data["isFNO"]);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Unable to parse data. " + Utils.JsonSerialize(data));
+            }
+
+        }
+
+        public decimal AveragePrice { get; set; }
+        public int CancelledQuantity { get; set; }
+        public int DisclosedQuantity { get; set; }
+        public string Exchange { get; set; }
+        public string ExchangeOrderId { get; set; }
+        public DateTime? ExchangeTimestamp { get; set; }
+        public int FilledQuantity { get; set; }
+        public UInt32 InstrumentToken { get; set; }
+        public string OrderId { get; set; }
+        public DateTime? OrderTimestamp { get; set; }
+        public string OrderType { get; set; }
+        public string ParentOrderId { get; set; }
+        public int PendingQuantity { get; set; }
+        public string PlacedBy { get; set; }
+        public decimal Price { get; set; }
+        public string Product { get; set; }
+        public int Quantity { get; set; }
+        public string Status { get; set; }
+        public string StatusMessage { get; set; }
+        public string Tag { get; set; }
+        public string Tradingsymbol { get; set; }
+        public string TransactionType { get; set; }
+        public decimal TriggerPrice { get; set; }
+        public string Validity { get; set; }
+        public string Variety { get; set; }
+
+        public int AlgoIndex { get; set; } = 0;
+        public bool UpOrder { get; set; } = true;
+        public int AlgoInstance { get; set; } = 0;
     }
 
     /// <summary>
@@ -1493,6 +2383,66 @@ namespace GlobalLayer
         public Order()
         {
 
+        }
+        public Order (KotakOrder korder)
+        {
+            AveragePrice = korder.AveragePrice;
+            CancelledQuantity = korder.CancelledQuantity;
+            DisclosedQuantity = korder.DisclosedQuantity;
+            Exchange = korder.Exchange;
+            ExchangeOrderId = korder.ExchangeOrderId;
+            ExchangeTimestamp = korder.ExchangeTimestamp;
+            FilledQuantity = korder.FilledQuantity;
+            InstrumentToken = korder.InstrumentToken;
+            OrderId = korder.OrderId; ;
+            OrderTimestamp = korder.OrderTimestamp ?? DateTime.Now;
+            OrderType = korder.OrderType;
+            ParentOrderId = korder.ParentOrderId;
+            PendingQuantity = korder.PendingQuantity;
+            PlacedBy = korder.PlacedBy;
+            Price = korder.Price;
+            Product = korder.Product;
+            Quantity = korder.Quantity;
+            Status = korder.Status;
+            StatusMessage = korder.StatusMessage;
+            Tag = korder.Tag;
+            Tradingsymbol = korder.Tradingsymbol;
+            TransactionType = korder.TransactionType;
+            TriggerPrice = korder.TriggerPrice;
+            Validity = korder.Validity;
+            Variety = korder.Variety;
+            AlgoInstance = korder.AlgoInstance;
+            AlgoIndex = korder.AlgoIndex;
+        }
+        public Order(KotakNeoOrder korder)
+        {
+            AveragePrice = korder.AveragePrice;
+            CancelledQuantity = korder.CancelledQuantity;
+            DisclosedQuantity = korder.DisclosedQuantity;
+            Exchange = korder.Exchange;
+            ExchangeOrderId = korder.ExchangeOrderId;
+            ExchangeTimestamp = korder.ExchangeTimestamp;
+            FilledQuantity = korder.FilledQuantity;
+            InstrumentToken = korder.InstrumentToken;
+            OrderId = korder.OrderId;
+            OrderTimestamp = korder.OrderTimestamp ?? DateTime.Now;
+            OrderType = korder.OrderType;
+            ParentOrderId = korder.ParentOrderId;
+            PendingQuantity = korder.PendingQuantity;
+            PlacedBy = korder.PlacedBy;
+            Price = korder.Price;
+            Product = korder.Product;
+            Quantity = korder.Quantity;
+            Status = korder.Status;
+            StatusMessage = korder.StatusMessage;
+            Tag = korder.Tag;
+            Tradingsymbol = korder.Tradingsymbol;
+            TransactionType = korder.TransactionType.ToLower() == "b"? "buy": korder.TransactionType.ToLower() == "s" ? "sell" : korder.TransactionType;
+            TriggerPrice = korder.TriggerPrice;
+            Validity = korder.Validity;
+            Variety = korder.Variety;
+            AlgoInstance = korder.AlgoInstance;
+            AlgoIndex = korder.AlgoIndex;
         }
         public Order(Dictionary<string, dynamic> data)
         {
@@ -1558,7 +2508,7 @@ namespace GlobalLayer
         public string Variety { get; set; }
 
         public int AlgoIndex { get; set; } = 0;
-
+        public bool UpOrder { get; set; } = true;
         public int AlgoInstance { get; set; } = 0;
     }
 
@@ -1581,6 +2531,9 @@ namespace GlobalLayer
     //    public string TradingSymbol { get; set; }
     //    public decimal LastPrice { get; set; }
     //}
+
+
+
 
     /// <summary>
     /// Instrument structure
@@ -1712,6 +2665,8 @@ namespace GlobalLayer
         public decimal Pain { get; set; }
         public UInt32 OI { get; set; }
 
+        public UInt32 KToken { get; set; }
+
         public UInt32 BeginingPeriodOI { get; set; }
         public UInt32 OIDayHigh { get; set; }
         public UInt32 OIDayLow { get; set; }
@@ -1724,8 +2679,17 @@ namespace GlobalLayer
         /// TODO: Lazy load to be implemented
         /// </summary>
         public double Delta { get; set; }
-
+        public decimal TradeStrike { get; set; }
         public bool IsTraded { get; set; } = false;
+
+        public bool IsActive { get; set; } = true;
+
+        public decimal TradeEntryPrice { get; set; }
+        public decimal TradeExitPrice { get; set; }
+
+        public decimal StopLoss { get; set; }
+        public decimal TSL { get; set; }
+        public DateTime TradedTime { get; set; }
         //Blackscholes
         //public double UpdateDelta(double S, double r, DateTime? dateoftrade)
         //{
@@ -1925,6 +2889,8 @@ namespace GlobalLayer
 
                 impliedPrice = BlackScholesPriceAndVega(strike, underlyingPrice, yearsToExpiry, vol, riskFreeRate, dividendYield, putCallFlag, out vega);
             }
+
+           
             return vol;
         }
 
@@ -2091,8 +3057,8 @@ namespace GlobalLayer
         {
             Call = call;
             Put = put;
-            CallTrades = new List<ShortTrade>();
-            PutTrades = new List<ShortTrade>();
+            CallOrders = new List<Order>();
+            PutOrders = new List<Order>();
             CurrentPosition = PositionStatus.Open;
             NetPnL = 0;
         }
@@ -2102,8 +3068,8 @@ namespace GlobalLayer
         public decimal BaseInstrumentPrice { get; set; }
         public uint BaseInstrumentToken { get; set; }
 
-        public List<ShortTrade> CallTrades { get; set; }
-        public List<ShortTrade> PutTrades { get; set; }
+        public List<Order> CallOrders { get; set; }
+        public List<Order> PutOrders { get; set; }
         public int ID { get; set; }
         public decimal Threshold { get; set; }
         public int MaxQty { get; set; }
@@ -2112,6 +3078,9 @@ namespace GlobalLayer
         public int StepQty { get; set; }
         public int InitialQty { get; set; }
         public decimal NetPnL { get; set; }
+
+        public int CallInitialQty { get; set; }
+        public int PutInitialQty { get; set; }
     }
     public class StrangleListNode
     {
@@ -2236,6 +3205,11 @@ namespace GlobalLayer
                 }
             }
         }
+    }
+    public class StrangleChain
+    {
+        public InstrumentListNode CallNode { get; set; }
+        public InstrumentListNode PutNode { get; set; }
     }
     public class StrangleInstrumentListNode
     {
@@ -2529,6 +3503,8 @@ namespace GlobalLayer
 
         public decimal NetPrice { get; set; }
 
+        public string InstrumentType { get; set; }
+
     }
 
     public class OptionInstrument
@@ -2798,6 +3774,22 @@ namespace GlobalLayer
         public CriticalLevels Levels { get; set; }
         public Order SLOrder { get; set; }
     }
+    public class PriceRange
+    {
+        public decimal Upper;
+        public decimal Lower;
+        public decimal NextUpper;
+        public decimal NextLower;
+        public int UpperCandleIndex;
+        public int LowerCandleIndex;
+        public DateTime? CrossingTime;
+    }
+    public enum Breakout
+    {
+        NONE = 0,
+        UP = 1,
+        DOWN = -1
+    };
 
     /// <summary>
     /// Every order may have refernce to original order, and an SL order.
@@ -2826,16 +3818,28 @@ namespace GlobalLayer
 
     public class OrderTrio
     {
+        public int Id { get; set; }
         public Instrument Option { get; set; }
         public Order Order { get; set; }
         public decimal EntryRSI { get; set; }
         public DateTime EntryTradeTime { get; set; }
         public Order SLOrder { get; set; }
         public decimal StopLoss { get; set; }
-
+        public decimal InitialStopLoss { get; set; }
         public decimal BaseInstrumentStopLoss { get; set; }
         public Order TPOrder { get; set; }
         public decimal TargetProfit { get; set; }
+        public bool TPFlag { get; set; } = false;
+
+        public bool? SLFlag { get; set; } = null;
+
+        public bool isActive { get; set; } = true;//0: Inactive; 1 : Active
+
+        public DateTime? IntialSlHitTime { get; set; } = null;
+
+        public Dictionary<int, bool> IndicatorsValue {get; set;} = null;
+
+        public int flag;
     }
 
     /// <summary>
@@ -2930,6 +3934,29 @@ namespace GlobalLayer
         public decimal Percentage { get; }
     }
 
+    public class AspNetUser
+    {
+        public AspNetUser(DataTable data)
+        {
+            try
+            {
+                Id = data.Rows[0]["Id"] != DBNull.Value ? (string)data.Rows[0]["Id"] : "";
+                UserName = data.Rows[0]["UserName"] != DBNull.Value ? (string)data.Rows[0]["UserName"] : "";
+                Email = data.Rows[0]["Email"] != DBNull.Value ? (string)data.Rows[0]["Email"] : "";
+                Email = data.Rows[0]["PhoneNumber"] != DBNull.Value ? (string)data.Rows[0]["PhoneNumber"] : "";
+            }
+            catch (Exception)
+            {
+                throw new Exception("Unable to parse data. " + Utils.JsonSerialize(data));
+            }
+        }
+
+        public string Id { get; }
+        public string UserName { get; }
+        public string Email { get; }
+        public string PhoneNumber { get; }
+    }
+
     /// <summary>
     /// User structure
     /// </summary>
@@ -2954,6 +3981,9 @@ namespace GlobalLayer
                 Exchanges = new string[] { "" };//(string[])data["data"]["exchanges"].ToArray(typeof(string));
                 OrderTypes = new string[] { "" }; //(string[])data["data"]["order_types"].ToArray(typeof(string));
                 Email = data["data"]["email"];
+                //ConsumerKey = data["data"]["consumerkey"];
+                Email = data["data"]["email"];
+                SID = String.Empty; //data["data"]["sid"]; //!= DBNull.Value ? (string)data.Rows[0]["SID"] : "";
                 AppSecret = String.Empty;
             }
             catch (Exception)
@@ -2962,6 +3992,7 @@ namespace GlobalLayer
             }
 
         }
+
         public User (DataTable data)
         {
             try
@@ -2975,6 +4006,11 @@ namespace GlobalLayer
                 UserId = data.Rows[0]["UserId"] != DBNull.Value ? (string)data.Rows[0]["UserId"] : "";
                 Email = data.Rows[0]["Email"] != DBNull.Value ? (string)data.Rows[0]["Email"] : "";
                 UserShortName = data.Rows[0]["UserName"] != DBNull.Value ? (string)data.Rows[0]["UserName"] : "";
+                ConsumerKey = data.Rows[0]["ConsumerKey"] != DBNull.Value ? (string)data.Rows[0]["ConsumerKey"] : "";
+                SessionToken = data.Rows[0]["SessionToken"] != DBNull.Value ? (string)data.Rows[0]["SessionToken"] : "";
+                RootServer = data.Rows[0]["RootServer"] != DBNull.Value ? (string)data.Rows[0]["RootServer"] : "";
+                SID = data.Rows[0]["SID"] != DBNull.Value ? (string)data.Rows[0]["SID"] : "";
+                HsServerId = data.Rows[0]["HsServerId"] != DBNull.Value ? (string)data.Rows[0]["HsServerId"] : "";
                 Products = null;
                 AvatarURL = String.Empty;
                 UserType = String.Empty;
@@ -2982,6 +4018,7 @@ namespace GlobalLayer
                 LoginTime = null;
                 Exchanges = null;
                 OrderTypes = null;
+                ApplicationUserId = data.Rows[0]["ApplicationUserId"] != DBNull.Value ? (string)data.Rows[0]["ApplicationUserId"] : "";
             }
             catch (Exception)
             {
@@ -2995,7 +4032,7 @@ namespace GlobalLayer
         public string UserShortName { get; }
         public string AvatarURL { get; }
         public string Broker { get; }
-        public string AccessToken { get; }
+        public string AccessToken { get; set; }
         public string PublicToken { get; }
         public string RefreshToken { get; }
         public string UserType { get; }
@@ -3004,8 +4041,15 @@ namespace GlobalLayer
         public string[] Exchanges { get; }
         public string[] OrderTypes { get; }
         public string Email { get; }
-
+        public string SessionToken { get; set; }
+        public string ConsumerKey { get; }
         public string AppSecret { get; }
+        public string SID { get; set; }
+        public string HsServerId { get; set; }
+        public string RootServer { get; set; }
+
+        public string ApplicationUserId { get; set; } = "";
+        public string vToken { get; set; }
     }
 
     /// <summary>
@@ -3355,7 +4399,7 @@ namespace GlobalLayer
     /// <summary>
     /// OHLC Quote structure
     /// </summary>
-    public struct OHLC
+    public class OHLC
     {
         public OHLC(Dictionary<string, dynamic> data)
         {
@@ -3378,6 +4422,25 @@ namespace GlobalLayer
             {
                 throw new Exception("Unable to parse data. " + Utils.JsonSerialize(data));
             }
+
+        }
+        public OHLC(Historical historical, uint token)
+        {
+            InstrumentToken = token;
+            LastPrice = historical.Close;
+
+            Open = historical.Open;
+            Close = historical.Close;
+            Low = historical.Low;
+            High = historical.High;
+
+            //Adder Later
+            Volume = historical.Volume;
+            OpenTime = null;
+            CloseTime = null;
+        }
+        public OHLC()
+        {
 
         }
         public UInt32 InstrumentToken { get; set; }
@@ -3421,7 +4484,13 @@ namespace GlobalLayer
         US2 = 17,
         S3 = 18,
         LS3 = 19,
-        US3 = 20
+        US3 = 20,
+        S4 = 21,
+        LS4 = 22,
+        US4 = 23,
+        R4 = 24,
+        LR4 = 25,
+        UR4 = 26
     }
     public class Pivot
     {
@@ -3434,7 +4503,7 @@ namespace GlobalLayer
         }
     }
 
-    public struct CentralPivotRange
+    public class CentralPivotRange
     {
         //public Pivot CentralPivot { get; set; }
         //public Pivot[] R { get; set; }
@@ -3483,10 +4552,14 @@ namespace GlobalLayer
         //    }
         //}
 
+        private CentralPivotRange ()
+        {
+
+        }
 
         public CentralPivotRange(OHLC ohlc)
         {
-            Prices = new decimal[Enum.GetValues(typeof(PivotLevel)).Length];
+            Prices = new decimal[System.Enum.GetValues(typeof(PivotLevel)).Length];
 
             Prices[(int)PivotLevel.CPR] = (ohlc.High + ohlc.Low + ohlc.Close) / 3;
             Prices[(int)PivotLevel.LCPR] = (ohlc.High + ohlc.Low) / 2;
@@ -3530,6 +4603,15 @@ namespace GlobalLayer
             Prices[(int)PivotLevel.S3] = Math.Abs(ohlc.Low - 2 * (ohlc.High - Prices[(int)PivotLevel.CPR]));
             Prices[(int)PivotLevel.US3] = Prices[(int)PivotLevel.S3] * (1 + bandProportion);
             Prices[(int)PivotLevel.LS3] = Prices[(int)PivotLevel.S3] - (Prices[(int)PivotLevel.US3] - Prices[(int)PivotLevel.S3]);
+
+
+            Prices[(int)PivotLevel.R4] = ohlc.High + 3 * (Prices[(int)PivotLevel.CPR] - ohlc.Low);
+            Prices[(int)PivotLevel.UR4] = Prices[(int)PivotLevel.R4] * (1 + bandProportion);
+            Prices[(int)PivotLevel.LR4] = Prices[(int)PivotLevel.R4] - (Prices[(int)PivotLevel.UR4] - Prices[(int)PivotLevel.R4]);
+
+            Prices[(int)PivotLevel.S4] = Math.Abs(ohlc.Low - 3 * (ohlc.High - Prices[(int)PivotLevel.CPR]));
+            Prices[(int)PivotLevel.US4] = Prices[(int)PivotLevel.S4] * (1 + bandProportion);
+            Prices[(int)PivotLevel.LS4] = Prices[(int)PivotLevel.S4] - (Prices[(int)PivotLevel.US4] - Prices[(int)PivotLevel.S4]);
 
             //PivotFrequency = PivotFrequency.Daily;
             //PivotFrequencyWindow = null;

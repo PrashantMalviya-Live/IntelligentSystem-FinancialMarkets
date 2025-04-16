@@ -10,7 +10,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-
+using GrpcLoggerService;
 namespace ExpiryStrangle
 {
     public class Startup
@@ -25,7 +25,15 @@ namespace ExpiryStrangle
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+            services.AddGrpc();
+
             services.AddControllers();
+            services.AddMemoryCache();
+
+            services.AddSingleton<ILoggerService, LoggerService>();
+            services.AddSingleton<IOrderService, OrderService>();
+
+            services.AddHttpClient();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -43,6 +51,8 @@ namespace ExpiryStrangle
 
             app.UseEndpoints(endpoints =>
             {
+                endpoints.MapGrpcService<LoggerService>().EnableGrpcWeb()
+                                                  .RequireCors("AllowAll");
                 endpoints.MapControllers();
             });
         }

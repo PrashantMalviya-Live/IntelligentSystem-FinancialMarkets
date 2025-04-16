@@ -17,12 +17,30 @@ namespace GlobalLayer
         public const string PRODUCT_MIS = "MIS";
         public const string PRODUCT_CNC = "CNC";
         public const string PRODUCT_NRML = "NRML";
+        public const string PRODUCT_SM = "SUPERMULTIPLE";
+
+        public const string KPRODUCT_NRML = "NORMAL";
+
+        // Broker
+        public const int ZERODHA = 0;
+        public const int KOTAK = 1;
+
+        //Market Alerts
+        public const string MARKET_ALERTS = "NSEIndexAlerts";
 
         // Order types
         public const string ORDER_TYPE_MARKET = "MARKET";
         public const string ORDER_TYPE_LIMIT = "LIMIT";
         public const string ORDER_TYPE_SLM = "SL-M";
         public const string ORDER_TYPE_SL = "SL";
+
+
+        // Delta Exchange Order types
+        public const string DELTAEXCHANGE_ORDER_TYPE_MARKET = "market_order";
+        public const string DELTAEXCHANGE_ORDER_TYPE_LIMIT = "limit_order";
+        public const string DELTAEXCHANGE_STOP_ORDER_TYPE_SL = "stop_loss_order";
+        public const string DELTAEXCHANGE_STOP_ORDER_TYPE_TP = "take_profit_order";
+        
 
         // Order status
         public const string ORDER_STATUS_COMPLETE = "COMPLETE";
@@ -34,6 +52,14 @@ namespace GlobalLayer
         public const string ORDER_STATUS_MODIFY_VALIDATION_PENDING = "MODIFY VALIDATION PENDING";
         public const string ORDER_STATUS_AMQ_REQ_RECEIVED = "AMO REQ RECEIVED";
         public const string ORDER_STATUS_TRIGGER_PENDING = "TRIGGER PENDING";
+
+        // Kotak Order status
+        public const string KORDER_STATUS_TRADED = "complete";
+        public const string KORDER_STATUS_CANCELLED = "cancelled";
+        public const string KORDER_STATUS_MODIFIED = "modified";
+        public const string KORDER_STATUS_REJECTED = "rejected";//"REJ";
+        public const string KORDER_STATUS_OPEN = "open";
+        public const string KORDER_STATUS_SLM = "slo";
 
         // Varities
         public const string VARIETY_REGULAR = "regular";
@@ -107,9 +133,63 @@ namespace GlobalLayer
         public const int MARKET_DATA_SERVICE_INSTANCE = -99;
         public const string HEALTH_CHECK_LOG_LEVEL = "STOPPED";
 
+        public const string NIFTY_TOKEN = "256265";
+        public const string BANK_NIFTY_TOKEN = "260105";
+        public const string FINNIFTY_TOKEN = "257801";
+        public const string MIDCPNIFTY_TOKEN = "288009";
+
+
+        //Instrument Type
+        public const int CE = 0;
+        public const int PE = 1;
+        public const int FUT = 2;
+
+        //CANDLE INDICATOR
+        public const int CANDLE_INDICATOR_ID = 9;
         public class TIBCO
         {
             public const string FTLRealmServer = "http://localhost:8585";
+        }
+
+        public static int GetStrikePriceIncrement(uint token)
+        {
+            int strikePriceIncrement = 100;
+            switch (token.ToString())
+            {
+                case Constants.NIFTY_TOKEN:
+                    strikePriceIncrement = 50;
+                    break;
+                case Constants.BANK_NIFTY_TOKEN:
+                    strikePriceIncrement = 100;
+                    break;
+                case Constants.FINNIFTY_TOKEN:
+                    strikePriceIncrement = 50;
+                    break;
+                case Constants.MIDCPNIFTY_TOKEN:
+                    strikePriceIncrement = 25;
+                    break;
+            }
+            return strikePriceIncrement;
+        }
+        public static int GetLotSize(uint token)
+        {
+            int lotSize = 100;
+            switch (token.ToString())
+            {
+                case Constants.NIFTY_TOKEN:
+                    lotSize = 50;
+                    break;
+                case Constants.BANK_NIFTY_TOKEN:
+                    lotSize = 15;
+                    break;
+                case Constants.FINNIFTY_TOKEN:
+                    lotSize = 40;
+                    break;
+                case Constants.MIDCPNIFTY_TOKEN:
+                    lotSize = 75;
+                    break;
+            }
+            return lotSize;
         }
     }
     
@@ -125,6 +205,7 @@ namespace GlobalLayer
         public const string RSICross = "http://*:8090";
         public const string SellOnRSI = "http://*:8089";
         public const string MOMENTUMSTRADDLE = "http://*:8089";
+        public const string CryptoAlgos = "http://*:8091";
     }
 
    

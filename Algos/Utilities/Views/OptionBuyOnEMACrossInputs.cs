@@ -46,5 +46,11 @@ namespace Algos.Utilities.Views
         /// </summary>
         public decimal SL { get; set; }
 
+        /// <summary>
+        /// User Id
+        /// </summary>
+        public string UID { get; set; }
+
+
     }
 }

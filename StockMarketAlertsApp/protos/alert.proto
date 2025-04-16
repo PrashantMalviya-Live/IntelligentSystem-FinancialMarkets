@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+option csharp_namespace = "GrpcAlertProtos";
+
+import "google/protobuf/timestamp.proto";
+
+package Alerts;
+
+
+// The logging service definition.
+service AlertManager {
+  rpc Alert (stream AlertStatus) returns (stream AlertMessage);
+}
+
+// The response message containing the log messages
+message AlertMessage {
+	int32 id = 1;
+	int32 alertTriggerId = 2;  
+	uint32 instrumentToken = 3;
+	string tradingSymbol = 4;
+	google.protobuf.Timestamp candleTimeSpan = 5;
+	string userId = 6;
+	string message = 7;
+	double price = 8;
+}
+
+// The response message containing the log messages
+message AlertStatus {
+  bool status = 1;
+}

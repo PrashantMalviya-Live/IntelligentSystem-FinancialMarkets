@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Configurations>Debug;Release;Local;Market;BackTest</Configurations>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="Algos.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Google.Protobuf" Version="3.25.2" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="System.Data.SqlClient" Version="4.8.6" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\DBAccess\DBAccess.csproj" />
+    <ProjectReference Include="..\DeltaExchangeConnect\DeltaExchangeConnect.csproj" />
+    <ProjectReference Include="..\FyersConnect\FyersConnect.csproj" />
+    <ProjectReference Include="..\KiteConnect\KiteConnect.csproj" />
+    <ProjectReference Include="..\KotakConnect\KotakConnect.csproj" />
+  </ItemGroup>
+
+</Project>

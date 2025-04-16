@@ -1,8 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netcoreapp3.1</TargetFramework>
-    <Configurations>Debug;Release;Market;Local</Configurations>
+    <TargetFramework>net8.0</TargetFramework>
+    <Configurations>Debug;Release;Market;Local;BackTest</Configurations>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
@@ -14,44 +14,260 @@
     <DefineConstants>TRACE;local</DefineConstants>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='BackTest|AnyCPU'">
+    <WarningLevel>3</WarningLevel>
+    <DefineConstants>TRACE;local</DefineConstants>
+  </PropertyGroup>
+
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Market|AnyCPU'">
     <WarningLevel>3</WarningLevel>
     <DefineConstants>TRACE;market</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Algorithms\Alerts\AlertGenerator_corrupted.cs" />
     <Compile Remove="Algorithms\BOX - 01092018.cs" />
     <Compile Remove="Algorithms\BOX - 02092018_OnOrderUpdate Logic.cs" />
     <Compile Remove="Algorithms\BOX - 03092018_working version but no order depth.cs" />
     <Compile Remove="Algorithms\BOX - NIFTY.cs" />
     <Compile Remove="Algorithms\BOX -11092018.cs" />
     <Compile Remove="Algorithms\BOX.cs" />
+    <Compile Remove="Algorithms\Crypto\PriceDirectionalFutureOptions - Backupwithonesideonly.cs" />
     <Compile Remove="Algorithms\ExpiryTrade_StrangleValue.cs" />
     <Compile Remove="Algorithms\InstantBox.cs" />
     <Compile Remove="Algorithms\Managed Strangle\ActiveBuyStrangleManagerWithVariableQty - Copy.cs" />
+    <Compile Remove="Algorithms\Managed Strangle\ActiveBuyStrangleManagerWithVariableQty - no impressive 28 Dec 22.cs" />
+    <Compile Remove="Algorithms\Managed Strangle\ActiveBuyStrangleManagerWithVariableQty - working as on 28 June.cs" />
+    <Compile Remove="Algorithms\Managed Strangle\ActiveBuyStrangleManagerWithVariableQty - Working code 24 June.cs" />
+    <Compile Remove="Algorithms\Managed Strangle\ActiveBuyStrangleManagerWithVariableQty_not impressive last version.cs" />
+    <Compile Remove="Algorithms\Managed Strangle\ActiveBuyStrangleManagerWithVariableQty_working code with buysell single unit.cs" />
     <Compile Remove="Algorithms\Managed Strangle\ActiveTradeWithExecutedVWAP.cs" />
     <Compile Remove="Algorithms\Managed Strangle\DirectionalWithStraddle.cs" />
     <Compile Remove="Algorithms\Managed Strangle\DirectionalWithStraddleShift - StraddleClosealso.cs" />
     <Compile Remove="Algorithms\Managed Strangle\DirectionalWithStraddleShift - Working 20201210.cs" />
     <Compile Remove="Algorithms\Managed Strangle\DirectionalWithStraddleShift2.cs" />
+    <Compile Remove="Algorithms\Managed Strangle\DirectionalWithStraddleShiftCandles - 18Aug2021.cs" />
     <Compile Remove="Algorithms\Managed Strangle\DirectionalWithStraddleShiftOTM - Copy.cs" />
     <Compile Remove="Algorithms\Managed Strangle\DirectionalWithStraddleShiftOTM.cs" />
     <Compile Remove="Algorithms\Managed Strangle\DirectionalWithStraddleShift_working version.cs" />
     <Compile Remove="Algorithms\Managed Strangle\ExpiryTrade.cs" />
+    <Compile Remove="Algorithms\Managed Strangle\ExpiryTradeStraddle - latest and greatest working 09052023.cs" />
+    <Compile Remove="Algorithms\Managed Strangle\ExpiryTradeStraddle - latest and greatest.cs" />
+    <Compile Remove="Algorithms\Managed Strangle\ExpiryTradeStraddle - Latest greatest 9 sept.cs" />
+    <Compile Remove="Algorithms\Managed Strangle\ExpiryTradeStraddle - one level of working code 23 July 23.cs" />
+    <Compile Remove="Algorithms\Managed Strangle\ExpiryTradeStraddle - working 17 Aug 23.cs" />
+    <Compile Remove="Algorithms\Managed Strangle\ExpiryTradeStraddle - Working 3 Oct 2023.cs" />
+    <Compile Remove="Algorithms\Managed Strangle\ExpiryTradeStraddle_wip.cs" />
     <Compile Remove="Algorithms\Managed Strangle\ExpiryTrade_StrangleValue - OI Volume.cs" />
     <Compile Remove="Algorithms\Managed Strangle\ExpiryTrade_StrangleValue - WIP TradedStrangle.cs" />
+    <Compile Remove="Algorithms\Managed Strangle\ExpiryTrade_StrangleValue 20200602.cs" />
+    <Compile Remove="Algorithms\Managed Strangle\ExpiryTrade_StrangleValue 20210602.cs" />
+    <Compile Remove="Algorithms\Managed Strangle\ExpiryTrade_StrangleValue 20210623.cs" />
     <Compile Remove="Algorithms\Managed Strangle\ExpiryTrade_StrangleValueWithRSI.cs" />
     <Compile Remove="Algorithms\Managed Strangle\FrequentBuySellWithNodemovementBothSide - Copy.cs" />
     <Compile Remove="Algorithms\Managed Strangle\FrequentBuySellWithNodemovementBothSide - last async.cs" />
     <Compile Remove="Algorithms\Managed Strangle\ManageBox.cs" />
+    <Compile Remove="Algorithms\Managed Strangle\ManageDelta.cs" />
     <Compile Remove="Algorithms\Managed Strangle\ManagedStrangle - 19 April Observer code working with comments.cs" />
     <Compile Remove="Algorithms\Managed Strangle\ManagedStrangle - 20 April Asyn code.cs" />
     <Compile Remove="Algorithms\Managed Strangle\ManagedStrangle - Kafka Code.cs" />
+    <Compile Remove="Algorithms\Managed Strangle\ManagedStrangleDelta - Old Working.cs" />
+    <Compile Remove="Algorithms\Managed Strangle\ManagedStrangleDelta -old version changes minor.cs" />
     <Compile Remove="Algorithms\Managed Strangle\ManageStrangleBuyBack - Last Async.cs" />
+    <Compile Remove="Algorithms\Managed Strangle\ManageStrangleValue - old code.cs" />
     <Compile Remove="Algorithms\Managed Strangle\ManageStrangleValue - One  index for one instrument -  so if it comes back it gives same old index.cs" />
+    <Compile Remove="Algorithms\Managed Strangle\MultiStraddleDirectionalShift_old working model but not efficient.cs" />
+    <Compile Remove="Algorithms\Managed Strangle\MultiStraddleDirectionalShift_tempp.cs" />
+    <Compile Remove="Algorithms\Managed Strangle\MultiStraddleDirectionalShift_tmp.cs" />
+    <Compile Remove="Algorithms\Managed Strangle\StraddleWithEachSideSL - latest and working 23 sept.cs" />
+    <Compile Remove="Algorithms\Managed Strangle\StraddleWithEachSideSL - old code.cs" />
+    <Compile Remove="Algorithms\Managed Strangle\StraddleWithEachSideSL - working copy 22 sept 2023.cs" />
+    <Compile Remove="Algorithms\Managed Strangle\StraddleWithEachSideSL latest and greated but not best result.cs" />
+    <Compile Remove="Algorithms\Managed Strangle\StraddleWithEachSideSL_working.cs" />
+    <Compile Remove="Algorithms\Momentum\EMABased\OptionBuyOnEMACross.cs" />
+    <Compile Remove="Algorithms\Momentum\EMABased\OptionBuyOnEMACrossTimeVolume - working .cs" />
     <Compile Remove="Algorithms\Momentum\EMABased\OptionBuyOnEMACrossVolumeCandle - Copy.cs" />
+    <Compile Remove="Algorithms\Momentum\IVBased\CalendarSpreadValueScalping - 20210614.cs" />
+    <Compile Remove="Algorithms\Momentum\IVBased\CalendarSpreadValueScalping - Workingversionfor one type.cs" />
+    <Compile Remove="Algorithms\Momentum\IVBased\DirectionSellonHistoricalAvg - LATEST WITH TARGET AND sl.cs" />
+    <Compile Remove="Algorithms\Momentum\IVBased\DirectionSellonHistoricalAvg - original.cs" />
+    <Compile Remove="Algorithms\Momentum\IVBased\StraddleSpreadValueScalping - 20210807.cs" />
+    <Compile Remove="Algorithms\Momentum\IVBased\StraddleSpreadValueScalping - Latest code on 23 Oct.cs" />
+    <Compile Remove="Algorithms\Momentum\IVBased\StraddleSpreadValueScalping - Latest run code on 31 Dec 21.cs" />
+    <Compile Remove="Algorithms\Momentum\IVBased\StraddleSpreadValueScalping - Only trade entry introduces else working.cs" />
+    <Compile Remove="Algorithms\Momentum\IVBased\StraddleSpreadValueScalping - ran on 22 and corrected a little.cs" />
+    <Compile Remove="Algorithms\Momentum\IVBased\StraddleSpreadValueScalping - Ran on 22 Oct with little update.cs" />
+    <Compile Remove="Algorithms\Momentum\IVBased\StraddleSpreadValueScalping - Tested on23Oct. Takes 1 trade when all strddles are refreshed. Lower number of trades. Logic for tradestrike is same.cs" />
+    <Compile Remove="Algorithms\Momentum\IVBased\StraddleSpreadValueScalping - tested version on 24 Oct.cs" />
+    <Compile Remove="Algorithms\Momentum\IVBased\StraddleSpreadValueScalping - Updowntradeflag remove d.cs" />
+    <Compile Remove="Algorithms\Momentum\IVBased\StraddleSpreadValueScalping - uptrade.cs" />
+    <Compile Remove="Algorithms\Momentum\IVBased\StraddleSpreadValueScalping - Worked on 18and 19.cs" />
+    <Compile Remove="Algorithms\Momentum\IVBased\StraddleSpreadValueScalping - Working 10 Oct.cs" />
+    <Compile Remove="Algorithms\Momentum\IVBased\StraddleSpreadValueScalping - working 15 Oct 2021.cs" />
+    <Compile Remove="Algorithms\Momentum\IVBased\StraddleSpreadValueScalping - Working version.cs" />
+    <Compile Remove="Algorithms\Momentum\IVBased\StraddleSpreadValueScalping_ this is a async await trigger wip.cs" />
+    <Compile Remove="Algorithms\Momentum\IVBased\StraddleSpreadValueScalping_1.cs" />
+    <Compile Remove="Algorithms\Momentum\IVBased\StraddleSpreadValueScalping_1latest code that need to be test.cs" />
+    <Compile Remove="Algorithms\Momentum\IVBased\StraddleSpreadValueScalping_24oct MT tested once, but needs retest.cs" />
+    <Compile Remove="Algorithms\Momentum\IVBased\StraddleSpreadValueScalping_Changes.cs" />
+    <Compile Remove="Algorithms\Momentum\IVBased\StraddleSpreadValueScalping_exclude temp.cs" />
+    <Compile Remove="Algorithms\Momentum\IVBased\StraddleSpreadValueScalping_latest but need to be retested.cs" />
+    <Compile Remove="Algorithms\Momentum\IVBased\StraddleSpreadValueScalping_latest code to be test.cs" />
+    <Compile Remove="Algorithms\Momentum\IVBased\StraddleSpreadValueScalping_latest ran on 29 Nov multithread did not work.cs" />
+    <Compile Remove="Algorithms\Momentum\IVBased\StraddleSpreadValueScalping_latest testing.cs" />
+    <Compile Remove="Algorithms\Momentum\IVBased\StraddleSpreadValueScalping_Latest.cs" />
+    <Compile Remove="Algorithms\Momentum\IVBased\StraddleSpreadValueScalping_latested tested on 24 Oct.cs" />
+    <Compile Remove="Algorithms\Momentum\IVBased\StraddleSpreadValueScalping_original code that worked.cs" />
+    <Compile Remove="Algorithms\Momentum\IVBased\StraddleSpreadValueScalping_original working till 15 Oct.cs" />
+    <Compile Remove="Algorithms\Momentum\IVBased\StraddleSpreadValueScalping_ran on 20 Oct.cs" />
+    <Compile Remove="Algorithms\Momentum\IVBased\StraddleSpreadValueScalping_ran on 22Oct .cs" />
+    <Compile Remove="Algorithms\Momentum\IVBased\StraddleSpreadValueScalping_temp comment.cs" />
+    <Compile Remove="Algorithms\Momentum\IVBased\StraddleSpreadValueScalping_temp commented till tested.cs" />
+    <Compile Remove="Algorithms\Momentum\IVBased\StraddleSpreadValueScalping_temp shutdown.cs" />
+    <Compile Remove="Algorithms\Momentum\IVBased\StraddleSpreadValueScalping_temp.cs" />
+    <Compile Remove="Algorithms\Momentum\IVBased\StraddleSpreadValueScalping_testted on 230ct NN version. takes trade based on how many breached historical average.cs" />
+    <Compile Remove="Algorithms\Momentum\IVBased\StraddleSpreadValueScalping_worked till 15 oct.cs" />
+    <Compile Remove="Algorithms\Momentum\IVBased\StraddleSpreadValueScalping_worked till 18 - Copy.cs" />
+    <Compile Remove="Algorithms\Momentum\IVBased\StraddleSpreadValueScalping_worked till 18.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\BreakoutCandles - Better working 13 June.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\BreakoutCandles - Better working model 11 June.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\BreakoutCandles - same as working 15 with double qty on SL.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\BreakoutCandles - Working 15 June.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\BreakoutCandles - Working model as on 10 June.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\BreakoutCandles_ same as working 15 june with double qty on return.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\BreakoutCandles_option trigger work in progres.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\BreakoutLive - Copy.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\BreakoutLive - one version.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\BreakoutLive_last version.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\BreakoutLive_two version.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\BreakoutLive_version.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\CandleWickScalpingBactestedWorkingModel.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\CandleWickScalpingOption22.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\MultiTimeFramSellOnHT - Original working.cs" />
     <Compile Remove="Algorithms\Momentum\PriceBased\OptionBuyOnPremiumCross.cs" />
     <Compile Remove="Algorithms\Momentum\PriceBased\OptionBuyOnPremiumCrossShift - workingcodewithoutstaytimecheck.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\OptionSellOnHT - 06 march performed well.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\OptionSellOnHT - 16 dec.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\OptionSellOnHT - 25 March.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\OptionSellOnHT - 27 Dec.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\OptionSellOnHT - Copy of latest greatest but not working.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\OptionSellOnHT - Latest and greatest but not working fine.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\OptionSellOnHT - Latest working.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\OptionSellOnHT - Live active 28 April.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\OptionSellOnHT - Live active.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\OptionSellOnHT - march version which is currently in use.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\OptionSellOnHT - New improved April 29 version.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\OptionSellOnHT - New improved copy 29 April.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\OptionSellOnHT - This works fine, however testing another scenario.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\OptionSellOnHT - trade zone based on previous swings and SL hit.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\OptionSellOnHT - trade zone based on previous swings Sl 50, target 30.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\OptionSellOnHT - Working - Copy.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\OptionSellOnHT - Working as on March 18.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\OptionSellOnHT - working copy 23 March.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\OptionSellOnHT - Working Copy 8 Feb.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\OptionSellOnHT - Working Copy March 06.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\OptionSellOnHT - Working copy March 10.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\OptionSellOnHT - Working copy of 6 March.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\OptionSellOnHT - working Copy.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\OptionSellOnHT - working Copy20 April.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\OptionSellOnHT - working model 6 April.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\OptionSellOnHT - Working model.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\OptionSellOnHT - working one 20 Jan.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\OptionSellOnHT - Working.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\OptionSellOnHT -Working 19 April.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\OptionSellOnHT 16 Dec 2022.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\OptionSellOnHT 18 dec.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\OptionSellOnHT 2 candles.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\OptionSellOnHT 27 dec.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\OptionSellOnHT continuous.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\OptionSellOnHT Continuous2.0 WIP.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\OptionSellOnHT delta change..did not work.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\OptionSellOnHT delta movement wip.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\OptionSellOnHT latest continuous...working with 5 mins...but needs refinement.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\OptionSellOnHT March 27.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\OptionSellOnHT Multi Time fram WIP.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\OptionSellOnHT SL magrin -20.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\OptionSellOnHT SL WIP.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\OptionSellOnHT working on 30 March.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\OptionSellOnHT10%25 buy and reentry.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\OptionSellOnHT2.0 continous not worked.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\OptionSellOnHTnot owkring.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\OptionSellOnHTSL trail not worked.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\OptionSellOnHTwait.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\OptionSellOnHTworked 29.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\OptionSellOnHT_10%25.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\OptionSellOnHT_16 dec copy may be changed.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\OptionSellOnHT_23 hanges messed up.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\OptionSellOnHT_buyflop.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\OptionSellOnHT_continuous latest version.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\OptionSellOnHT_continuous.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\OptionSellOnHT_copy of latest that is not perfect.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\OptionSellOnHT_copy of new improved copy 29 April.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\OptionSellOnHT_corrected but result is not good.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\OptionSellOnHT_current running march version.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\OptionSellOnHT_currently working. This is market version that was restarted.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\OptionSellOnHT_delta.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\OptionSellOnHT_experimental.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\OptionSellOnHT_half entry.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\OptionSellOnHT_latest active.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\OptionSellOnHT_latest and greatest but no working fine..still needs more work.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\OptionSellOnHT_latest and greatest tried with continuous.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\OptionSellOnHT_latest live.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\OptionSellOnHT_live active.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\OptionSellOnHT_live.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\OptionSellOnHT_March version corrected but giving less favroable result.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\OptionSellOnHT_march.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\OptionSellOnHT_multi time  frame WIP.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\OptionSellOnHT_multi time WIP.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\OptionSellOnHT_multi WIP.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\OptionSellOnHT_multiple time frames WIP.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\OptionSellOnHT_multiple TPs and cotinuoustrade concept.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\OptionSellOnHT_original.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\OptionSellOnHT_ran of 5th april march version.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\OptionSellOnHT_retracement.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\OptionSellOnHT_SL shift WIP.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\OptionSellOnHT_SL TRAIL.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\OptionSellOnHT_stop.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\OptionSellOnHT_strike change based on prices.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\OptionSellOnHT_strike changes.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\OptionSellOnHT_super trend.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\OptionSellOnHT_supertrend.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\OptionSellOnHT_temp did not work.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\OptionSellOnHT_temp.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\OptionSellOnHT_trade on reversion.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\OptionSellOnHT_version.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\OptionSellOnHT_was live till last..march version only.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\OptionSellOnHT_will review which version is this.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\OptionSellOnHT_will work from 1st april.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\OptionSellOnHT_worked on 29 March.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\OptionSellOnHT_working 21 march.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\OptionSellOnHT_working 23 march.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\OptionSellOnHT_working copy.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\OptionSellOnHT_working one 27 march.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\PAWithLevels - Working as on 28 March.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\PAWithLevels - Working code as on 12 March.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\PAWithLevels - working one.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\PriceVolumeRateOfChange - Buy logic latest.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\RBC - 25 Jan 2024.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\RBC - Original saved on 10 August 2024.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\RBC_latest but not working.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\RBC_original.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\StockMomentum - working backtested.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\StopAndReverseLive - working copy but slow.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\TJ2 - Copy.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\TJ2 - Option Sell On HT Continuous original version which is workin in May.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\TJ2 -tj2 ORIGINAL COPY PLUS PREVIOUS SWING.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\TJ2_copy of option sell logic..second version of tj2 20 Aug.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\TJ3 - based on trend color.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\TJ3 - this works with PS and Trail.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\TJ3 - Working 28 Oct.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\TJ3 - Working TJ.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\TJ3 - working Tj3.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\TJ3 Working code 3 Jan 2023.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\TJ3.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\TJ3_R&amp;R.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\TJ3_tested with sl trail but not good enough result 28 Oct.cs" />
+    <Compile Remove="Algorithms\Momentum\PriceBased\TJ4 - OLD stockastic based half converted.cs" />
     <Compile Remove="Algorithms\Momentum\RSIBased\FutureBuyingWithRSICandle -old.cs" />
     <Compile Remove="Algorithms\Momentum\RSIBased\FutureBuyingWithRSICandle -working based on rsi on future.cs" />
     <Compile Remove="Algorithms\Momentum\RSIBased\OptionBuyingWithRSICandle - working copy but with RSI on options premium.cs" />
@@ -61,16 +277,18 @@
     <Compile Remove="Algorithms\zStructure.cs" />
     <Compile Remove="Indicators\Correlation.cs" />
     <Compile Remove="Indicators\Covariance.cs" />
+    <Compile Remove="Indicators\ExponentialMovingAverage - WorkingCopy.cs" />
+    <Compile Remove="Indicators\HalfTrend - working one 1 nov.cs" />
     <Compile Remove="Indicators\MoneyFlowIndex.cs" />
     <Compile Remove="Indicators\MovingAverageConvergenceDivergence.cs" />
     <Compile Remove="Indicators\MovingAverageConvergenceDivergenceSignal.cs" />
-    <Compile Remove="Indicators\SimpleMovingAverage.cs" />
     <Compile Remove="Indicators\VolumeIndicator.cs" />
     <Compile Remove="Indicators\VolumeProfileIndicator.cs" />
     <Compile Remove="Utilities\StockSharp\Derivatives\BasketBlackScholes.cs" />
     <Compile Remove="Utilities\StockSharp\Derivatives\BasketStrike.cs" />
     <Compile Remove="Utilities\StockSharp\Derivatives\Black.cs" />
     <Compile Remove="Utilities\StockSharp\Derivatives\Synthetic.cs" />
+    <Compile Remove="Utilities\TwilioWhatsApp.cs" />
     <Compile Remove="Utilities\zSessionState.cs" />
   </ItemGroup>
 
@@ -85,11 +303,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Algo.Utils\Algo.Utils.csproj" />
     <ProjectReference Include="..\GlobalCore\GlobalCore.csproj" />
-    <ProjectReference Include="..\KiteConnectWrapper\KiteConnectWrapper.csproj" />
-    <ProjectReference Include="..\GlobalLayer\GlobalLayer.csproj" />
-    <ProjectReference Include="..\LocalDBData\LocalDBData.csproj" />
+    <ProjectReference Include="..\KiteConnectWrapper\BrokerConnectWrapper.csproj" />
     <ProjectReference Include="..\KiteConnect\KiteConnect.csproj" />
     <ProjectReference Include="..\ZMQFacade\ZMQFacade.csproj" />
   </ItemGroup>
@@ -99,10 +314,13 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Google.Protobuf" Version="3.13.0" />
+    <PackageReference Include="Flee" Version="2.0.0" />
+    <PackageReference Include="Google.Protobuf" Version="3.25.2" />
     <PackageReference Include="MathNet.Numerics" Version="4.12.0" />
     <PackageReference Include="Microsoft.AspNetCore.Hosting.Abstractions" Version="2.2.0" />
     <PackageReference Include="Microsoft.AspNetCore.Server.Kestrel.Core" Version="2.2.0" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="System.Data.SqlClient" Version="4.8.6" />
   </ItemGroup>
 
 </Project>

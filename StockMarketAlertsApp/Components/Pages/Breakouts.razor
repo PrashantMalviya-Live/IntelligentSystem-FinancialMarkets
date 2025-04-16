@@ -1,0 +1,225 @@
+﻿@page "/breakouts"
+
+@inject AlgoClient AlClient
+@* @inject GrpcService GrpcService *@
+@rendermode InteractiveServer
+
+@using Microsoft.AspNetCore.Identity
+@using StockMarketAlertsApp.Data
+@using Microsoft.AspNetCore.WebUtilities
+
+@inject UserManager<ApplicationUser> UserManager
+
+
+<PageTitle>Stock Breakouts</PageTitle>
+
+<h1>Stock Breakouts</h1>
+<AlertComponent/>
+
+<table class="table table-striped" @key="@stockBreakoutViews" >
+    <thead>
+        @* <tr>
+            <th rowspan="2">
+                Sl. No.
+            </th>
+            <th rowspan="2">
+                Symbol
+            </th>
+            @foreach (var timeFrames in timeFramesInMinutes)
+                {
+                    <th colspan="4">
+                        @timeFrames
+                    </th>
+                }
+            <th>
+                TotalBreakouts
+            </th>
+            <th>
+                Completed
+            </th>
+            <th>
+                Successful
+            </th>
+            <th>
+                Avg. Percentage Retracement
+            </th> 
+        </tr> *@
+        @* <tr style="font-size:12px">
+            
+            @for (int i = 1; i < timeFramesInMinutes.Count(); i++)
+            {
+                <td>
+                    Total
+                </td>
+                <td>
+                    Completed
+                </td>
+                <td>
+                    Successful
+                </td>
+                <td>
+                    Avg. % retrace
+                </td>
+            }
+        </tr> *@
+        <tr>
+            <th>
+                Sl. No.
+            </th>
+            <th>
+                Symbol
+            </th>
+            <th>
+                Time Frame
+            </th>
+            <th>
+                Total
+            </th>
+            <th>
+                Completed
+            </th>
+            <th>
+                Successful
+            </th>
+            <th>
+                Avg. % retrace
+            </th>
+        </tr>
+    </thead>
+
+    <tbody>  
+
+
+        @if (stockBreakoutViews == null)
+        {
+            <text><em>Loading...</em></text>
+        }
+        else
+        {
+            
+            @foreach (var breakouts in stockBreakoutViews)
+            {
+                <tr>
+                    <td rowspan="@GetSymbolRowCount(@breakouts.Value.Count)">@breakouts.Key</td>
+                    <td rowspan="@GetSymbolRowCount(@breakouts.Value.Count)">@breakouts.Value.Values.First().TradingSymbol</td>
+                </tr>
+                @foreach (var breakout in breakouts.Value)
+                {
+                    var b = breakout.Value;
+                    <tr >
+                        <td style="font-size:12px">@b.TimeFrame</td>
+                        <td style="font-size:12px">@b.TotalBreakouts</td>
+
+                        <td style="font-size:12px">@b.CompletedCount</td>
+                        <td style="font-size:12px">@b.SuccessCount</td>
+                        <td style="font-size:12px">@b.AveragePercentageRetracement</td>
+                    </tr>
+                }
+            
+            }
+        }
+        
+       @*  @foreach (var breakouts in stockBreakoutviews)
+        {
+            @foreach (var breakout in breakouts.Value)
+            {
+                var b = breakout.Value;
+                <tr>
+                    <td>@b.Id</td>
+                    <td>@b.TradingSymbol</td>
+                    <td>@b.TimeFrame</td>
+                    <td>@b.TotalBreakouts</td>
+                    <td>@b.CompletedCount</td>
+                    <td>@b.SuccessCount</td>
+                    <td>@b.AveragePercentageRetracement</td>
+                </tr>
+            }
+        } *@
+
+    </tbody>
+</table>
+<button class="btn btn-primary" @onclick="() => Start()">Start</button>
+
+@code {
+    private int counter = 0;
+    private Dictionary<uint, Dictionary<TimeSpan, StockBreakoutView>>? stockBreakoutViews;
+    private string[]? timeFramesInMinutes;
+
+    private ApplicationUser? currentUser;
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? authenticationState { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (authenticationState is not null)
+        {
+            var authState = await authenticationState;
+            var user = authState?.User;
+
+            if (user?.Identity is not null && user.Identity.IsAuthenticated)
+            {
+                currentUser = await UserManager.GetUserAsync(user);
+            }
+        }
+
+        stockBreakoutViews = await AlClient.GetStockBreakoutView(algoId: 1);
+        timeFramesInMinutes = AlClient.GetBreakoutTimeFrames();
+        //return base.OnInitializedAsync();
+    }
+
+
+    // private bool _firstRender = true;
+    // protected override async Task OnAfterRenderAsync(bool firstRender)
+    // {
+    //     if (firstRender)
+    //     {
+    //         GrpcService.AlertGenerated += await JS.InvokeAsync<Task>("setNotification"); ;
+    //     }
+    // }
+    private int GetSymbolRowCount(int inputTimeFramesRowCount)
+    {
+        return inputTimeFramesRowCount + 1;
+    }
+
+    private bool algoRunning = false;
+
+    private async Task Start()
+    {
+        // This will start the Breakout Alert Algo
+        // algoRunning = await AlClient.StartAlgo(1);
+
+       // GrpcService.AlertGenerated += GrpcClient_AlertManagerEvent;
+
+        //await GrpcClient.GRPCAlertManagerAsync();
+
+
+    }
+
+    private async void GrpcClient_AlertManagerEvent(GrpcProtos.AlertMessage alertMessage)
+    {
+        //check if algo id is breakout algoid, if yes send it to breakout method
+
+        if (alertMessage != null)
+        {
+            //1 alert is for RBC for this user and breakout system for this UI
+            if (alertMessage.AlertTriggerId == 1 && alertMessage.UserId == currentUser.Id)
+            {
+                var tokenUpdte = stockBreakoutViews[alertMessage.InstrumentToken];
+
+                var timeTokenUpdate = tokenUpdte[TimeSpan.FromMinutes(Convert.ToDouble(alertMessage.CandleTimeSpan))];
+
+                if (alertMessage.Message.StartsWith("S"))
+                {
+                    timeTokenUpdate.SuccessCount++;
+                    timeTokenUpdate.AveragePercentageRetracement = Decimal.Parse(alertMessage.Message.Substring(1));
+                }
+                timeTokenUpdate.TotalBreakouts++;
+
+                await InvokeAsync(() => StateHasChanged());
+
+                //stockBreakoutViews[alertMessage.InstrumentToken][TimeSpan.FromMinutes(Convert.ToDouble(alertMessage.CandleTimeSpan))].TotalBreakouts = timeTokenUpdate.TotalBreakouts;
+            }
+        }
+    }
+}

@@ -15,6 +15,9 @@ namespace Algorithms.Indicators
 		public DiMinus()
 		{
 		}
+		public DiMinus(int length):base(length)
+		{
+		}
 
 		/// <inheritdoc />
 		protected override decimal GetValue(Candle current, Candle prev)

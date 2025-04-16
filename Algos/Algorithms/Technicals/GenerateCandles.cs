@@ -11,7 +11,7 @@ using System.Dynamic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using ZConnectWrapper;
+using BrokerConnectWrapper;
 using ZMQFacade;
 using System.Timers;
 using System.Threading;
@@ -79,10 +79,10 @@ namespace Algorithms.Algorithms
                     }
                     LoadOptionsToTrade(currentTime);
                     UpdateInstrumentSubscription(currentTime);
-                    DataAccess.MarketDAO dao = new DataAccess.MarketDAO();
-                    Queue<Tick> tickQueue = new Queue<Tick>();
-                    tickQueue.Enqueue(tick);
-                    dao.StoreTickData(tickQueue);
+                    //DataAccess.MarketDAO dao = new DataAccess.MarketDAO();
+                    //Queue<Tick> tickQueue = new Queue<Tick>();
+                    //tickQueue.Enqueue(tick);
+                    //dao.StoreTickData(tickQueue);
 
                     //if (!GetBaseInstrumentPrice(tick))
                     //{
@@ -91,8 +91,8 @@ namespace Algorithms.Algorithms
 
                     //LoadOptionsToTrade(currentTime);
                     //UpdateInstrumentSubscription(currentTime);
-                    //MonitorVolumeCandles(tick, currentTime, _volumeCandles);
-                    //MonitorMoneyCandles(tick, currentTime, _moneyCandles);
+                    MonitorVolumeCandles(tick, currentTime, _volumeCandles);
+                    MonitorMoneyCandles(tick, currentTime, _moneyCandles);
                     //MonitorTimeCandles(tick, currentTime, _timeCandles);
                 }
             }
@@ -227,18 +227,18 @@ namespace Algorithms.Algorithms
             }
         }
 
-        public Task<bool> OnNext(Tick[] ticks)
+        public void OnNext(Tick tick)
         {
             try
             {
-                if (_start  && ticks[0].Timestamp.HasValue)
+                if (_start  && tick.Timestamp.HasValue)
                 {
-                    Start(ticks[0]);
-                    return Task.FromResult(true);
+                    Start(tick);
+                    return;
                 }
                 else
                 {
-                    return Task.FromResult(false);
+                    return;
                 }
             }
             catch (Exception ex)
@@ -247,7 +247,7 @@ namespace Algorithms.Algorithms
                 Logger.LogWrite(String.Format("{0}, {1}", ex.Message, ex.StackTrace));
                 Logger.LogWrite("Candle generation stopped.");
                 Thread.Sleep(100);
-                return Task.FromResult(false);
+                return;
             }
         }
 
@@ -277,7 +277,7 @@ namespace Algorithms.Algorithms
                 var peStrike = Math.Ceiling(_baseInstrumentPrice / 100m) * 100m;
 
                 DataLogic dl = new DataLogic();
-
+                Dictionary<uint, uint> mappedTokens;
                 if (OptionUniverse == null ||
                 (OptionUniverse[(int)InstrumentType.PE].Keys.Last() <= _baseInstrumentPrice + 0
                 || OptionUniverse[(int)InstrumentType.PE].Keys.First() >= _baseInstrumentPrice + 200)
@@ -286,7 +286,7 @@ namespace Algorithms.Algorithms
                     )
                 {
                     //Load options asynchronously
-                    var closeOptions = dl.LoadCloseByOptions(_expiry, _baseInstrumentToken, _baseInstrumentPrice, Math.Max(200, 200)); //loading at least 600 tokens each side
+                    var closeOptions = dl.LoadCloseByOptions(_expiry, _baseInstrumentToken, _baseInstrumentPrice, Math.Max(200, 200), out mappedTokens); //loading at least 600 tokens each side
 
                     UpsertOptionUniverse(closeOptions);
 
@@ -356,6 +356,10 @@ namespace Algorithms.Algorithms
                 lastEndTime = DateTime.Now;
                 return null;
             }
+        }
+        public void StopTrade(bool stop)
+        {
+            //_stopTrade = stop;
         }
         private bool GetBaseInstrumentPrice(Tick tick)
         {

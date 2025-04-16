@@ -16,6 +16,12 @@ namespace Algorithms.Indicators
 		{
 		}
 
+		public AverageDirectionalIndex(int length)
+			: this(new DirectionalIndex { Length = length }, new WilderMovingAverage { Length = length })
+		{
+			Length = length;
+		}
+
 		/// <summary>
 		/// Initializes a new instance of the <see cref="AverageDirectionalIndex"/>.
 		/// </summary>

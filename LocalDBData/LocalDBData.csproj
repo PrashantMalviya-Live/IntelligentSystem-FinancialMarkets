@@ -1,16 +1,20 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netcoreapp3.1</TargetFramework>
-    <Configurations>Debug;Release;Market;Local</Configurations>
+    <TargetFramework>net8.0</TargetFramework>
+    <Configurations>Debug;Release;Market;Local;BackTest</Configurations>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="System.Data.SqlClient" Version="4.8.2" />
+    <PackageReference Include="Google.Protobuf" Version="3.25.2" />
+    <PackageReference Include="Microsoft.Extensions.Caching.Abstractions" Version="8.0.0" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="System.Data.SqlClient" Version="4.8.6" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\DBAccess\DBAccess.csproj" />
+    <ProjectReference Include="..\Algos\Algos.csproj" />
+    <ProjectReference Include="..\FyersConnect\FyersConnect.csproj" />
     <ProjectReference Include="..\ZMQFacade\ZMQFacade.csproj" />
   </ItemGroup>
 

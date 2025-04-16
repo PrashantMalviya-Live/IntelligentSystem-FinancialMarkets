@@ -1,0 +1,157 @@
+﻿@inject LoginClient LoginClient
+@inject NavigationManager NavigationManager
+
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.AspNetCore.WebUtilities
+@using StockMarketAlertsApp.Data
+@inject UserManager<ApplicationUser> UserManager
+@inject ApplicationDbContext AppContext
+
+
+<h3>Please login to your broker account to view active positions.</h3>
+<br />
+
+@* <button class="btn btn-primary" @onclick="BrokerLoginSubmit">Kotak</button> *@
+
+
+<div class="row">
+    <div class="col-md-4">
+        <EditForm Model="@brokerLogin" FormName="brokerloginform" OnSubmit="BrokerLoginSubmit">
+            <div class="mb-3">
+                <label for="clientid" class="form-label">Client ID:</label>
+                <InputText class="form-control" @bind-Value="brokerLogin.ClientId" id="clientid" />
+            </div>
+            <div class="mb-3">
+                <label for="clientid" class="form-label">Password:</label>
+                <InputText class="form-control" @bind-Value="brokerLogin.Password" id="clientid" />
+            </div>
+            <div class="mb-3">
+                <label for="clientid" class="form-label">RequestToken:</label>
+                <InputText class="form-control" @bind-Value="brokerLogin.RequestToken" id="clientid" />
+            </div>
+            <div class="mb-3">
+                <label for="clientid" class="form-label">AccessToken:</label>
+                <InputText class="form-control" @bind-Value="brokerLogin.AccessToken" id="clientid" />
+            </div>
+            @if (ShowOTP)
+            {
+                <div class="mb-3">
+                    <label for="clientid" class="form-label">OTP:</label>
+                <InputText class="form-control" @bind-Value="brokerLogin.OTP" id="clientid" />
+            </div>
+            }
+            <button class="btn btn-primary">Kotak</button>
+        </EditForm>
+        
+        
+    </div>
+    
+</div>
+@code {
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? authenticationState { get; set; }
+
+    [SupplyParameterFromQuery]
+    private string? request_token { get; set; }
+
+    private bool ShowOTP { get; set; } = false;
+
+    private BrokerLoginParams? brokerLogin { get; set; } = new() { ClientId = "" };
+    private ApplicationUser? currentUser;
+    private async Task BrokerLoginSubmit()
+    {
+        if (authenticationState is not null)
+        {
+            var authState = await authenticationState;
+            var user = authState?.User;
+
+            if (user?.Identity is not null && user.Identity.IsAuthenticated)
+            {
+                currentUser = await UserManager.GetUserAsync(user);
+                brokerLogin.ApplicationUserId = currentUser.Id;
+
+            }
+        }
+        else
+        {
+            return;
+        }
+
+        int loginstatuscode = await LoginClient.BrokerLogin("Kotak", brokerLogin);
+
+        if (loginstatuscode == 418)
+        {
+            ShowOTP = true;
+        }
+
+        //In case of succesful login. add policy of broker login with borker name
+        else if (loginstatuscode == 200 && authenticationState is not null)
+        {
+            var authState = await authenticationState;
+            var user = authState?.User;
+
+            if (user?.Identity is not null && user.Identity.IsAuthenticated)
+            {
+                //authMessage = $"{user.Identity.Name} is authenticated.";
+                currentUser = await UserManager.GetUserAsync(user);
+
+                //var blogs = AppContext.Users.FindAsync( LoadBrokerLoginDetails(currentUser);
+
+                //broker id 1 for Kotak
+                var brokerLoginParamList = AppContext.BrokerLoginParams.Where(x => x.ApplicationUserId == currentUser.Id && x.BrokerId == 1).ToList();
+                
+                
+
+                //var brokerLoginParam = AppContext.BrokerLoginParams.FirstOrDefault(x => x.ApplicationUserId == currentUser.Id && x.BrokerId == 1, null);
+
+                //await UserManager.AddClaimAsync(currentUser, new System.Security.Claims.Claim("BrokerLogin", "success"));
+
+
+                
+
+                if (brokerLoginParamList.Count > 0)// brokerLoginParam is not null)
+                {
+                    var brokerLoginParam = brokerLoginParamList[0];
+                    brokerLoginParam.ApplicationUser = currentUser;
+                    brokerLoginParam.ApplicationUserId = currentUser.Id;
+                    brokerLoginParam.LoggedInDate = DateTime.Today;
+                    brokerLoginParam.BrokerId = 1;
+                    brokerLoginParam.BrokerName = "Kotak";
+
+                    List<BrokerLoginParams> brokerLoginList = new List<BrokerLoginParams>();
+                    brokerLoginList.Add(brokerLogin);
+                    var userBrokerLoginParam = currentUser.BrokerLoginParams.FirstOrDefault(x => x.ClientId == brokerLoginParam.ClientId, null);
+                    userBrokerLoginParam = brokerLoginParam;
+
+                    AppContext.BrokerLoginParams.Update(brokerLoginParam);
+                }
+                else
+                {
+                    brokerLogin.ApplicationUser = currentUser;
+                    brokerLogin.ApplicationUserId = currentUser.Id;
+                    brokerLogin.LoggedInDate = DateTime.Today;
+                    
+                    brokerLogin.BrokerId = 1;
+                    brokerLogin.BrokerName = "Kotak";
+
+                    if (currentUser.BrokerLoginParams is null)
+                    {
+                        List<BrokerLoginParams> brokerLoginList = new List<BrokerLoginParams>();
+                        brokerLoginList.Add(brokerLogin);
+                        currentUser.BrokerLoginParams = brokerLoginList;
+                    }
+                    else
+                    {
+                        currentUser.BrokerLoginParams.Add(brokerLogin);
+                    }
+
+                    AppContext.BrokerLoginParams.Add(brokerLogin);
+                }
+                await AppContext.SaveChangesAsync();
+            }
+        }
+
+    }
+    
+}

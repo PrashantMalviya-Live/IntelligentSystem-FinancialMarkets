@@ -11,7 +11,8 @@ namespace GlobalLayer
     public static class GlobalObjects
     {
         public static System.Timers.Timer OHLCTimer;
-
+        public static Dictionary<UInt32, String> InstrumentTokenSymbolCollection;
+        public static ObservableFactory ObservableFactory;
         public static void InitBoxTimer()
         {
             OHLCTimer = new System.Timers.Timer(60000);

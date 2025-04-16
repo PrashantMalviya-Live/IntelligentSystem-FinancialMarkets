@@ -1,4 +1,7 @@
+using Algorithm.Algorithm;
 using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.ComponentModel;
 
 namespace Algorithms.Indicators
@@ -8,7 +11,7 @@ namespace Algorithms.Indicators
 	/// The base Indicator.
 	/// </summary>
 	public abstract class BaseIndicator : IIndicator //Cloneable<IIndicator>,
-	{
+    {
 		/// <summary>
 		/// Initialize <see cref="BaseIndicator"/>.
 		/// </summary>
@@ -68,6 +71,7 @@ namespace Algorithms.Indicators
         //    Name = storage.GetValue<string>(nameof(Name));
         //}
 
+
         /// <inheritdoc />
         [Browsable(false)]
 		public virtual bool IsFormed { get; protected set; }
@@ -78,6 +82,15 @@ namespace Algorithms.Indicators
 
 		/// <inheritdoc />
 		[Browsable(false)]
+		public virtual IIndicator ChildIndicator { get; set; }
+
+        /// <inheritdoc />
+        [Browsable(false)]
+        public virtual int TimeSpanInMins { get; set; }
+
+
+        /// <inheritdoc />
+        [Browsable(false)]
 		public virtual Type InputType { get; }
 
 		/// <inheritdoc />
@@ -145,4 +158,31 @@ namespace Algorithms.Indicators
 		/// <inheritdoc />
 		public override string ToString() => Name;
 	}
+
+    class BaseIndicatorCollection : IEnumerable<BaseIndicator>, IEnumerable
+    {
+        List<BaseIndicator> baseIndicators;
+
+        // Explicit for IEnumerable because weakly typed collections are Bad
+        System.Collections.IEnumerator IEnumerable.GetEnumerator()
+        {
+            // uses the strongly typed IEnumerable<T> implementation
+            return this.GetEnumerator();
+        }
+
+        // Normal implementation for IEnumerable<T>
+        public IEnumerator<BaseIndicator> GetEnumerator()
+        {
+            foreach (BaseIndicator baseIndicator in this.baseIndicators)
+            {
+                yield return baseIndicator;
+                //nb: if SomeCollection is not strongly-typed use a cast:
+                // yield return (Foo)foo;
+                // Or better yet, switch to an internal collection which is
+                // strongly-typed. Such as List<T> or T[], your choice.
+            }
+
+            // or, as pointed out: return this.foos.GetEnumerator();
+        }
+    }
 }
