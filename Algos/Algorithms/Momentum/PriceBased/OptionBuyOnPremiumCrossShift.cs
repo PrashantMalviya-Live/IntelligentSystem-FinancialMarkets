@@ -138,7 +138,7 @@ namespace Algorithms.Algorithms
                 0, Arg5: 0, Arg4: 0, Arg1:0, Arg2:_targetProfit, upperLimit:0, 
                 Arg3: 0, Arg6: 0);
 
-            ZConnect.Login();
+            //ZConnect.Login();
 
             //health check after 1 mins
             _healthCheckTimer = new System.Timers.Timer(interval: 1 * 60 * 1000);

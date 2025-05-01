@@ -12,6 +12,7 @@ using System.ServiceModel.Channels;
 using System.Net.Http;
 using Microsoft.Extensions.Caching.Memory;
 using System.Text.Json;
+using DBAccess;
 
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
@@ -27,10 +28,12 @@ namespace StockAlerts.Controllers
         private const string userKey = "ACTIVE_USER";
 
         private IMemoryCache _cache;
-        public KotakLoginController(IMemoryCache cache, IHttpClientFactory httpClientFactory)
+        private readonly IRDSDAO _rdsDAO;
+        public KotakLoginController(IMemoryCache cache, IHttpClientFactory httpClientFactory, IRDSDAO rdsDAO)
         {
             this._cache = cache;
             this._httpClientFactory = httpClientFactory;
+            _rdsDAO = rdsDAO;
         }
 
         //// GET: api/<LoginController>
@@ -41,7 +44,7 @@ namespace StockAlerts.Controllers
             ObjectResult result;
             try
             {
-#if MARKET
+#if MARKET || AWSMARKET
                 
 
                 //Kotak kotak = new Kotak(activeUser.APIKey, data.accessToken);
@@ -52,7 +55,7 @@ namespace StockAlerts.Controllers
 
                 User activeUser = _cache.Get<User>(userKey);
 
-                Login l = new Login();
+                Login l = new Login(_rdsDAO);
                 if (activeUser == null)
                 {
                     
@@ -107,21 +110,21 @@ namespace StockAlerts.Controllers
             }
         }
 
-        [HttpGet]
-        public IActionResult LoadTokens()
-        {
-            try
-            {
-                Utility.LoadKotakTokens();
+        //[HttpGet]
+        //public IActionResult LoadTokens()
+        //{
+        //    try
+        //    {
+        //        Utility.LoadKotakTokens();
 
-                return Ok(StatusCode(200));
-            }
-            catch (Exception ex)
-            {
-                Logger.LogWrite(String.Format("{0}, {1}", ex.Message, ex.StackTrace));
-                return StatusCode(500);
-            }
-        }
+        //        return Ok(StatusCode(200));
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        Logger.LogWrite(String.Format("{0}, {1}", ex.Message, ex.StackTrace));
+        //        return StatusCode(500);
+        //    }
+        //}
 
 
         public class LoginParams

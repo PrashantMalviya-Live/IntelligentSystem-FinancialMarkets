@@ -170,8 +170,8 @@ namespace Algorithms.Algorithms
            int algoInstance = 0, bool positionSizing = false,
            decimal maxLossPerTrade = 0, IHttpClientFactory httpClientFactory = null)
         {
-            //ZConnect.Login();
-            _user = KoConnect.GetUser(userId: uid);
+            ////ZConnect.Login();
+            //_user = KoConnect.GetUser(userId: uid);
 
             _httpClientFactory = httpClientFactory;
             _candleTimeSpan = candleTimeSpan;

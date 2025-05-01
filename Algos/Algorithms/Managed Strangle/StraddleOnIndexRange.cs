@@ -170,8 +170,8 @@ namespace Algorithms.Algorithms
                 (float)candleTimeSpan.TotalMinutes, CandleType.Time, 0, _targetProfit, _stopLoss, 0,
                 0, 0, positionSizing: _positionSizing, maxLossPerTrade: _maxLossPerTrade);
 
-            ZConnect.Login();
-            _user = KoConnect.GetUser(userId: uid);
+            ////ZConnect.Login();
+            ////_user = KoConnect.GetUser(userId: uid);
 
             DayOfWeek wk = DateTime.Today.DayOfWeek;
             switch (wk)

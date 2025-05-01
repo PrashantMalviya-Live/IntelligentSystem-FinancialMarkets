@@ -22,7 +22,7 @@ namespace CryptoDataService
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             Logger.LogWrite("Starting Crypto Data Service");
-            StartDBUpdate();
+            await StartDBUpdate();
             Logger.LogWrite("Market Crypto Service Started");
             manualReset.Wait();
         }
@@ -31,7 +31,7 @@ namespace CryptoDataService
         {
 
 
-#if MARKET
+#if MARKET || AWSMARKET
             await CryptoData.PublishData();
             System.Threading.Thread.Sleep(new TimeSpan(7, 30, 1));
 #elif local || BACKTEST

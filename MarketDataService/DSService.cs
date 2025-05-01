@@ -8,11 +8,22 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using LocalDBData;
 using GlobalLayer;
+using DBAccess;
+
 namespace MarketDataService
 {
     public class DSService : BackgroundService
     {
         private readonly ILogger<DSService> _logger;
+        
+        private readonly IRDSDAO _idAO;
+        private readonly ITimeStreamDAO _iTimeStreamdAO;
+        public DSService(IRDSDAO idAO, ITimeStreamDAO iTimeStreamdAO)
+        {
+            _idAO = idAO;
+            _iTimeStreamdAO = iTimeStreamdAO;   
+        }
+
         public static ManualResetEventSlim manualReset = new ManualResetEventSlim();
         public DSService(ILogger<DSService> logger)
         {
@@ -32,7 +43,8 @@ namespace MarketDataService
 
 
 #if market
-            MarketData.PublishData();
+            MarketData market = new MarketData(_idAO, _iTimeStreamdAO);
+            market.PublishData();
             System.Threading.Thread.Sleep(new TimeSpan(7, 30, 1));
 #elif local || BACKTEST
             TickDataStreamer dataStreamer = new TickDataStreamer();

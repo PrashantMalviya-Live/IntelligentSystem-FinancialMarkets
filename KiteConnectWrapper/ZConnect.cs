@@ -1,33 +1,42 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using GlobalLayer;
 using KiteConnect;
-using GlobalLayer;
-using System.Net.Http;
-using System.Configuration;
-using DataAccess;
+using System;
 using System.Data;
+using System.Net.Http;
+using DBAccess;
 
 namespace BrokerConnectWrapper
 {
     public class ZConnect
     {
+        private readonly IRDSDAO _idAO;
+        public ZConnect(IRDSDAO idAO = null)
+        {
+            _idAO = idAO;
+        }
+
         // Initialize key and secret of your app
-        public static string UserAPIkey = "af61rvtidnnnyp8p";
+        public static string UserAPIkey = "af61rv11118p";
         //static string MySecret = "if1ur4umqitbi8kotw95iyuhuinlcj0i";
         // persist these data in settings or db or file
-        public static string UserAccessToken = "fzzEEcjFuGC7mJ3tyR4wPiN0nyY845IT";
+        public static string UserAccessToken = "fzzEEcjFuGC7mJ3tynyY845IT";
         public static string CurrentUser = "Prashant Malviya";
         public static string RequestToken = "";
 
-        public static bool Login(User user = null)
+        public bool Login(User user = null)
         {
             if(user == null)
             {
-                MarketDAO dao = new MarketDAO();
+#if AWSMARKET
+               
+                DataSet dsUser = _idAO.GetActiveUser();
+
+#else
+                SQlDAO dao = new SQlDAO();
                 DataSet dsUser = dao.GetActiveUser();
+#endif
+
+
                 user = new User(dsUser.Tables[0]);
             }
             ZObjects.kite = new Kite(user.APIKey, Debug: true);

@@ -1,15 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using KiteConnect;
+﻿using FyersConnect;
 using GlobalLayer;
-using System.Net.Http;
-using System.Configuration;
-using DataAccess;
+using System;
 using System.Data;
-using FyersConnect;
+using DBAccess;
 
 namespace BrokerConnectWrapper
 {
@@ -22,12 +15,17 @@ namespace BrokerConnectWrapper
         public static string CurrentUser;
         public static string RequestToken;
 
-        public static bool Login(User user = null)
+        private readonly IRDSDAO _idAO;
+        public FyConnect(IRDSDAO idAO)
+        {
+            _idAO = idAO;
+        }
+
+            public bool Login(User user = null)
         {
             if (user == null)
             {
-                MarketDAO dao = new MarketDAO();
-                DataSet dsUser = dao.GetActiveUser(2);
+                DataSet dsUser = _idAO.GetActiveUser(2);
                 user = new User(dsUser.Tables[0]);
             }
             ZObjects.fy = new Fy(user.APIKey);

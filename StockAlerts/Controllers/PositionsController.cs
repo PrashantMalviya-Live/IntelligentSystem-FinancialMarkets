@@ -6,6 +6,7 @@ using Algorithms.Utilities;
 using BrokerConnectWrapper;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.AspNetCore.Identity;
+using DBAccess;
 
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
@@ -20,11 +21,13 @@ namespace StockAlerts.Controllers
         private const string userKey = "ACTIVE_USER";
 
         private IMemoryCache _cache;
+        private readonly IRDSDAO _rdsDAO;
 
-        public PositionsController(IMemoryCache cache, IHttpClientFactory httpClientFactory)
+        public PositionsController(IMemoryCache cache, IHttpClientFactory httpClientFactory, IRDSDAO rdsDAO)
         {
             this._cache = cache;
             this._httpClientFactory = httpClientFactory;
+            _rdsDAO = rdsDAO;
         }
 
 
@@ -44,7 +47,8 @@ namespace StockAlerts.Controllers
             //Login l = new Login();
             //AspNetUser applicationUser = l.GetActiveApplicationUser(id);
             brokerid = 1;
-            GlobalLayer.User activeUser = KoConnect.GetUserByApplicationUserId(userId: id, brokerId: brokerid);
+            KoConnect koConnect = new KoConnect(_rdsDAO);
+            GlobalLayer.User activeUser = koConnect.GetUserByApplicationUserId(userId: id, brokerId: brokerid);
 
             var httpClient = KoConnect.ConfigureHttpClient2(activeUser, _httpClientFactory.CreateClient());
 

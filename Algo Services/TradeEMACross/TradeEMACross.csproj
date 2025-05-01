@@ -5,11 +5,15 @@
     <UserSecretsId>aee066a2-17aa-47a9-add7-bd8b9ec99ce1</UserSecretsId>
     <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
 	  <ValidateExecutableReferencesMatchSelfContained>false</ValidateExecutableReferencesMatchSelfContained>
-    <Configurations>Debug;Release;Local;Market;BackTest</Configurations>
+    <Configurations>Debug;Release;Local;Market;BackTest;awsmarket</Configurations>
     <PlatformTarget>AnyCPU</PlatformTarget>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Market|AnyCPU'">
+    <DefineConstants>DEBUG;TRACE;market</DefineConstants>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='awsmarket|AnyCPU'">
     <DefineConstants>DEBUG;TRACE;market</DefineConstants>
   </PropertyGroup>
 
@@ -44,9 +48,9 @@
   <ItemGroup>
     <PackageReference Include="CsvTextFieldParser" Version="1.2.1" />
     <PackageReference Include="FirebaseAdmin" Version="2.2.0" />
-    <PackageReference Include="Google.Protobuf" Version="3.25.2" />
-    <PackageReference Include="Grpc.Net.Client" Version="2.32.0" />
-    <PackageReference Include="Grpc.Tools" Version="2.32.0">
+    <PackageReference Include="Google.Protobuf" Version="3.30.2" />
+    <PackageReference Include="Grpc.Net.Client" Version="2.71.0" />
+    <PackageReference Include="Grpc.Tools" Version="2.71.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
@@ -56,7 +60,7 @@
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="Polly.Extensions.Http" Version="3.0.0" />
     <PackageReference Include="System.Data.SqlClient" Version="4.8.6" />
-    <PackageReference Include="System.Text.Json" Version="4.7.2" />
+    <PackageReference Include="System.Text.Json" Version="9.0.4" />
     <PackageReference Include="Twilio" Version="5.68.2" />
   </ItemGroup>
 

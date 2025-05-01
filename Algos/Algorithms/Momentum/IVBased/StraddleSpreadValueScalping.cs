@@ -170,8 +170,8 @@ namespace Algorithms.Algorithms
                 _expiry.GetValueOrDefault(DateTime.Now), quantity, candleTimeFrameInMins: 0, Arg1: _openSpread, Arg2: _closeSpread,
                 Arg3: _targetProfit, Arg4: _stopLoss, Arg5: _stopLoss);
 
-            ZConnect.Login();
-            KoConnect.Login(userId:"PM27031981");
+            //ZConnect.Login();
+            //KoConnect.Login(userId:"PM27031981");
 
             //health check after 1 mins
             _healthCheckTimer = new System.Timers.Timer(interval: 1 * 60 * 1000);

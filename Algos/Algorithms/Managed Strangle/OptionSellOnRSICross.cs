@@ -138,7 +138,7 @@ namespace Algos.TLogics
               (float)candleTimeSpan.TotalMinutes, CandleType.Time, 0, 0, _rsiBand, 0,
               _maxDistanceFromBInstrument, _minDistanceFromBInstrument, positionSizing: false, maxLossPerTrade: 0);
 
-            ZConnect.Login();
+            ////ZConnect.Login();
 
             //health check after 1 mins
             _healthCheckTimer = new System.Timers.Timer(interval: 1 * 60 * 1000);

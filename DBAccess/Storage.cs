@@ -7,7 +7,7 @@ using System.Threading;
 using GlobalLayer;
 using Algorithms.Utils;
 using System.Diagnostics.Eventing.Reader;
-
+using DBAccess;
 namespace DataAccess
 {
     public class Storage //: IZMQ //, IObserver<Tick[]>
@@ -21,13 +21,18 @@ namespace DataAccess
         Dictionary<uint, List<Candle>> TimeCandles;
         CandleManger candleManger;
         TimeSpan _candleTimeSpan;
-        MarketDAO dao;
+        //SQlDAO dao;
+
+        private readonly ITimeStreamDAO _idAO;
+
+
         //public virtual void Subscribe(Publisher publisher)
         //{
         //    UnsubscriptionToken = publisher.Subscribe(this);
         //}
-        public Storage(bool storeTicks, bool storeCandles)
+        public Storage(bool storeTicks, bool storeCandles, ITimeStreamDAO dAO)
         {
+            _idAO = dAO;
 #if !BACKTEST
             if (storeTicks)
             {
@@ -39,7 +44,7 @@ namespace DataAccess
             }
             if (storeCandles)
             {
-                dao = new MarketDAO();
+                //dao = new SQlDAO();
                 _candleTimeSpan = new TimeSpan(0, 1, 0);
                 TimeCandles = new Dictionary<uint, List<Candle>>();
                 candleManger = new CandleManger(TimeCandles, CandleType.Time);
@@ -135,7 +140,7 @@ namespace DataAccess
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
-        static void StoreRawTicks(object sender, System.Timers.ElapsedEventArgs e)
+        async Task StoreRawTicks(object sender, System.Timers.ElapsedEventArgs e)
         {
             if (LiveTicks == null || LiveTicks.Count == 0)
             {
@@ -149,8 +154,13 @@ namespace DataAccess
                 LiveTicks.Clear();
             }
 
-            DataAccess.MarketDAO dao = new MarketDAO();
-            dao.StoreTickData(localCopyTicks);
+            //DataAccess.SQlDAO dao = new SQlDAO();
+            //dao.StoreTickData(localCopyTicks);
+
+            // AWSTimestreamdb storage = new AWSTimestreamdb();
+            //await storage.WriteTicksAsync(localCopyTicks);
+
+            await _idAO.WriteTicksAsync(localCopyTicks);
         }
 
         public void StoreTimeCandles(List<Tick> ticks)
@@ -201,7 +211,7 @@ namespace DataAccess
             CandlePriceLevel minPriceLevel = candle.MinPriceLevel;
             IEnumerable<CandlePriceLevel> priceLevels = candle.PriceLevels;
 
-            int candleId = dao.SaveCandle(candle.Arg, candle.ClosePrice, candle.CloseTime, candle.CloseVolume, candle.DownTicks,
+            int candleId = _idAO.SaveCandle(candle.Arg, candle.ClosePrice, candle.CloseTime, candle.CloseVolume, candle.DownTicks,
                 candle.HighPrice, candle.HighTime, candle.HighVolume, candle.InstrumentToken,
                 candle.LowPrice, candle.LowTime, candle.LowVolume,
                 maxPriceLevel.BuyCount, maxPriceLevel.BuyVolume, maxPriceLevel.Money, maxPriceLevel.Price,
@@ -213,7 +223,7 @@ namespace DataAccess
 
             foreach (CandlePriceLevel candlePriceLevel in candle.PriceLevels)
             {
-                dao.SaveCandlePriceLevels(candleId, candlePriceLevel.BuyCount, candlePriceLevel.BuyVolume, candlePriceLevel.Money, candlePriceLevel.Price,
+                _idAO.SaveCandlePriceLevels(candleId, candlePriceLevel.BuyCount, candlePriceLevel.BuyVolume, candlePriceLevel.Money, candlePriceLevel.Price,
                 candlePriceLevel.SellCount, candlePriceLevel.SellVolume, candlePriceLevel.TotalVolume);
             }
         }
@@ -239,13 +249,14 @@ namespace DataAccess
 
             return candleStartTime;
         }
-        public static void InitTimer()
+        public void InitTimer()
         {
 #if !BACKTEST
             GlobalObjects.OHLCTimer = new System.Timers.Timer(20000);
             GlobalObjects.OHLCTimer.Start();
 
-            GlobalObjects.OHLCTimer.Elapsed += StoreRawTicks;
+            GlobalObjects.OHLCTimer.Elapsed += async (sender, e) => { await StoreRawTicks(sender, e); };
+            //GlobalObjects.OHLCTimer.Elapsed += StoreRawTicks;
 #endif
         }
 

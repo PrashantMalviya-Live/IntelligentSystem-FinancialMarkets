@@ -27,6 +27,7 @@ using Newtonsoft.Json.Linq;
 using Algos.Indicators;
 using System.Threading;
 using Flee.PublicTypes;
+using DBAccess;
 
 namespace Algorithms.Utilities
 {
@@ -38,29 +39,29 @@ namespace Algorithms.Utilities
             float stopLossPoints = 0, int optionType = 0, float candleTimeFrameInMins = 5,
             CandleType candleType = CandleType.Time, int optionIndex = 0, decimal Arg1 = 0, decimal Arg2 = 0,
             decimal Arg3 = 0, decimal Arg4 = 0, decimal Arg5 = 0, decimal Arg6 = 0, decimal Arg7 = 0, decimal Arg8 = 0, 
-            string Arg9 = "", bool positionSizing = false, decimal maxLossPerTrade = 0)
+            string Arg9 = "", bool positionSizing = false, decimal maxLossPerTrade = 0, IRDSDAO irdsDAO = null)
         {
-            MarketDAO dao = new MarketDAO();
-            return dao.GenerateAlgoInstance(algoIndex, bToken, timeStamp, expiry,
+            //SQlDAO dao = new SQlDAO();
+            return irdsDAO.GenerateAlgoInstance(algoIndex, bToken, timeStamp, expiry,
             initialQtyInLotsSize, maxQtyInLotSize, stepQtyInLotSize, upperLimit,
             upperLimitPercent, lowerLimit, lowerLimitPercent,
             stopLossPoints, optionType, 0, candleTimeFrameInMins, candleType, 
             Arg1, Arg2, Arg3, Arg4, Arg5, Arg6, Arg7, Arg8, Arg9, positionSizing, maxLossPerTrade);
         }
 
-        public static void LoadTokens()
+        public static void LoadTokens(IRDSDAO irdsDAO = null)
         {
             try
             {
                 //SendData();
-                ZConnect.Login();
+                //ZConnect.Login();
                 List<Instrument> instruments = ZObjects.kite.GetInstruments(Exchange: "NFO");
-                MarketDAO dao = new MarketDAO();
-                dao.StoreInstrumentList(instruments);
+                //SQlDAO dao = new SQlDAO();
+                irdsDAO.StoreInstrumentList(instruments);
 
                 instruments = ZObjects.kite.GetInstruments(Exchange: "NSE");
-                dao = new MarketDAO();
-                dao.StoreInstrumentList(instruments);
+                //dao = new SQlDAO();
+                irdsDAO.StoreInstrumentList(instruments);
             }
             catch (Exception ex)
             {
@@ -69,25 +70,25 @@ namespace Algorithms.Utilities
         }
 
         //Update generated alert to database
-        public static async Task<int> UpdateGeneratedAlertsAsync(Alert alert)
+        public static async Task<int> UpdateGeneratedAlertsAsync(Alert alert, IRDSDAO irdsDAO)
         {
-            MarketDAO marketDAO = new MarketDAO();
-            return await marketDAO.UpdateGeneratedAlertsAsync(alert);
+            
+            return await irdsDAO.UpdateGeneratedAlertsAsync(alert);
         }
 
         /// <summary>
         /// Dummy database pull for active alerts that have credits available for alerts
         /// </summary>
         /// <returns></returns>
-        public static List<AlertTriggerData> RetrieveAlertTriggerData()
+        public static List<AlertTriggerData> RetrieveAlertTriggerData(IRDSDAO irdsDAO)
         {
             //Instruments->Timeframes->Indicators
 
             List<AlertTriggerData> alertTriggerCriteria = new List<AlertTriggerData>();
 
 
-            MarketDAO dao = new MarketDAO();
-            DataSet dsAlertTriggers = dao.GetActiveAlertTriggers();
+            //SQlDAO dao = new SQlDAO();
+            DataSet dsAlertTriggers = irdsDAO.GetActiveAlertTriggers();
 
             foreach (DataRow alertTriggerRow in dsAlertTriggers.Tables[0].Rows)
             {
@@ -957,17 +958,17 @@ namespace Algorithms.Utilities
             AlertPublisher.Publish("Market Alert", "BNF Crossed CPR");
         }
 
-        public static void LoadKotakTokens()
-        {
-            KoConnect.Login();
-            List<Instrument> instruments = ZObjects.kotak.GetInstruments(Exchange: "NFO");
-            MarketDAO dao = new MarketDAO();
-            dao.StoreInstrumentList(instruments);
+        //public static void LoadKotakTokens()
+        //{
+        //    //KoConnect.Login();
+        //    List<Instrument> instruments = ZObjects.kotak.GetInstruments(Exchange: "NFO");
+        //    SQlDAO dao = new SQlDAO();
+        //    dao.StoreInstrumentList(instruments);
 
-            instruments = ZObjects.kite.GetInstruments(Exchange: "NSE");
-            dao = new MarketDAO();
-            dao.StoreInstrumentList(instruments);
-        }
+        //    instruments = ZObjects.kite.GetInstruments(Exchange: "NSE");
+        //    dao = new SQlDAO();
+        //    dao.StoreInstrumentList(instruments);
+        //}
         
 
     }

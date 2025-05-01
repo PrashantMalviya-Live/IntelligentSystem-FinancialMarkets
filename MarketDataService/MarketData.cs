@@ -10,17 +10,27 @@ using DataAccess;
 using System.Timers;
 using ZMQFacade;
 using System.Runtime.CompilerServices;
+using DBAccess;
 //using KiteConnectTicker;
 namespace MarketDataService
 {
    public class MarketData
     {
+        private readonly IRDSDAO _idAO;
+        private readonly ITimeStreamDAO _timeStreamDAO;
+        public MarketData(IRDSDAO idAO, ITimeStreamDAO timeStreamDAO)
+        {
+            _idAO = idAO;
+            _timeStreamDAO = timeStreamDAO;
+        }
         //public static readonly string NIFTY_TOKEN = "256265";
         //public static readonly string BANK_NIFTY_TOKEN = "260105";
-        public static void PublishData()
+        public void PublishData()
         {
-            ZConnect.Login();
-            ZObjects.ticker = new Ticker(ZConnect.UserAPIkey, ZConnect.UserAccessToken, null);//State:zSessionState.Current);
+            ZConnect zConnect = new ZConnect(_idAO);
+            zConnect.Login();
+
+            ZObjects.ticker = new Ticker(ZConnect.UserAPIkey, ZConnect.UserAccessToken, _timeStreamDAO, null);//State:zSessionState.Current);
 
             ZObjects.ticker.OnTick += OnTick;
             ZObjects.ticker.OnReconnect += OnReconnect;
@@ -37,7 +47,7 @@ namespace MarketDataService
             InitTimer();
             SubscribeTokens(null, null);
         }
-        public static void InitTimer()
+        public void InitTimer()
         {
             Timer t = new Timer(3600000);
             t.Start();
@@ -45,15 +55,15 @@ namespace MarketDataService
         }
 
         
-        private static void SubscribeTokens(object sender, System.Timers.ElapsedEventArgs e)
+        private void SubscribeTokens(object sender, System.Timers.ElapsedEventArgs e)
         {
             Dictionary<string, LTP> btokenPrices = ZObjects.kite.GetLTP(new string[] { Constants.NIFTY_TOKEN, Constants.BANK_NIFTY_TOKEN, Constants.FINNIFTY_TOKEN, Constants.MIDCPNIFTY_TOKEN });
 
             //Pull list of instruments to be subscribed
-            DataAccess.MarketDAO dao = new MarketDAO();
+            //DataAccess.SQlDAO dao = new SQlDAO();
             //UInt32[] instrumentTokens = dao.GetInstrumentListToSubscribe(btokenPrices[NIFTY_TOKEN].LastPrice, btokenPrices[BANK_NIFTY_TOKEN].LastPrice);
 
-            GlobalObjects.InstrumentTokenSymbolCollection = dao.GetInstrumentListToSubscribe(btokenPrices[Constants.NIFTY_TOKEN].LastPrice, 
+            GlobalObjects.InstrumentTokenSymbolCollection = _idAO.GetInstrumentListToSubscribe(btokenPrices[Constants.NIFTY_TOKEN].LastPrice, 
                 btokenPrices[Constants.BANK_NIFTY_TOKEN].LastPrice, btokenPrices[Constants.FINNIFTY_TOKEN].LastPrice, btokenPrices[Constants.MIDCPNIFTY_TOKEN].LastPrice);
             ZObjects.ticker.Subscribe(Tokens: GlobalObjects.InstrumentTokenSymbolCollection.Keys.ToArray());
             ZObjects.ticker.SetMode(Tokens: GlobalObjects.InstrumentTokenSymbolCollection.Keys.ToArray(), Mode: Constants.MODE_FULL);

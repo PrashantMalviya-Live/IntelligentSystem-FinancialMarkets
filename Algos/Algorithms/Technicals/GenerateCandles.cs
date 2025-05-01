@@ -79,7 +79,7 @@ namespace Algorithms.Algorithms
                     }
                     LoadOptionsToTrade(currentTime);
                     UpdateInstrumentSubscription(currentTime);
-                    //DataAccess.MarketDAO dao = new DataAccess.MarketDAO();
+                    //DataAccess.SQlDAO dao = new DataAccess.SQlDAO();
                     //Queue<Tick> tickQueue = new Queue<Tick>();
                     //tickQueue.Enqueue(tick);
                     //dao.StoreTickData(tickQueue);

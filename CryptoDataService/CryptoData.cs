@@ -20,7 +20,7 @@ namespace CryptoDataService
         //public static readonly string BANK_NIFTY_TOKEN = "260105";
         public static async Task PublishData()
         {
-            DEConnect.Login();
+            //DEConnect.Login();
 
 
             ZObjects.deltaExchangeTicker = new DeltaExchangeTicker(APIKey: DEConnect.UserAPIkey, APISecret: DEConnect.UserAPISecret, null);//State:zSessionState.Current);
@@ -55,7 +55,7 @@ namespace CryptoDataService
             // Dictionary<string, LTP> btokenPrices = ZObjects.kite.GetLTP(new string[] { Constants.NIFTY_TOKEN, Constants.BANK_NIFTY_TOKEN, Constants.FINNIFTY_TOKEN, Constants.MIDCPNIFTY_TOKEN });
 
             //Pull list of instruments to be subscribed
-            //DataAccess.MarketDAO dao = new MarketDAO();
+            //DataAccess.SQlDAO dao = new SQlDAO();
             //UInt32[] instrumentTokens = dao.GetInstrumentListToSubscribe(btokenPrices[NIFTY_TOKEN].LastPrice, btokenPrices[BANK_NIFTY_TOKEN].LastPrice);
 
             //GlobalObjects.InstrumentTokenSymbolCollection = dao.GetInstrumentListToSubscribe(btokenPrices[Constants.NIFTY_TOKEN].LastPrice, 

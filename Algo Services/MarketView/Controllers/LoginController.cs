@@ -9,6 +9,7 @@ using KiteConnect;
 using BrokerConnectWrapper;
 using Microsoft.AspNetCore.Cors;
 using System.ServiceModel.Channels;
+using DBAccess;
 
 namespace MarketView.Controllers
 {
@@ -16,7 +17,13 @@ namespace MarketView.Controllers
     [ApiController]
     public class LoginController : ControllerBase
     {
-        //// GET: api/<LoginController>
+        private readonly IRDSDAO _rdsDAO;
+
+        public LoginController(IRDSDAO rdsDAO)
+        {
+            _rdsDAO = rdsDAO;
+        }
+
         [HttpPost]
         //public IActionResult Login([FromQuery] string request_token, [FromQuery] string action, [FromQuery] string status)
         public IActionResult Login([FromBody] LoginParams data)
@@ -25,7 +32,7 @@ namespace MarketView.Controllers
             try
             {
 #if market
-                Login l = new Login();
+                Login l = new Login(_rdsDAO);
                 User activeUser = l.GetActiveUser(0);
                 Kite kite = new Kite(activeUser.APIKey);
 
@@ -44,7 +51,8 @@ namespace MarketView.Controllers
                 {
                     string request_token = data.request_token;
                     activeUser = kite.GenerateSession(request_token, activeUser.AppSecret);
-                    ZConnect.Login(activeUser);
+                    ZConnect zConnect = new ZConnect(_rdsDAO);
+                    zConnect.Login(activeUser);
                     l.UpdateUser(activeUser);
                 }
 

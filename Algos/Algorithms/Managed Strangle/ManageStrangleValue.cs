@@ -167,8 +167,8 @@ namespace Algorithms.Algorithms
             _stopLoss = stopLoss;
             _targetProfit = targetProfit;
 
-            ZConnect.Login();
-            _user = KoConnect.GetUser(userId: uid);
+            ////ZConnect.Login();
+            ////_user = KoConnect.GetUser(userId: uid);
 
             SetInitialDeltaSLTP(currentDate, _initialDelta);
 
@@ -668,7 +668,7 @@ namespace Algorithms.Algorithms
         {
             if (_lowerLevel1 == 0 || _upperLevel1 == 0)
             {
-                //#if MARKET
+                //#if MARKET || AWSMARKET
                 List<Historical> bCandles = ZObjects.kite.GetHistoricalData(_baseInstrumentToken.ToString(), currentTime.Date.AddDays(-30), currentTime.Date, "60minute");
                 List<TimeFrameCandle> candles = JoinHistoricals(bCandles, 4);
 

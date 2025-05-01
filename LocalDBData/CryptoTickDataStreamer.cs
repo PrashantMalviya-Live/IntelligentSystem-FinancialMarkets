@@ -74,10 +74,10 @@ namespace LocalDBData
         }
         public async Task<long> LoadDataFromDatabase()
         {
-            DEConnect.Login();
+            //DEConnect.Login();
 
-            DateTime fromDate = Convert.ToDateTime("2025-01-01");
-            DateTime toDate = Convert.ToDateTime("2025-01-31");
+            DateTime fromDate = Convert.ToDateTime("2025-03-02");
+            DateTime toDate = Convert.ToDateTime("2025-03-02");
 
             //BNF
             decimal fromStrike = 74000;
@@ -119,9 +119,9 @@ namespace LocalDBData
 
             //CryptoActiveBuyStrangleWithVariableQtyTest testAlgo = new CryptoActiveBuyStrangleWithVariableQtyTest();
 
-            //PriceDirectionalFutureOptionsTest testAlgo = new PriceDirectionalFutureOptionsTest();
+            PriceDirectionalFutureOptionsTest testAlgo = new PriceDirectionalFutureOptionsTest();
 
-            CryptoRBCTest testAlgo = new CryptoRBCTest();
+            //CryptoRBCTest testAlgo = new CryptoRBCTest();
 
             //DirectionalWithStraddleShiftTest testAlgo = new DirectionalWithStraddleShiftTest();
             //CalendarSpreadValueScalpingTest testAlgo = new CalendarSpreadValueScalpingTest();
@@ -131,8 +131,8 @@ namespace LocalDBData
             //ManageStrangleWithLevelsTest testAlgo = new ManageStrangleWithLevelsTest();
 
             DateTime currentDate = fromDate;
-            //while (currentDate.Date <= toDate.Date)
-            //
+            while (currentDate.Date <= toDate.Date)
+            {
 
 
                 // PriceActionInput inputs = new PriceActionInput() { BToken = Convert.ToUInt32(btoken), CTF = 1, CurrentDate = currentDate, Qty = 1 };
@@ -240,14 +240,17 @@ namespace LocalDBData
                 //    Expiry = currentDate.AddDays(1),
                 //    UID = "PM27031981"
                 //};
+
+                DateTime expiry = currentDate.AddDays(1);
                 CryptoPriceActionInputs inputs = new CryptoPriceActionInputs()
                 {
                     BSymbol = "BTCUSD",
-                    TP = 81,
-                    SL = 51,
+                    TP = 61,
+                    SL = 100,
                     Qty = 20,
-                    Expiry = currentDate.AddDays(1),
-                    uid = "PMDEUID"
+                    Expiry = expiry,
+                    UID = "PMDEUID",
+                    PnL = 0
                 };
 #if !LOCAL
 
@@ -264,13 +267,17 @@ namespace LocalDBData
                 //Below is Original calling method.
                 //Task<long> allDone = RetrieveTicksFromDB(btoken, expiry, fromStrike, toStrike, futuresData,
                 //   optionsData, currentDate, testAlgo, sqlConnection);
-                
+                //string[] productSymbols = { "BTCUSD" };//GetSymbols(expiry, fromStrike, toStrike).ToArray();// { "BTCUSD", "ETHUSD", "XRPUSD" }; // Example products
+
+                string[] productSymbols = GetSymbols(expiry, fromStrike, toStrike).ToArray();// { "BTCUSD", "ETHUSD", "XRPUSD" }; // Example products
+
                 //Below method is for alerts only
-                Task allDone = RetrieveCandleSticksFromDB(inputs.BSymbol, inputs.Expiry, fromStrike, toStrike, 3, fromDate, toDate, testAlgo);
+                //Task allDone = RetrieveCandleSticksFromDB(inputs.BSymbol, inputs.Expiry, productSymbols, 3, fromDate, toDate, testAlgo);
+                Task allDone = RetrieveTicksFromDB(inputs.BSymbol, inputs.Expiry, productSymbols, currentDate, currentDate.AddDays(1), testAlgo);
                 allDone.Wait();
 
-                //currentDate = currentDate.AddDays(1);
-            //}
+                currentDate = currentDate.AddDays(1);
+            }
             return 1;
         }
         public class Column
@@ -287,13 +294,12 @@ namespace LocalDBData
             public List<List<object>> Dataset { get; set; }
         }
 
-        private async Task RetrieveCandleSticksFromDB(string bsymbols, DateTime expiry, decimal fromStrike, decimal toStrike, int candleTimeFrameinMins,
+        private async Task RetrieveCandleSticksFromDB(string bsymbols, DateTime expiry, string[] productSymbols, int candleTimeFrameinMins,
             DateTime fromDate, DateTime toDate, ICryptoTest testAlgo)
         {
             string startingDateTime = fromDate.Date.AddHours(2).ToString("yyyy-MM-dd HH:mm:ss");// "2024-03-10T00:00:00Z";
             string endingDateTime = toDate.AddDays(31).AddHours(17).ToString("yyyy-MM-dd HH:mm:ss");// "2024-03-10T12:00:00Z";
-            string[] productSymbols = { "BTCUSD" };//GetSymbols(expiry, fromStrike, toStrike).ToArray();// { "BTCUSD", "ETHUSD", "XRPUSD" }; // Example products
-
+            
 
 
             // Convert array to SQL IN ('BTCUSD', 'ETHUSD', 'XRPUSD')
@@ -369,15 +375,15 @@ namespace LocalDBData
             }
         }
 
-        private async Task RetrieveTicksFromDB(uint btoken, DateTime expiry, decimal fromStrike, decimal toStrike,
-            DateTime currentDate, ICryptoTest testAlgo)
+        private async Task RetrieveTicksFromDB(string bsymbols, DateTime expiry, string[] productSymbols,
+            DateTime fromDate, DateTime toDate, ICryptoTest testAlgo)
         {
-            string startingDateTime = currentDate.Date.AddHours(2) .ToString("yyyy-MM-dd HH:mm:ss");// "2024-03-10T00:00:00Z";
-            string endingDateTime = currentDate.AddDays(1).AddHours(17).ToString("yyyy-MM-dd HH:mm:ss");// "2024-03-10T12:00:00Z";
-            string[] productSymbols = GetSymbols(expiry, fromStrike, toStrike).ToArray();// { "BTCUSD", "ETHUSD", "XRPUSD" }; // Example products
+            //string startingDateTime = fromDate.Date.AddHours(2).ToString("yyyy-MM-dd HH:mm:ss");// "2024-03-10T00:00:00Z";
+            //string endingDateTime = toDate.Date.AddHours(2).ToString("yyyy-MM-dd HH:mm:ss");// "2024-03-10T12:00:00Z";
 
-
-
+            string startingDateTime = fromDate.Date.AddHours(18) .ToString("yyyy-MM-dd HH:mm:ss");// "2024-03-10T00:00:00Z";
+            string endingDateTime = toDate.Date.AddHours(17).ToString("yyyy-MM-dd HH:mm:ss");// "2024-03-10T12:00:00Z";
+            
             // Convert array to SQL IN ('BTCUSD', 'ETHUSD', 'XRPUSD')
             string productSymbolsFilter = string.Join(",", productSymbols.Select(s => $"'{s}'"));
 
@@ -411,18 +417,20 @@ namespace LocalDBData
                         List<L1Orderbook> orderBookEntries = new List<L1Orderbook>();
                         foreach (var row in dataResponse.Dataset)
                         {
-                            L1Orderbook entry = new L1Orderbook
-                            {
-                                Symbol = row[0].ToString(),
-                                BestAsk = Convert.ToString(row[1]),
-                                BestBid = Convert.ToString(row[2]),
-                                AskQuantity = row[3].ToString(),
-                                BidQuantity = row[4].ToString(),
-                                Type = row[5].ToString(),
-                                Timestamp = DateTimeOffset.Parse(row[6].ToString()).ToUnixTimeMilliseconds()*1000,
-                            };
+                            if (row[3] == null || row[4] == null) continue;
 
-                            orderBookEntries.Add(entry);
+                                L1Orderbook entry = new L1Orderbook
+                                {
+                                    Symbol = row[0].ToString(),
+                                    BestAsk = Convert.ToString(row[1]),
+                                    BestBid = Convert.ToString(row[2]),
+                                    AskQuantity = row[3].ToString(),
+                                    BidQuantity = row[4].ToString(),
+                                    Type = row[5].ToString(),
+                                    Timestamp = DateTimeOffset.Parse(row[6].ToString()).ToUnixTimeMilliseconds() * 1000,
+                                };
+
+                                orderBookEntries.Add(entry);
                         }
                         foreach (var entry in orderBookEntries)
                         {

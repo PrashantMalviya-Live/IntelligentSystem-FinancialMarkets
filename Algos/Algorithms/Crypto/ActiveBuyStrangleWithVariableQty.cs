@@ -90,8 +90,8 @@ namespace Algorithms.Algorithms
                 0, 0, 0, 0, _targetProfit, _stopLoss, Arg9: _userId, positionSizing: false, maxLossPerTrade: _stopLoss);
 
 
-            DEConnect.Login();
-            _user = DEConnect.GetUser(userId: _userId);
+            ////DEConnect.Login();
+            //_user = DEConnect.GetUser(userId: _userId);
 
             //health check after 1 mins
             _healthCheckTimer = new System.Timers.Timer(interval: 1 * 60 * 1000);

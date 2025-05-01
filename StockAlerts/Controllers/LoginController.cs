@@ -1,6 +1,7 @@
 ﻿using Algorithms.Utilities;
 using Algos.Model;
 using BrokerConnectWrapper;
+using DBAccess;
 using GlobalLayer;
 using KiteConnect;
 //using Microsoft.AspNetCore.Components;
@@ -13,7 +14,11 @@ namespace StockAlerts.Controllers
     [ApiController]
     public class LoginController : ControllerBase
     {
-        //// GET: api/<LoginController>
+        private readonly IRDSDAO _rdsDAO;
+        public LoginController(IRDSDAO rdsDAO)
+        {
+            _rdsDAO = rdsDAO;
+        }
 
         [HttpGet]
         [ProducesResponseType(StatusCodes.Status200OK)]
@@ -24,8 +29,8 @@ namespace StockAlerts.Controllers
             ObjectResult result;
             try
             {
-#if MARKET
-                Login l = new Login();
+#if MARKET || AWSMARKET
+                Login l = new Login(_rdsDAO);
                 User activeUser = l.GetActiveUser(0);
                 Kite kite = new Kite(activeUser.APIKey);
 
@@ -46,7 +51,8 @@ namespace StockAlerts.Controllers
                 {
                     //string request_token = data.request_token;
                     activeUser = kite.GenerateSession(request_token, activeUser.AppSecret);
-                    ZConnect.Login(activeUser);
+                    ZConnect zConnect = new ZConnect(_rdsDAO);
+                    zConnect.Login(activeUser);
                     l.UpdateUser(activeUser);
                 }
                 var zResponse = new BrokerLoginParams() { Status = "200 OK", AccessToken = activeUser.AccessToken, login = true, ClientId = activeUser.UserId, ClientName = activeUser.UserShortName };
@@ -76,7 +82,7 @@ namespace StockAlerts.Controllers
 //            ObjectResult result;
 //            try
 //            {
-//#if MARKET
+//#if MARKET || AWSMARKET
 //                Login l = new Login();
 //                User activeUser = l.GetActiveUser(0);
 //                Kite kite = new Kite(activeUser.APIKey);

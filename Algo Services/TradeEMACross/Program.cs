@@ -40,7 +40,7 @@ namespace TradeEMACross
                 .UseStartup<Startup>()
                 .Build();
 
-
+            
 
             //Ignition.ClientMode = true;
             //IIgnite ignite = Ignition.Start(new IgniteConfiguration

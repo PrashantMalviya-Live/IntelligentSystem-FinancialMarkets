@@ -11,6 +11,7 @@ using System.Configuration;
 using DataAccess;
 using System.Data;
 using System.Net.Http.Headers;
+using DBAccess;
 
 namespace BrokerConnectWrapper
 {
@@ -28,44 +29,46 @@ namespace BrokerConnectWrapper
         public static string CurrentUser = "Prashant Malviya";
         public static string RequestToken = "";
 
-        public static User GetUser(string userId)
+        private readonly IRDSDAO _irdsDAO;
+
+        public KoConnect(IRDSDAO irdsDAO = null)
+        {
+            _irdsDAO = irdsDAO;
+        }
+
+        public User GetUser(string userId)
         {
             User user = null;
                 if (userId != "")
                 {
-                    MarketDAO dao = new MarketDAO();
-                    DataSet dsUser = dao.GetActiveUser(1, userId);
+                    DataSet dsUser = _irdsDAO.GetActiveUser(1, userId);
                     user = new User(dsUser.Tables[0]);
                 }
                 else
                 {
-                    MarketDAO dao = new MarketDAO();
-                    DataSet dsUser = dao.GetActiveUser(1);
+                    DataSet dsUser = _irdsDAO.GetActiveUser(1);
                     user = new User(dsUser.Tables[0]);
                 }
             return user;
         }
-        public static User GetUserByApplicationUserId(string userId, int brokerId)
+        public User GetUserByApplicationUserId(string userId, int brokerId)
         {
-            MarketDAO dao = new MarketDAO();
-            DataSet dsUser = dao.GetUserByApplicationUserId(userId, brokerId);
+            DataSet dsUser = _irdsDAO.GetUserByApplicationUserId(userId, brokerId);
             return new User(dsUser.Tables[0]);
         }
 
-        public static bool Login(User user = null, string userId = "")
+        public bool Login(User user = null, string userId = "")
         {
             if (user == null)
             {
                 if (userId != "")
                 {
-                    MarketDAO dao = new MarketDAO();
-                    DataSet dsUser = dao.GetActiveUser(1, userId);
+                    DataSet dsUser = _irdsDAO.GetActiveUser(1, userId);
                     user = new User(dsUser.Tables[0]);
                 }
                 else
                 {
-                    MarketDAO dao = new MarketDAO();
-                    DataSet dsUser = dao.GetActiveUser(1);
+                    DataSet dsUser = _irdsDAO.GetActiveUser(1);
                     user = new User(dsUser.Tables[0]);
                 }
             }
@@ -130,8 +133,8 @@ namespace BrokerConnectWrapper
         //    //if access token is not available retrieve from database
         //    if (_accesstoken == "" && zobjects.kite == null)
         //    {
-        //        marketdao dao = new marketdao();
-        //        _accesstoken = dao.getactiveuser();
+        //        marketdao _irdsDAO = new marketdao();
+        //        _accesstoken = _irdsDAO.getactiveuser();
         //    }
         //    zobjects.kite = new kite(myapikey, debug: true);
 

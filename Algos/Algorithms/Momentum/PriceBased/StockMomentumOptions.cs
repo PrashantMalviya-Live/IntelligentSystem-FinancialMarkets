@@ -179,8 +179,8 @@ namespace Algorithms.Algorithms
             int quantity, string uid, int algoInstance = 0, IHttpClientFactory httpClientFactory = null)
         {
 #if !BACKTEST
-            ZConnect.Login();
-            _user = KoConnect.GetUser(userId: uid);
+            //ZConnect.Login();
+            //_user = KoConnect.GetUser(userId: uid);
 #endif
 
             _httpClientFactory = httpClientFactory;

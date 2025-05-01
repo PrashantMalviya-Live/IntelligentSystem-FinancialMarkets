@@ -201,8 +201,8 @@ namespace Algorithms.Algorithms
             decimal maxLossPerTrade = 0, IHttpClientFactory httpClientFactory = null)
         {
 
-            DEConnect.Login();
-            _user = DEConnect.GetUser(userId: uid);
+            //DEConnect.Login();
+            //_user = DEConnect.GetUser(userId: uid);
 
             _httpClientFactory = httpClientFactory;
             //_firebaseMessaging = firebaseMessaging;
@@ -677,7 +677,7 @@ namespace Algorithms.Algorithms
                         // dl.DeActivateOrderTrio(orderTrio);
 
                         CryptoDataLogic dl = new CryptoDataLogic();
-                        dl.UpdateAlgoPnl(_algoInstance, _pnl, currentTime);
+                        dl.UpdateAlgoPnl(_algoInstance, _pnl, currentTime, "");
                        // if (_netQty == 0)
                       //  {
                             Console.WriteLine(+_pnl);
@@ -710,7 +710,7 @@ namespace Algorithms.Algorithms
                         _pnl += ((Convert.ToDecimal(order.Size) / 1000) * (Convert.ToDecimal(orderTrio.Order.AverageFilledPrice)- Convert.ToDecimal(order.AverageFilledPrice)));
 
                         CryptoDataLogic dl = new CryptoDataLogic();
-                        dl.UpdateAlgoPnl(_algoInstance, _pnl, currentTime);
+                        dl.UpdateAlgoPnl(_algoInstance, _pnl, currentTime,"");
                        // if (_netQty == 0)
                        // {
                             Console.WriteLine(+_pnl);
@@ -762,7 +762,7 @@ namespace Algorithms.Algorithms
                         //httpClient: _httpClientFactory.CreateClient());
 
                         CryptoDataLogic dl = new CryptoDataLogic();
-                        dl.UpdateAlgoPnl(_algoInstance, _pnl, currentTime);
+                        dl.UpdateAlgoPnl(_algoInstance, _pnl, currentTime, "");
 
                      //   if (_netQty == 0)
                       //  {
@@ -821,7 +821,7 @@ namespace Algorithms.Algorithms
                         //_netQty += qty;
 
                         CryptoDataLogic dl = new CryptoDataLogic();
-                        dl.UpdateAlgoPnl(_algoInstance, _pnl, currentTime);
+                        dl.UpdateAlgoPnl(_algoInstance, _pnl, currentTime, "");
                       //  if (_netQty == 0)
                       //  {
                             Console.WriteLine(+_pnl);
@@ -952,7 +952,7 @@ namespace Algorithms.Algorithms
         {
             try
             {
-#if MARKET
+#if MARKET || AWSMARKET
                 if (_stopTrade)
                 {
                     return;

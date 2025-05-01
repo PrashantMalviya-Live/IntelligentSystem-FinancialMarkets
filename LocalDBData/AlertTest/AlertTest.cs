@@ -19,6 +19,7 @@ using static Algorithms.Utilities.Utility;
 using Microsoft.Extensions.Caching.Memory;
 using System.Text.Json;
 using System.Linq;
+using DBAccess;
 
 namespace LocalDBData.Test
 {
@@ -31,14 +32,18 @@ namespace LocalDBData.Test
         private static IMemoryCache _cache;
         static TriggerredAlertData _triggerredAlertData = new TriggerredAlertData();
         private static List<AlertTriggerData> _cacheData;
-
+        private readonly IRDSDAO _rdsDAO;
+        public AlertTest(IRDSDAO rdsDAO = null)
+        {
+            _rdsDAO = rdsDAO;
+        }
         public void Execute()
         {
             //The logic should be that when user selects some criteria. The alert monitor should just take all the indicators,
             //and stock universe, time frames, to generate trigger values.
             //There should be another method alert generator that check list of alerttriggercriterion, and generate alerts for users
 
-            _cacheData = Utility.RetrieveAlertTriggerData();
+            _cacheData = Utility.RetrieveAlertTriggerData(_rdsDAO);
 
             var alertTriggerData = Utility.LoadAlertTriggerData(_cacheData);
             
@@ -53,7 +58,7 @@ namespace LocalDBData.Test
             //    }
             //}
             
-            alertGenerator = new AlertGenerator(alertTriggerData);
+            alertGenerator = new AlertGenerator(alertTriggerData, _rdsDAO);
 
             alertGenerator.OnOptionUniverseChange += AlertGenerator_OnOptionUniverseChange;
             alertGenerator.OnCriticalEvents += AlertGenerator_OnCriticalEvents;
@@ -77,14 +82,14 @@ namespace LocalDBData.Test
         /// <param name="instrumentToken"></param>
         /// <param name="indicator"></param>
         /// <param name="timeFrame"></param>
-        private static void AlertGenerator_OnCriticalEvents(uint instrumentToken, IIndicator indicator, int timeFrame, decimal lastTradePrice)
+        private void AlertGenerator_OnCriticalEvents(uint instrumentToken, IIndicator indicator, int timeFrame, decimal lastTradePrice)
         {
             //this is list of all the alert trigger criteria active
 
             List<AlertTriggerData> alertTriggerCriteria = _cacheData;
             if (alertTriggerCriteria == null)
             {
-                alertTriggerCriteria = Utility.RetrieveAlertTriggerData();
+                alertTriggerCriteria = Utility.RetrieveAlertTriggerData(_rdsDAO);
                 _cacheData = alertTriggerCriteria;
             }
             //List<AlertTriggerCriterion> alertTriggerCriteria = Utility.LoadAlertCriteria();// new List<AlertTriggerCriterion>();
@@ -127,7 +132,7 @@ namespace LocalDBData.Test
                     ///and update at regular time, just like you are doing for ticks
                     ///
                     //UPDATE Database with generated alerts
-                    await Utility.UpdateGeneratedAlertsAsync(alert);
+                    await Utility.UpdateGeneratedAlertsAsync(alert, _rdsDAO);
                     //if yes then trigger event for subscribers, another message queue may be
                     //atc.User
                 }

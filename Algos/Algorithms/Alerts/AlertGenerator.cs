@@ -28,7 +28,7 @@ using static Algorithms.Indicators.DirectionalIndex;
 using Google.Protobuf.WellKnownTypes;
 using static Algorithms.Utilities.Utility;
 using Algorithm.Algorithm;
-
+using DBAccess;
 
 namespace Algorithms.Algorithms
 {
@@ -253,16 +253,15 @@ namespace Algorithms.Algorithms
         //InstrumentToken is the key, and InstrumentToken, and indicator list are values
         Dictionary<uint, AlertInstrumentTokenWithIndicators> _alertTriggerData = null;
 
-
-        public AlertGenerator(Dictionary<uint, AlertInstrumentTokenWithIndicators>  alertTriggerData)
+        private readonly IRDSDAO _irdsDAO;
+        public AlertGenerator(Dictionary<uint, AlertInstrumentTokenWithIndicators>  alertTriggerData, IRDSDAO rdsDAO)
         {
             _alertTriggerData = alertTriggerData;
 
             //Load Instrument detail from database in the setup function
             SetUpInitialData();
 
-            
-
+            _irdsDAO = rdsDAO;
         }
 
         private void SetUpInitialData(int algoInstance = 0)
@@ -414,7 +413,7 @@ namespace Algorithms.Algorithms
 #endif
 
                     Dictionary<uint, uint> mTokens;
-                    DataLogic dl = new DataLogic();
+                    DataLogic dl = new DataLogic(_irdsDAO);
                     OptionUniverse = dl.LoadCloseByOptions(_expiryDate, _baseInstrumentToken, _baseInstrumentPrice, _maxDistanceFromBInstrument, out mTokens);
 
                     AllOptions = new Dictionary<uint, Instrument>();
@@ -569,7 +568,7 @@ namespace Algorithms.Algorithms
             lock (_stockTokenHalfTrend)
             {
 
-                DataLogic dl = new DataLogic();
+                DataLogic dl = new DataLogic(_irdsDAO);
                 DateTime previousTradingDate = dl.GetPreviousTradingDate(lastCandleEndTime, 1);// timeSpan.Minutes == 5 ? 1 : timeSpan.Minutes);
                 List<Historical> historicals;
                 foreach (uint token in tokenList)

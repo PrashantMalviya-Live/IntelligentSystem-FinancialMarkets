@@ -2,6 +2,7 @@
 using Algos.Utilities.Views;
 using BrokerConnectWrapper;
 using DataAccess;
+using DBAccess;
 using FyersConnect;
 using GlobalLayer;
 //using KafkaFacade;
@@ -36,14 +37,17 @@ namespace LocalDBData
         //Dictionary<uint, TopicPartition> instrumentPartitions = new Dictionary<uint, TopicPartition>();
 
         int partitionCount = 0;
+        private readonly IRDSDAO _irdsDAO;
+        private readonly ITimeStreamDAO _itimestreamDAO;
 
-        public TickDataStreamer()
+        public TickDataStreamer(IRDSDAO irdsDAO, ITimeStreamDAO timeStreamDAO)
         {
+            _irdsDAO = irdsDAO;
+            _itimestreamDAO = timeStreamDAO;
             //Subscriber list
             //observers = new List<IObserver<Tick[]>>();
         }
-
-
+        
 
         public async Task<long> BeginStreaming()
         {
@@ -64,7 +68,7 @@ namespace LocalDBData
         public async Task<long> LoadDataFromDatabase()
         {
             //ZLogin.Login();
-           // ZConnect.Login();
+           // //ZConnect.Login();
             //ZObjects.ticker = new Ticker(ZConnect.UserAPIkey, ZConnect.UserAccessToken, null);//State:zSessionState.Current);
             // Fy.Login();
 
@@ -133,8 +137,8 @@ namespace LocalDBData
             //ManageStrangleWithLevelsTest testAlgo = new ManageStrangleWithLevelsTest();
 
 
-            MarketDAO marketDAO = new MarketDAO();
-            List<string> dates = marketDAO.GetActiveTradingDays(fromDate, toDate);
+            
+            List<string> dates = _irdsDAO.GetActiveTradingDays(fromDate, toDate);
 
             DateTime currentDate = fromDate;
             //ZMQServer zmqServer = new ZMQServer();
@@ -156,18 +160,18 @@ namespace LocalDBData
                         {
                             if (currentDate.DayOfWeek == DayOfWeek.Thursday || currentDate.DayOfWeek == DayOfWeek.Wednesday)
                             {
-                                expiry = marketDAO.GetCurrentWeeklyExpiry(currentDate, btoken);
+                                expiry = _irdsDAO.GetCurrentWeeklyExpiry(currentDate, btoken);
 
-                                //expiry = marketDAO.GetCurrentWeeklyExpiry(currentDate.AddDays(3), btoken);
+                                //expiry = _irdsDAO.GetCurrentWeeklyExpiry(currentDate.AddDays(3), btoken);
                             }
 
                             else
                             {
-                                expiry = marketDAO.GetCurrentWeeklyExpiry(currentDate, btoken);
-                                //expiry = marketDAO.GetNexWeeklyExpiry(currentDate, btoken);
+                                expiry = _irdsDAO.GetCurrentWeeklyExpiry(currentDate, btoken);
+                                //expiry = _irdsDAO.GetNexWeeklyExpiry(currentDate, btoken);
 
-                                //expiry = marketDAO.GetCurrentWeeklyExpiry(currentDate.AddDays(3), btoken);
-                                // expiry = marketDAO.GetCurrentMonthlyExpiry(currentDate, btoken);
+                                //expiry = _irdsDAO.GetCurrentWeeklyExpiry(currentDate.AddDays(3), btoken);
+                                // expiry = _irdsDAO.GetCurrentMonthlyExpiry(currentDate, btoken);
                             }
 
                             //if (currentDate.Date != expiry.Date)
@@ -176,11 +180,11 @@ namespace LocalDBData
                             //    continue;
                             //}
 
-                            //expiry2 = marketDAO.GetCurrentWeeklyExpiry(currentDate.AddDays(1), btoken);
+                            //expiry2 = _irdsDAO.GetCurrentWeeklyExpiry(currentDate.AddDays(1), btoken);
                         }
                         else if (futuresData)
                         {
-                            expiry = marketDAO.GetCurrentMonthlyExpiry(currentDate, btoken);
+                            expiry = _irdsDAO.GetCurrentMonthlyExpiry(currentDate, btoken);
                         }
 
 
@@ -322,60 +326,58 @@ namespace LocalDBData
             return 1;
         }
 
-        private void LoadHistoricalDataFromFyersToDatabase()
-        {
-            //FyLogin.Login();
-            FyConnect.Login();
+        //private void LoadHistoricalDataFromFyersToDatabase()
+        //{
+        //    //FyLogin.Login();
+        //    FyConnect.Login();
 
-            DateTime fromDate = Convert.ToDateTime("2024-11-22 09:15:00");
-            DateTime toDate = Convert.ToDateTime("2024-11-23 15:30:00");
+        //    DateTime fromDate = Convert.ToDateTime("2024-11-22 09:15:00");
+        //    DateTime toDate = Convert.ToDateTime("2024-11-23 15:30:00");
 
-            string token = Constants.NIFTY_TOKEN;
-            string symbol = "NSE:NIFTY50-INDEX;256265";
+        //    string token = Constants.NIFTY_TOKEN;
+        //    string symbol = "NSE:NIFTY50-INDEX;256265";
 
-            MarketDAO marketDAO = new MarketDAO();
-            string interval = "5";
-            List<string> dates = marketDAO.GetActiveTradingDays(fromDate, toDate);
-            //List<string> tokens = new List<string>();
-            List<string> symbols = new List<string>();
-            DataSet dsIndexStocks = marketDAO.LoadIndexStocks(Convert.ToUInt32(token));
-
-
-            foreach (DataRow row in dsIndexStocks.Tables[0].Rows)
-            {
-                symbols.Add(string.Format("{0}:{1}-{2};{3}", Convert.ToString(row["exchange"]), Convert.ToString(row["TradingSymbol"]), Convert.ToString(row["InstrumentType"]), Convert.ToString(row["InstrumentToken"])));
-            }
+            
+        //    string interval = "5";
+        //    List<string> dates = _irdsDAO.GetActiveTradingDays(fromDate, toDate);
+        //    //List<string> tokens = new List<string>();
+        //    List<string> symbols = new List<string>();
+        //    DataSet dsIndexStocks = _irdsDAO.LoadIndexStocks(Convert.ToUInt32(token));
 
 
-            symbols.Add(symbol);
-
-            symbols = symbols.Distinct<string>().ToList();
-
-
-            //foreach (var tknsymbl in symbols)
-            //{
-            //    string tkn = tknsymbl.Split(';')[1];
-            //    string symbl = tknsymbl.Split(';')[0];
-            //    //for (DateTime tmpdate = fromDate; tmpdate < toDate; tmpdate = tmpdate.AddDays(59))
-                //{
-
-                ////if (tmpStartDate.Date == tmpEndDate.Date)
-                ////{
-                //tmpEndDate = tmpEndDate.Date + toDate.TimeOfDay;
-                ////}
-
-                //#region Load From Kite
-                //List<Historical> btokenPrices = ZObjects.fy.GetHistoricalData(symbl, tmpStartDate, tmpEndDate, interval);
-                //for (int i = 0; i < btokenPrices.Count; i++)
-                //{
-                //    Historical historical = btokenPrices[i];
-                //    historical.InstrumentToken = Convert.ToUInt32(tkn);
-                //    historicalPrices.Add(historical);
-
-                //    //marketDAO.InsertHistoricals(historical);
-                //}
+        //    foreach (DataRow row in dsIndexStocks.Tables[0].Rows)
+        //    {
+        //        symbols.Add(string.Format("{0}:{1}-{2};{3}", Convert.ToString(row["exchange"]), Convert.ToString(row["TradingSymbol"]), Convert.ToString(row["InstrumentType"]), Convert.ToString(row["InstrumentToken"])));
+        //    }
 
 
+        //    symbols.Add(symbol);
+
+        //    symbols = symbols.Distinct<string>().ToList();
+
+
+        //    //foreach (var tknsymbl in symbols)
+        //    //{
+        //    //    string tkn = tknsymbl.Split(';')[1];
+        //    //    string symbl = tknsymbl.Split(';')[0];
+        //    //    //for (DateTime tmpdate = fromDate; tmpdate < toDate; tmpdate = tmpdate.AddDays(59))
+        //        //{
+
+        //        ////if (tmpStartDate.Date == tmpEndDate.Date)
+        //        ////{
+        //        //tmpEndDate = tmpEndDate.Date + toDate.TimeOfDay;
+        //        ////}
+
+        //        //#region Load From Kite
+        //        //List<Historical> btokenPrices = ZObjects.fy.GetHistoricalData(symbl, tmpStartDate, tmpEndDate, interval);
+        //        //for (int i = 0; i < btokenPrices.Count; i++)
+        //        //{
+        //        //    Historical historical = btokenPrices[i];
+        //        //    historical.InstrumentToken = Convert.ToUInt32(tkn);
+        //        //    historicalPrices.Add(historical);
+
+        //        //    //_irdsDAO.InsertHistoricals(historical);
+        //        //}
 
 
 
@@ -383,378 +385,380 @@ namespace LocalDBData
 
 
 
-                //DateTime tmpdate = fromDate;
-                DateTime tmpStartDate = fromDate, tmpEndDate = fromDate;
-
-            while (tmpEndDate < toDate)
-            {
-                List<Historical> historicalPrices = new List<Historical>();
-
-                tmpEndDate = tmpStartDate.AddDays(99);
-
-                if (toDate < tmpEndDate)
-                {
-                    tmpEndDate = toDate;
-                }
-
-                tmpEndDate = tmpEndDate.Date + toDate.TimeOfDay;
 
 
-                foreach (var tknsymbl in symbols)
-                {
-                    try
-                    {
-                        string tkn = tknsymbl.Split(';')[1];
-                        string symbl = tknsymbl.Split(';')[0];
-                        //    //for (DateTime tmpdate = fromDate; tmpdate < toDate; tmpdate = tmpdate.AddDays(59))
+        //        //DateTime tmpdate = fromDate;
+        //        DateTime tmpStartDate = fromDate, tmpEndDate = fromDate;
 
-                        if (symbl != "NSE:M&M-EQ")
-                        {
-                            List<Historical> btokenPrices = ZObjects.fy.GetHistoricalData(symbl, tmpStartDate, tmpEndDate, interval);
-                            for (int i = 0; i < btokenPrices.Count; i++)
-                            {
-                                Historical historical = btokenPrices[i];
-                                historical.InstrumentToken = Convert.ToUInt32(tkn);
-                                historicalPrices.Add(historical);
+        //    while (tmpEndDate < toDate)
+        //    {
+        //        List<Historical> historicalPrices = new List<Historical>();
 
-                                marketDAO.InsertHistoricals(historical, 0);
-                            }
-                        }
-                    }
-                    catch(Exception ex)
-                    {
-                        Console.WriteLine(ex.StackTrace);
-                    }
-                }
+        //        tmpEndDate = tmpStartDate.AddDays(99);
 
-                tmpStartDate = tmpEndDate.AddDays(1);
-                tmpStartDate = tmpStartDate.Date + fromDate.TimeOfDay;
-            }
-        }
+        //        if (toDate < tmpEndDate)
+        //        {
+        //            tmpEndDate = toDate;
+        //        }
+
+        //        tmpEndDate = tmpEndDate.Date + toDate.TimeOfDay;
+
+
+        //        foreach (var tknsymbl in symbols)
+        //        {
+        //            try
+        //            {
+        //                string tkn = tknsymbl.Split(';')[1];
+        //                string symbl = tknsymbl.Split(';')[0];
+        //                //    //for (DateTime tmpdate = fromDate; tmpdate < toDate; tmpdate = tmpdate.AddDays(59))
+
+        //                if (symbl != "NSE:M&M-EQ")
+        //                {
+        //                    List<Historical> btokenPrices = ZObjects.fy.GetHistoricalData(symbl, tmpStartDate, tmpEndDate, interval);
+        //                    for (int i = 0; i < btokenPrices.Count; i++)
+        //                    {
+        //                        Historical historical = btokenPrices[i];
+        //                        historical.InstrumentToken = Convert.ToUInt32(tkn);
+        //                        historicalPrices.Add(historical);
+
+        //                        _irdsDAO.InsertHistoricals(historical, 0);
+        //                    }
+        //                }
+        //            }
+        //            catch(Exception ex)
+        //            {
+        //                Console.WriteLine(ex.StackTrace);
+        //            }
+        //        }
+
+        //        tmpStartDate = tmpEndDate.AddDays(1);
+        //        tmpStartDate = tmpStartDate.Date + fromDate.TimeOfDay;
+        //    }
+        //}
        
-        private void RetrieveHistoricalTicksFromFyers()
-        {
-            try
-            {
-                //FyLogin.Login();
-                FyConnect.Login();
+        //private void RetrieveHistoricalTicksFromFyers()
+        //{
+        //    try
+        //    {
+        //        //FyLogin.Login();
+        //        FyConnect.Login();
 
-                decimal fromStrike = 37000;
-                decimal toStrike = 43500;
-                DateTime fromDate = Convert.ToDateTime("2024-09-01 09:15:00");
-                DateTime toDate = Convert.ToDateTime("2024-11-25 15:30:00");
-                //DateTime fromDate = toDate.AddDays(-1);
+        //        decimal fromStrike = 37000;
+        //        decimal toStrike = 43500;
+        //        DateTime fromDate = Convert.ToDateTime("2024-09-01 09:15:00");
+        //        DateTime toDate = Convert.ToDateTime("2024-11-25 15:30:00");
+        //        //DateTime fromDate = toDate.AddDays(-1);
 
-                //string token = Constants.NIFTY_TOKEN;
-                string token = Constants.NIFTY_TOKEN;
-                string symbol = "NSE:NIFTY50-INDEX;256265";
-                bool optionsData = false;
-                bool futuresData = true;
-                MarketDAO marketDAO = new MarketDAO();
+        //        //string token = Constants.NIFTY_TOKEN;
+        //        string token = Constants.NIFTY_TOKEN;
+        //        string symbol = "NSE:NIFTY50-INDEX;256265";
+        //        bool optionsData = false;
+        //        bool futuresData = true;
+                
 
-                //var dates = new List<DateTime>();
-                string interval = "1";
-                //zmqServer = new ZMQServer();
-
-
-                List<string> dates = marketDAO.GetActiveTradingDays(fromDate, toDate);
-                //for (var dt = fromDate; dt <= toDate; dt = dt.AddDays(1))
-                //{
-                //    dates.Add(dt);
-                //}
-                //SortedList<DateTime, Historical> historicalPrices = new SortedList<DateTime, Historical>();
-                List<string> symbols = new List<string>();
-                //PAWithLevelsTest testAlgo = new PAWithLevelsTest();
-                //SchScalingTest testAlgo = new SchScalingTest();
-                //CandleWickScalpingTest testAlgo = new CandleWickScalpingTest();
-                //StockMomentumTest testAlgo = new StockMomentumTest();
-                //MultipleEMAPriceActionTest testAlgo = new MultipleEMAPriceActionTest();
-                //MultipleEMALevelsScoreTest testAlgo = new MultipleEMALevelsScoreTest();
-                //ManageStrangleDeltaTest testAlgo = new ManageStrangleDeltaTest();
-                //TJ2Test testAlgo = new TJ2Test();
-
-                //AlertTest testAlgo = new AlertTest();
-                //RangeBreakoutCandleTest testAlgo = new RangeBreakoutCandleTest();
-                //StockTrendTest testAlgo = new StockTrendTest();
-                SuperDuperTrendTest testAlgo = new SuperDuperTrendTest();
-                //TJ3Test testAlgo = new TJ3Test();
-                //TJ4Test testAlgo = new TJ4Test();
-                //OptionSellonHTTest testAlgo = new OptionSellonHTTest();
-                //StraddleWithEachLegSLTest testAlgo = new StraddleWithEachLegSLTest();
-                //MultiTimeFrameSellOnHTTest testAlgo = new MultiTimeFrameSellOnHTTest();
-                //MultiEMADirectionalLevelsTest testAlgo = new MultiEMADirectionalLevelsTest();
-                //StopAndReverseTest testAlgo = new StopAndReverseTest();
-                //DateTime currentExpiry = marketDAO.GetCurrentMonthlyExpiry(DateTime.Now);
-                //Instrument fut = GetInstrument(currentExpiry, Convert.ToUInt32(token), 0, "FUT");
-                //DirectionalWithStraddleShiftTest testAlgo = new DirectionalWithStraddleShiftTest();
-                DateTime? tradeDate = null;
-
-                //historicalPrices = new List<Historical>();
-                //tokens = new List<string>();
-
-                DataSet dsIndexStocks = marketDAO.LoadIndexStocks(Convert.ToUInt32(token));
-
-                foreach (DataRow row in dsIndexStocks.Tables[0].Rows)
-                {
-                    symbols.Add(string.Format("{0}:{1}-{2};{3}", Convert.ToString(row["exchange"]), Convert.ToString(row["TradingSymbol"]), Convert.ToString(row["InstrumentType"]), Convert.ToString(row["InstrumentToken"])));
-                }
-                //    var allOptions = dl.LoadOptions(tradeDateExpiry, token, _baseInstrumentPrice, _maxDistanceFromBInstrument, out calls, out puts, out mappedTokens);
+        //        //var dates = new List<DateTime>();
+        //        string interval = "1";
+        //        //zmqServer = new ZMQServer();
 
 
-                symbols.Add(symbol);
-                //tokens.Add(fut.InstrumentToken.ToString());
-                //tokens.Add(rtoken);
+        //        List<string> dates = _irdsDAO.GetActiveTradingDays(fromDate, toDate);
+        //        //for (var dt = fromDate; dt <= toDate; dt = dt.AddDays(1))
+        //        //{
+        //        //    dates.Add(dt);
+        //        //}
+        //        //SortedList<DateTime, Historical> historicalPrices = new SortedList<DateTime, Historical>();
+        //        List<string> symbols = new List<string>();
+        //        //PAWithLevelsTest testAlgo = new PAWithLevelsTest();
+        //        //SchScalingTest testAlgo = new SchScalingTest();
+        //        //CandleWickScalpingTest testAlgo = new CandleWickScalpingTest();
+        //        //StockMomentumTest testAlgo = new StockMomentumTest();
+        //        //MultipleEMAPriceActionTest testAlgo = new MultipleEMAPriceActionTest();
+        //        //MultipleEMALevelsScoreTest testAlgo = new MultipleEMALevelsScoreTest();
+        //        //ManageStrangleDeltaTest testAlgo = new ManageStrangleDeltaTest();
+        //        //TJ2Test testAlgo = new TJ2Test();
 
-                symbols = symbols.Distinct<string>().ToList();
+        //        //AlertTest testAlgo = new AlertTest();
+        //        //RangeBreakoutCandleTest testAlgo = new RangeBreakoutCandleTest();
+        //        //StockTrendTest testAlgo = new StockTrendTest();
+        //        SuperDuperTrendTest testAlgo = new SuperDuperTrendTest();
+        //        //TJ3Test testAlgo = new TJ3Test();
+        //        //TJ4Test testAlgo = new TJ4Test();
+        //        //OptionSellonHTTest testAlgo = new OptionSellonHTTest();
+        //        //StraddleWithEachLegSLTest testAlgo = new StraddleWithEachLegSLTest();
+        //        //MultiTimeFrameSellOnHTTest testAlgo = new MultiTimeFrameSellOnHTTest();
+        //        //MultiEMADirectionalLevelsTest testAlgo = new MultiEMADirectionalLevelsTest();
+        //        //StopAndReverseTest testAlgo = new StopAndReverseTest();
+        //        //DateTime currentExpiry = _irdsDAO.GetCurrentMonthlyExpiry(DateTime.Now);
+        //        //Instrument fut = GetInstrument(currentExpiry, Convert.ToUInt32(token), 0, "FUT");
+        //        //DirectionalWithStraddleShiftTest testAlgo = new DirectionalWithStraddleShiftTest();
+        //        DateTime? tradeDate = null;
 
-                //DateTime tmpdate = fromDate;
-                DateTime tmpStartDate = fromDate, tmpEndDate = fromDate;
+        //        //historicalPrices = new List<Historical>();
+        //        //tokens = new List<string>();
 
-                while (tmpEndDate < toDate)
-                {
-                    #region Data from Kite
+        //        DataSet dsIndexStocks = _irdsDAO.LoadIndexStocks(Convert.ToUInt32(token));
 
-                    List<Historical> historicalPrices = new List<Historical>();
-
-                    tmpEndDate = tmpStartDate.AddDays((int)tmpStartDate.DayOfWeek <= 4 ? 4 - (int)tmpStartDate.DayOfWeek : 11 - (int)tmpStartDate.DayOfWeek);
-
-                    if (toDate < tmpEndDate)
-                    {
-                        tmpEndDate = toDate;
-                    }
+        //        foreach (DataRow row in dsIndexStocks.Tables[0].Rows)
+        //        {
+        //            symbols.Add(string.Format("{0}:{1}-{2};{3}", Convert.ToString(row["exchange"]), Convert.ToString(row["TradingSymbol"]), Convert.ToString(row["InstrumentType"]), Convert.ToString(row["InstrumentToken"])));
+        //        }
+        //        //    var allOptions = dl.LoadOptions(tradeDateExpiry, token, _baseInstrumentPrice, _maxDistanceFromBInstrument, out calls, out puts, out mappedTokens);
 
 
+        //        symbols.Add(symbol);
+        //        //tokens.Add(fut.InstrumentToken.ToString());
+        //        //tokens.Add(rtoken);
 
-                    foreach (var tknsymbl in symbols)
-                    {
-                        try
-                        {
-                            string tkn = tknsymbl.Split(';')[1];
-                            string symbl = tknsymbl.Split(';')[0];
-                            //for (DateTime tmpdate = fromDate; tmpdate < toDate; tmpdate = tmpdate.AddDays(59))
-                            //{
+        //        symbols = symbols.Distinct<string>().ToList();
 
-                            //if (tmpStartDate.Date == tmpEndDate.Date)
-                            //{
-                            tmpEndDate = tmpEndDate.Date + toDate.TimeOfDay;
-                            //}
+        //        //DateTime tmpdate = fromDate;
+        //        DateTime tmpStartDate = fromDate, tmpEndDate = fromDate;
 
-                            #region Load From Kite
-                            //List<Historical> btokenPrices = ZObjects.fy.GetHistoricalData(symbl, tmpStartDate, tmpEndDate, interval);
-                            //for (int i = 0; i < btokenPrices.Count; i++)
-                            //{
-                            //    Historical historical = btokenPrices[i];
-                            //    historical.InstrumentToken = Convert.ToUInt32(tkn);
-                            //    historicalPrices.Add(historical);
+        //        while (tmpEndDate < toDate)
+        //        {
+        //            #region Data from Kite
 
-                            //    //marketDAO.InsertHistoricals(historical);
-                            //}
+        //            List<Historical> historicalPrices = new List<Historical>();
 
-                            //if (optionsData)
-                            //{
-                            //    DateTime tradeDateExpiry = marketDAO.GetCurrentWeeklyExpiry(tmpStartDate, Convert.ToUInt32(token));
-                            //    //DateTime tradeDateExpiry = marketDAO.GetCurrentMonthlyExpiry(tmpStartDate);
-                            //    List<uint> instruments = marketDAO.GetInstrumentTokens(Convert.ToUInt32(tkn), fromStrike, toStrike, tradeDateExpiry);
-                            //    foreach (var instrumentToken in instruments)
-                            //    {
-                            //        List<Historical> futurePrices = ZObjects.fy.GetHistoricalData(instrumentToken.ToString(), tmpStartDate, tmpEndDate, interval);
-                            //        for (int i = 0; i < futurePrices.Count; i++)
-                            //        {
+        //            tmpEndDate = tmpStartDate.AddDays((int)tmpStartDate.DayOfWeek <= 4 ? 4 - (int)tmpStartDate.DayOfWeek : 11 - (int)tmpStartDate.DayOfWeek);
 
-                            //            Historical historical = futurePrices[i];
-                            //            historical.InstrumentToken = instrumentToken;
-                            //            historicalPrices.Add(historical);
-                            //            historical.InstrumentToken = instrumentToken;
-                            //            //marketDAO.InsertHistoricals(historical);
-                            //        }
-                            //    }
-                            //}
-                            //else if (futuresData)
-                            //{
-                            //    DateTime tradeDateExpiry = marketDAO.GetCurrentMonthlyExpiry(tmpStartDate, Convert.ToUInt32(token));
-                            //    //Instrument fut = GetInstrument(tradeDateExpiry, Convert.ToUInt32(token), 0, "FUT");
-                            //    Instrument fut = GetInstrument(null, Convert.ToUInt32(token), 0, "EQ");
-                            //    //tokens.Add(fut.InstrumentToken.ToString());
-                            //    List<Historical> futurePrices = ZObjects.fy.GetHistoricalData(fut.InstrumentToken.ToString(), tmpStartDate, tmpEndDate, interval);
-                            //    for (int i = 0; i < futurePrices.Count; i++)
-                            //    {
-                            //        Historical historical = futurePrices[i];
-                            //        historical.InstrumentToken = fut.InstrumentToken;
-                            //        historicalPrices.Add(historical);
-                            //    }
-
-                            //}
-                            #endregion
-
-                            #region Load From Database
-                            historicalPrices.AddRange(marketDAO.GetHistoricals(Convert.ToUInt32(tkn), tmpStartDate, tmpEndDate));
-                            //historicalPrices.Sort();
-
-                            #endregion
-                        }
-                        catch (Exception ex) { 
-                            Console.WriteLine(ex.StackTrace);
-                        }
-                    }
-
-                    tmpStartDate = tmpEndDate.AddDays(1);
-                    tmpStartDate = tmpStartDate.Date + fromDate.TimeOfDay;
-                    historicalPrices.Sort();
-
-                    #endregion
+        //            if (toDate < tmpEndDate)
+        //            {
+        //                tmpEndDate = toDate;
+        //            }
 
 
 
-                    //Instrument fut = GetInstrument(expiry, Convert.ToUInt32(token), 0, "FUT");
-                    //List<Historical> btokenPrices = ZObjects.kite.GetHistoricalData(token, date, date.AddDays(1), interval);
+        //            foreach (var tknsymbl in symbols)
+        //            {
+        //                try
+        //                {
+        //                    string tkn = tknsymbl.Split(';')[1];
+        //                    string symbl = tknsymbl.Split(';')[0];
+        //                    //for (DateTime tmpdate = fromDate; tmpdate < toDate; tmpdate = tmpdate.AddDays(59))
+        //                    //{
 
-                    //for (int i = 0; i < btokenPrices.Count; i++)
-                    //{
-                    //    Historical historical = btokenPrices[i];
-                    //    historical.InstrumentToken = Convert.ToUInt32(token);
-                    //    historicalPrices.Add(historical);
-                    //}
+        //                    //if (tmpStartDate.Date == tmpEndDate.Date)
+        //                    //{
+        //                    tmpEndDate = tmpEndDate.Date + toDate.TimeOfDay;
+        //                    //}
 
-                    ////GlobalObjects.InstrumentTokenSymbolCollection = dao.GetInstrumentListToSubscribe(0, btokenPrices[10].Close);
-                    ////List<Historical> historicalPrices = new List<Historical>();
-                    //tokens.Add(fut.InstrumentToken.ToString());
-                    ////continuous = tradeDateExpiry.Date.ToShortDateString() != currentExpiry.Date.ToShortDateString();
-                    //List<Historical> futurePrices = ZObjects.kite.GetHistoricalData(fut.InstrumentToken.ToString(), date, date.AddDays(1), interval);
-                    //if (futurePrices.Count < 2)
-                    //{
-                    //    continue;
-                    //}
-                    //for (int i = 0; i < futurePrices.Count; i++)
-                    //{
+        //                    #region Load From Kite
+        //                    //List<Historical> btokenPrices = ZObjects.fy.GetHistoricalData(symbl, tmpStartDate, tmpEndDate, interval);
+        //                    //for (int i = 0; i < btokenPrices.Count; i++)
+        //                    //{
+        //                    //    Historical historical = btokenPrices[i];
+        //                    //    historical.InstrumentToken = Convert.ToUInt32(tkn);
+        //                    //    historicalPrices.Add(historical);
 
-                    //    Historical historical = futurePrices[i];
-                    //    historical.InstrumentToken = fut.InstrumentToken;
-                    //    historicalPrices.Add(historical);
-                    //}
+        //                    //    //_irdsDAO.InsertHistoricals(historical);
+        //                    //}
 
-                    //historicalPrices.Sort();
-                    //foreach (var date in dates)
-                    //{
-                    //DateTime currentExpiry = DateTime.Now;
-                    foreach (var historicalPrice in historicalPrices)
-                    {
-                        if (dates.Contains(historicalPrice.TimeStamp.ToShortDateString()))
-                        {
-                            if (!tradeDate.HasValue || tradeDate.Value.ToShortDateString() != historicalPrice.TimeStamp.ToShortDateString())
-                            {
-                                //testAlgo = new StockMomentumTest();
-                                tradeDate = historicalPrice.TimeStamp;
-                                DateTime currentExpiry = marketDAO.GetCurrentMonthlyExpiry(tradeDate.Value, Convert.ToUInt32(token));
-                                //currentExpiry = marketDAO.GetCurrentWeeklyExpiry(tradeDate.Value);
-                                PriceActionInput inputs = new PriceActionInput()
-                                {
-                                    BToken = Convert.ToUInt32(token),
-                                    RToken = 0,//Convert.ToUInt32(rtoken),
-                                    CTF = 5, //60
-                                    Expiry = currentExpiry,
-                                    CurrentDate = tradeDate.Value,
-                                    Qty = 1,
-                                    TP = 40,
-                                    SL = 2000,
-                                    UID = "client1188"
-                                };
-                                //StraddleInput inputs = new StraddleInput()
-                                //{
-                                //    BToken = Convert.ToUInt32(token),
-                                //    Qty = 1,
-                                //    uid = "NJ18111985",
-                                //    CTF = 5,
-                                //    Expiry = currentExpiry,
-                                //    TP = 25000,
-                                //    SL = 10000,
-                                //    IntraDay = false,
-                                //    SS = true,
-                                //    TR = 1.67m
-                                //};
+        //                    //if (optionsData)
+        //                    //{
+        //                    //    DateTime tradeDateExpiry = _irdsDAO.GetCurrentWeeklyExpiry(tmpStartDate, Convert.ToUInt32(token));
+        //                    //    //DateTime tradeDateExpiry = _irdsDAO.GetCurrentMonthlyExpiry(tmpStartDate);
+        //                    //    List<uint> instruments = _irdsDAO.GetInstrumentTokens(Convert.ToUInt32(tkn), fromStrike, toStrike, tradeDateExpiry);
+        //                    //    foreach (var instrumentToken in instruments)
+        //                    //    {
+        //                    //        List<Historical> futurePrices = ZObjects.fy.GetHistoricalData(instrumentToken.ToString(), tmpStartDate, tmpEndDate, interval);
+        //                    //        for (int i = 0; i < futurePrices.Count; i++)
+        //                    //        {
+
+        //                    //            Historical historical = futurePrices[i];
+        //                    //            historical.InstrumentToken = instrumentToken;
+        //                    //            historicalPrices.Add(historical);
+        //                    //            historical.InstrumentToken = instrumentToken;
+        //                    //            //_irdsDAO.InsertHistoricals(historical);
+        //                    //        }
+        //                    //    }
+        //                    //}
+        //                    //else if (futuresData)
+        //                    //{
+        //                    //    DateTime tradeDateExpiry = _irdsDAO.GetCurrentMonthlyExpiry(tmpStartDate, Convert.ToUInt32(token));
+        //                    //    //Instrument fut = GetInstrument(tradeDateExpiry, Convert.ToUInt32(token), 0, "FUT");
+        //                    //    Instrument fut = GetInstrument(null, Convert.ToUInt32(token), 0, "EQ");
+        //                    //    //tokens.Add(fut.InstrumentToken.ToString());
+        //                    //    List<Historical> futurePrices = ZObjects.fy.GetHistoricalData(fut.InstrumentToken.ToString(), tmpStartDate, tmpEndDate, interval);
+        //                    //    for (int i = 0; i < futurePrices.Count; i++)
+        //                    //    {
+        //                    //        Historical historical = futurePrices[i];
+        //                    //        historical.InstrumentToken = fut.InstrumentToken;
+        //                    //        historicalPrices.Add(historical);
+        //                    //    }
+
+        //                    //}
+        //                    #endregion
+
+        //                    #region Load From Database
+        //                    historicalPrices.AddRange(_irdsDAO.GetHistoricals(Convert.ToUInt32(tkn), tmpStartDate, tmpEndDate));
+        //                    //historicalPrices.Sort();
+
+        //                    #endregion
+        //                }
+        //                catch (Exception ex) { 
+        //                    Console.WriteLine(ex.StackTrace);
+        //                }
+        //            }
+
+        //            tmpStartDate = tmpEndDate.AddDays(1);
+        //            tmpStartDate = tmpStartDate.Date + fromDate.TimeOfDay;
+        //            historicalPrices.Sort();
+
+        //            #endregion
 
 
-                                //testAlgo = new TJ3Test();
-                                //testAlgo = new DirectionalWithStraddleShiftTest();
-                                // testAlgo.Execute(inputs);
-                                //testAlgo.StopTrade(false);
 
-                                //StrangleWithDeltaandLevelInputs inputs = new StrangleWithDeltaandLevelInputs()
-                                //{
-                                //    BToken = Convert.ToUInt32(token),
-                                //    Expiry = currentExpiry,
-                                //    IDelta = 0.2m,
-                                //    IQty = 4,
-                                //    MaxDelta = 0.24m,
-                                //    MinDelta = 0.10m,
-                                //    MaxQty = 8,
-                                //    StepQty = 2,
-                                //    TP = 100000,
-                                //    SL = 500,
-                                //};
-                                //testAlgo = new ManageStrangleDeltaTest();
-                                //testAlgo = new PAWithLevelsTest();
-                                //testAlgo = new RangeBreakoutCandleTest();
-                                //testAlgo = new StockTrendTest();
-                                testAlgo = new SuperDuperTrendTest();
-                                //testAlgo = new AlertTest();
-                                //testAlgo = new StopAndReverseTest();
-                                testAlgo.Execute(inputs);
-                                //testAlgo.Execute();
-                                testAlgo.StopTrade(false);
-                            }
+        //            //Instrument fut = GetInstrument(expiry, Convert.ToUInt32(token), 0, "FUT");
+        //            //List<Historical> btokenPrices = ZObjects.kite.GetHistoricalData(token, date, date.AddDays(1), interval);
 
-                            //foreach (var historicalPrice in historicalPrices)
-                            //{
-                            List<Tick> ticks = new List<Tick>();
-                            ticks.AddRange(ConvertToTicks(historicalPrice, shortenedTick: true));
+        //            //for (int i = 0; i < btokenPrices.Count; i++)
+        //            //{
+        //            //    Historical historical = btokenPrices[i];
+        //            //    historical.InstrumentToken = Convert.ToUInt32(token);
+        //            //    historicalPrices.Add(historical);
+        //            //}
 
-                            ticks.Sort(new TickComparer());
+        //            ////GlobalObjects.InstrumentTokenSymbolCollection = dao.GetInstrumentListToSubscribe(0, btokenPrices[10].Close);
+        //            ////List<Historical> historicalPrices = new List<Historical>();
+        //            //tokens.Add(fut.InstrumentToken.ToString());
+        //            ////continuous = tradeDateExpiry.Date.ToShortDateString() != currentExpiry.Date.ToShortDateString();
+        //            //List<Historical> futurePrices = ZObjects.kite.GetHistoricalData(fut.InstrumentToken.ToString(), date, date.AddDays(1), interval);
+        //            //if (futurePrices.Count < 2)
+        //            //{
+        //            //    continue;
+        //            //}
+        //            //for (int i = 0; i < futurePrices.Count; i++)
+        //            //{
 
-                            foreach (Tick tick in ticks)
-                            {
-                                testAlgo.OnNext(tick);
-                            }
-                            //KProducer kfkPublisher = new KProducer();
-                            //kfkPublisher.PublishAllTicks(ticks, shortenedTick: true);
-                            //ZObjects.ticker.zmqServer.PublishAllTicks(ticks, shortenedTick: true);
-                        }
-                    }
-                }
-                //var observableFactory = GlobalObjects.ObservableFactory;
-                //foreach (var historicalPrice in historicalPrices)
-                //{
-                //    List<Tick> ticks = new List<Tick>();
-                //    ticks.AddRange(ConvertToTicks(historicalPrice, shortenedTick: true));
-                //    foreach (Tick tick in ticks)
-                //    {
-                //        foreach (var observer in observableFactory.observers)
-                //            observer.OnNext(tick);
-                //    }
-                //}
-                //KAdmin.DeleteTopics(tokens);
-                //}
-            }
-            catch (Exception ex)
-            {
+        //            //    Historical historical = futurePrices[i];
+        //            //    historical.InstrumentToken = fut.InstrumentToken;
+        //            //    historicalPrices.Add(historical);
+        //            //}
 
-            }
+        //            //historicalPrices.Sort();
+        //            //foreach (var date in dates)
+        //            //{
+        //            //DateTime currentExpiry = DateTime.Now;
+        //            foreach (var historicalPrice in historicalPrices)
+        //            {
+        //                if (dates.Contains(historicalPrice.TimeStamp.ToShortDateString()))
+        //                {
+        //                    if (!tradeDate.HasValue || tradeDate.Value.ToShortDateString() != historicalPrice.TimeStamp.ToShortDateString())
+        //                    {
+        //                        //testAlgo = new StockMomentumTest();
+        //                        tradeDate = historicalPrice.TimeStamp;
+        //                        DateTime currentExpiry = _irdsDAO.GetCurrentMonthlyExpiry(tradeDate.Value, Convert.ToUInt32(token));
+        //                        //currentExpiry = _irdsDAO.GetCurrentWeeklyExpiry(tradeDate.Value);
+        //                        PriceActionInput inputs = new PriceActionInput()
+        //                        {
+        //                            BToken = Convert.ToUInt32(token),
+        //                            RToken = 0,//Convert.ToUInt32(rtoken),
+        //                            CTF = 5, //60
+        //                            Expiry = currentExpiry,
+        //                            CurrentDate = tradeDate.Value,
+        //                            Qty = 1,
+        //                            TP = 40,
+        //                            SL = 2000,
+        //                            UID = "client1188"
+        //                        };
+        //                        //StraddleInput inputs = new StraddleInput()
+        //                        //{
+        //                        //    BToken = Convert.ToUInt32(token),
+        //                        //    Qty = 1,
+        //                        //    uid = "NJ18111985",
+        //                        //    CTF = 5,
+        //                        //    Expiry = currentExpiry,
+        //                        //    TP = 25000,
+        //                        //    SL = 10000,
+        //                        //    IntraDay = false,
+        //                        //    SS = true,
+        //                        //    TR = 1.67m
+        //                        //};
 
-        }
+
+        //                        //testAlgo = new TJ3Test();
+        //                        //testAlgo = new DirectionalWithStraddleShiftTest();
+        //                        // testAlgo.Execute(inputs);
+        //                        //testAlgo.StopTrade(false);
+
+        //                        //StrangleWithDeltaandLevelInputs inputs = new StrangleWithDeltaandLevelInputs()
+        //                        //{
+        //                        //    BToken = Convert.ToUInt32(token),
+        //                        //    Expiry = currentExpiry,
+        //                        //    IDelta = 0.2m,
+        //                        //    IQty = 4,
+        //                        //    MaxDelta = 0.24m,
+        //                        //    MinDelta = 0.10m,
+        //                        //    MaxQty = 8,
+        //                        //    StepQty = 2,
+        //                        //    TP = 100000,
+        //                        //    SL = 500,
+        //                        //};
+        //                        //testAlgo = new ManageStrangleDeltaTest();
+        //                        //testAlgo = new PAWithLevelsTest();
+        //                        //testAlgo = new RangeBreakoutCandleTest();
+        //                        //testAlgo = new StockTrendTest();
+        //                        testAlgo = new SuperDuperTrendTest();
+        //                        //testAlgo = new AlertTest();
+        //                        //testAlgo = new StopAndReverseTest();
+        //                        testAlgo.Execute(inputs);
+        //                        //testAlgo.Execute();
+        //                        testAlgo.StopTrade(false);
+        //                    }
+
+        //                    //foreach (var historicalPrice in historicalPrices)
+        //                    //{
+        //                    List<Tick> ticks = new List<Tick>();
+        //                    ticks.AddRange(ConvertToTicks(historicalPrice, shortenedTick: true));
+
+        //                    ticks.Sort(new TickComparer());
+
+        //                    foreach (Tick tick in ticks)
+        //                    {
+        //                        testAlgo.OnNext(tick);
+        //                    }
+        //                    //KProducer kfkPublisher = new KProducer();
+        //                    //kfkPublisher.PublishAllTicks(ticks, shortenedTick: true);
+        //                    //ZObjects.ticker.zmqServer.PublishAllTicks(ticks, shortenedTick: true);
+        //                }
+        //            }
+        //        }
+        //        //var observableFactory = GlobalObjects.ObservableFactory;
+        //        //foreach (var historicalPrice in historicalPrices)
+        //        //{
+        //        //    List<Tick> ticks = new List<Tick>();
+        //        //    ticks.AddRange(ConvertToTicks(historicalPrice, shortenedTick: true));
+        //        //    foreach (Tick tick in ticks)
+        //        //    {
+        //        //        foreach (var observer in observableFactory.observers)
+        //        //            observer.OnNext(tick);
+        //        //    }
+        //        //}
+        //        //KAdmin.DeleteTopics(tokens);
+        //        //}
+        //    }
+        //    catch (Exception ex)
+        //    {
+
+        //    }
+
+        //}
 
         //private void LoadHistoricalDataFromKiteToDatabase()
         //{
         //    ZLogin.Login();
-        //    ZConnect.Login();
+        //    //ZConnect.Login();
         //    DateTime fromDate = Convert.ToDateTime("2022-01-01 09:15:00");
         //    DateTime toDate = Convert.ToDateTime("2024-10-25 15:30:00");
 
         //    string token = Constants.NIFTY_TOKEN;
-        //    MarketDAO marketDAO = new MarketDAO();
+        //    
         //    string interval = "day";
-        //    List<string> dates = marketDAO.GetActiveTradingDays(fromDate, toDate);
+        //    List<string> dates = _irdsDAO.GetActiveTradingDays(fromDate, toDate);
         //    List<string> tokens = new List<string>();
 
-        //    DataSet dsIndexStocks = marketDAO.LoadIndexStocks(Convert.ToUInt32(token));
+        //    DataSet dsIndexStocks = _irdsDAO.LoadIndexStocks(Convert.ToUInt32(token));
 
         //    foreach (DataRow row in dsIndexStocks.Tables[0].Rows)
         //    {
@@ -794,7 +798,7 @@ namespace LocalDBData
         //                historical.InstrumentToken = Convert.ToUInt32(tkn);
         //                historicalPrices.Add(historical);
 
-        //                marketDAO.InsertHistoricals(historical, 1);
+        //                _irdsDAO.InsertHistoricals(historical, 1);
         //            }
         //        }
 
@@ -808,10 +812,10 @@ namespace LocalDBData
             try
             {
                 // ZLogin.Login();
-                //ZConnect.Login();
+                ////ZConnect.Login();
                 //ZObjects.ticker = new Ticker(ZConnect.UserAPIkey, ZConnect.UserAccessToken, null);//State:zSessionState.Current);
-                FyLogin.Login();
-                FyConnect.Login();
+                //FyLogin.Login();
+                //FyConnect.Login();
 
                 decimal fromStrike = 37000;
                 decimal toStrike = 43500;
@@ -823,14 +827,14 @@ namespace LocalDBData
                 string token = Constants.NIFTY_TOKEN;
                 bool optionsData = false;
                 bool futuresData = true;
-                MarketDAO marketDAO = new MarketDAO();
+                
 
                 //var dates = new List<DateTime>();
                 string interval = "minute";
                 //zmqServer = new ZMQServer();
 
 
-                List<string> dates = marketDAO.GetActiveTradingDays(fromDate, toDate);
+                List<string> dates = _irdsDAO.GetActiveTradingDays(fromDate, toDate);
                 //for (var dt = fromDate; dt <= toDate; dt = dt.AddDays(1))
                 //{
                 //    dates.Add(dt);
@@ -857,7 +861,7 @@ namespace LocalDBData
                 //MultiTimeFrameSellOnHTTest testAlgo = new MultiTimeFrameSellOnHTTest();
                 //MultiEMADirectionalLevelsTest testAlgo = new MultiEMADirectionalLevelsTest();
                 //StopAndReverseTest testAlgo = new StopAndReverseTest();
-                //DateTime currentExpiry = marketDAO.GetCurrentMonthlyExpiry(DateTime.Now);
+                //DateTime currentExpiry = _irdsDAO.GetCurrentMonthlyExpiry(DateTime.Now);
                 //Instrument fut = GetInstrument(currentExpiry, Convert.ToUInt32(token), 0, "FUT");
                 //DirectionalWithStraddleShiftTest testAlgo = new DirectionalWithStraddleShiftTest();
                 DateTime? tradeDate = null;
@@ -865,7 +869,7 @@ namespace LocalDBData
                 //historicalPrices = new List<Historical>();
                 //tokens = new List<string>();
 
-                DataSet dsIndexStocks = marketDAO.LoadIndexStocks(Convert.ToUInt32(token));
+                DataSet dsIndexStocks = _irdsDAO.LoadIndexStocks(Convert.ToUInt32(token));
 
                 foreach(DataRow row in dsIndexStocks.Tables[0].Rows)
                 {
@@ -916,14 +920,14 @@ namespace LocalDBData
                         //    historical.InstrumentToken = Convert.ToUInt32(tkn);
                         //    historicalPrices.Add(historical);
 
-                        //    //marketDAO.InsertHistoricals(historical);
+                        //    //_irdsDAO.InsertHistoricals(historical);
                         //}
 
                         //if (optionsData)
                         //{
-                        //    DateTime tradeDateExpiry = marketDAO.GetCurrentWeeklyExpiry(tmpStartDate, Convert.ToUInt32(token));
-                        //    //DateTime tradeDateExpiry = marketDAO.GetCurrentMonthlyExpiry(tmpStartDate);
-                        //    List<uint> instruments = marketDAO.GetInstrumentTokens(Convert.ToUInt32(tkn), fromStrike, toStrike, tradeDateExpiry);
+                        //    DateTime tradeDateExpiry = _irdsDAO.GetCurrentWeeklyExpiry(tmpStartDate, Convert.ToUInt32(token));
+                        //    //DateTime tradeDateExpiry = _irdsDAO.GetCurrentMonthlyExpiry(tmpStartDate);
+                        //    List<uint> instruments = _irdsDAO.GetInstrumentTokens(Convert.ToUInt32(tkn), fromStrike, toStrike, tradeDateExpiry);
                         //    foreach (var instrumentToken in instruments)
                         //    {
                         //        List<Historical> futurePrices = ZObjects.kite.GetHistoricalData(instrumentToken.ToString(), tmpStartDate, tmpEndDate, interval);
@@ -934,13 +938,13 @@ namespace LocalDBData
                         //            historical.InstrumentToken = instrumentToken;
                         //            historicalPrices.Add(historical);
                         //            historical.InstrumentToken = instrumentToken;
-                        //            //marketDAO.InsertHistoricals(historical);
+                        //            //_irdsDAO.InsertHistoricals(historical);
                         //        }
                         //    }
                         //}
                         //else if (futuresData)
                         //{
-                        //    DateTime tradeDateExpiry = marketDAO.GetCurrentMonthlyExpiry(tmpStartDate, Convert.ToUInt32(token));
+                        //    DateTime tradeDateExpiry = _irdsDAO.GetCurrentMonthlyExpiry(tmpStartDate, Convert.ToUInt32(token));
                         //    //Instrument fut = GetInstrument(tradeDateExpiry, Convert.ToUInt32(token), 0, "FUT");
                         //    Instrument fut = GetInstrument(null, Convert.ToUInt32(token), 0, "EQ");
                         //    //tokens.Add(fut.InstrumentToken.ToString());
@@ -956,7 +960,7 @@ namespace LocalDBData
                         #endregion
 
                         #region Load From Database
-                        historicalPrices.AddRange(marketDAO.GetHistoricals(Convert.ToUInt32(tkn), tmpStartDate, tmpEndDate));
+                        historicalPrices.AddRange(_itimestreamDAO.GetHistoricals(Convert.ToUInt32(tkn), tmpStartDate, tmpEndDate));
                         //historicalPrices.Sort();
 
                         #endregion
@@ -1009,8 +1013,8 @@ namespace LocalDBData
                             {
                                 //testAlgo = new StockMomentumTest();
                                 tradeDate = historicalPrice.TimeStamp;
-                                DateTime currentExpiry = marketDAO.GetCurrentMonthlyExpiry(tradeDate.Value, Convert.ToUInt32(token));
-                                //currentExpiry = marketDAO.GetCurrentWeeklyExpiry(tradeDate.Value);
+                                DateTime currentExpiry = _irdsDAO.GetCurrentMonthlyExpiry(tradeDate.Value, Convert.ToUInt32(token));
+                                //currentExpiry = _irdsDAO.GetCurrentWeeklyExpiry(tradeDate.Value);
                                 PriceActionInput inputs = new PriceActionInput()
                                 {
                                     BToken = Convert.ToUInt32(token),
@@ -1120,7 +1124,6 @@ namespace LocalDBData
 
             //KProducer producer = new KProducer();
 
-            DataAccess.MarketDAO dao = new DataAccess.MarketDAO();
             try
             {
 
@@ -1206,7 +1209,7 @@ namespace LocalDBData
         //    if (!tradeDate.HasValue || tradeDate.Value.ToShortDateString() != historicalPrice.TimeStamp.ToShortDateString())
         //    {
         //        tradeDate = historicalPrice.TimeStamp;
-        //        currentExpiry = marketDAO.GetCurrentMonthlyExpiry(tradeDate.Value);
+        //        currentExpiry = _irdsDAO.GetCurrentMonthlyExpiry(tradeDate.Value);
         //        PriceActionInput inputs = new PriceActionInput() { BToken = Convert.ToUInt32(token), CTF = 3, Expiry = currentExpiry, CurrentDate = tradeDate.Value, Qty = 1, TP = 50, SL = 10 };
         //        testAlgo.Execute(inputs);
         //        testAlgo.StopTrade(false);
@@ -1227,29 +1230,28 @@ namespace LocalDBData
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
-        void StoreRawTicks(object sender, System.Timers.ElapsedEventArgs e)
-        {
-            if (LocalTicks == null || LocalTicks.Count == 0 || LocalTicks.Values.ToList() == null)
-            {
-                return;
-            }
+        //void StoreRawTicks(object sender, System.Timers.ElapsedEventArgs e)
+        //{
+        //    if (LocalTicks == null || LocalTicks.Count == 0 || LocalTicks.Values.ToList() == null)
+        //    {
+        //        return;
+        //    }
 
 
-            lock (LocalTicks)
-            {
-                //zmqServer.PublishAllTicks(LocalTicks.Values.ToList(), shortenedTick: true);
-                DataAccess.MarketDAO dao = new DataAccess.MarketDAO();
-                dao.StoreTestTickData(LocalTicks.Values.ToList(), shortenedTick: true);
-                LocalTicks.Clear();
-            }
-        }
-        public void InitTimer()
-        {
-            GlobalObjects.OHLCTimer = new System.Timers.Timer(1);
-            GlobalObjects.OHLCTimer.Start();
+        //    lock (LocalTicks)
+        //    {
+        //        //zmqServer.PublishAllTicks(LocalTicks.Values.ToList(), shortenedTick: true);
+        //        _irdsDAO.StoreTestTickData(LocalTicks.Values.ToList(), shortenedTick: true);
+        //        LocalTicks.Clear();
+        //    }
+        //}
+        //public void InitTimer()
+        //{
+        //    GlobalObjects.OHLCTimer = new System.Timers.Timer(1);
+        //    GlobalObjects.OHLCTimer.Start();
 
-            GlobalObjects.OHLCTimer.Elapsed += StoreRawTicks;
-        }
+        //    GlobalObjects.OHLCTimer.Elapsed += StoreRawTicks;
+        //}
         public Tick ConvertToTicks(object[] data, bool shortenedTick = false)
         {
             Tick tick = new Tick();
@@ -1341,8 +1343,8 @@ namespace LocalDBData
         }
         public Instrument GetInstrument(DateTime? expiry, uint bInstrumentToken, decimal strike, string instrumentType)
         {
-            MarketDAO marketDAO = new MarketDAO();
-            DataSet dsInstrument = marketDAO.GetInstrument(expiry, bInstrumentToken, strike, instrumentType);
+            
+            DataSet dsInstrument = _irdsDAO.GetInstrument(expiry, bInstrumentToken, strike, instrumentType);
             DataRow data = dsInstrument.Tables[0].Rows[0];
 
             Instrument instrument = new Instrument();

@@ -179,8 +179,8 @@ namespace Algorithms.Algorithms
         public CandleWickScalpingOptions(TimeSpan candleTimeSpan, uint baseInstrumentToken,
             int quantity, string uid, int algoInstance = 0, IHttpClientFactory httpClientFactory = null)
         {
-            ZConnect.Login();
-            KoConnect.Login(userId:uid);
+            //ZConnect.Login();
+            //KoConnect.Login(userId:uid);
 
             _httpClientFactory = httpClientFactory;
             _candleTimeSpan = candleTimeSpan;

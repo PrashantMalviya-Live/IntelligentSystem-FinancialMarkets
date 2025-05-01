@@ -135,8 +135,8 @@ namespace Algorithms.Algorithms
             MappedTokens = new Dictionary<uint, uint>();
             //_algoInstance = StrangleNode.ID; Utility.GenerateAlgoInstance(algoIndex, DateTime.Now);
             uid = "PM27031981";
-            ZConnect.Login();
-            _user = KoConnect.GetUser(userId: uid);
+            ////ZConnect.Login();
+            ////_user = KoConnect.GetUser(userId: uid);
 
             //health check after 1 mins
             _healthCheckTimer = new System.Timers.Timer(interval: 1 * 60 * 1000);

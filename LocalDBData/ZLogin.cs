@@ -1,5 +1,6 @@
 ﻿using Algorithms.Utilities;
 using BrokerConnectWrapper;
+using DBAccess;
 using GlobalLayer;
 using KiteConnect;
 using System;
@@ -11,13 +12,18 @@ using System.Text;
 
 namespace LocalDBData
 {
-    internal class ZLogin
+    public class ZLogin
     {
-        public static bool Login()//LoginParams data)
+        private readonly IRDSDAO _rdsDAO;
+        public ZLogin(IRDSDAO rdsDAO)
+        {
+            _rdsDAO = rdsDAO;
+        }
+        public bool Login()//LoginParams data)
         {
             try
             {
-                Login l = new Login();
+                Login l = new Login(_rdsDAO);
                 User activeUser = l.GetActiveUser(0);
                 Kite kite = new Kite(activeUser.APIKey);
 
@@ -46,8 +52,8 @@ namespace LocalDBData
                 //{
                 string request_token = "OHpH5BBFo3eKZWnSuuKscW2rRZ800L4P";
                 activeUser = kite.GenerateSession(request_token, activeUser.AppSecret);
-                ZConnect.Login(activeUser);
-                l.UpdateUser(activeUser);
+                //ZConnect.Login(activeUser);
+                //l.UpdateUser(activeUser);
                 // }
 
                 // result = new OkObjectResult(new { message = "200 OK", userName = activeUser.UserShortName });

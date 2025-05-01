@@ -147,8 +147,8 @@ namespace Algorithms.Algorithms
                 StopLossPoints = (double)_stopLoss
             };
 
-            ZConnect.Login();
-            _user = KoConnect.GetUser(userId: "PM27031981");
+            ////ZConnect.Login();
+            //_user = KoConnect.GetUser(userId: "PM27031981");
 
             //health check after 1 mins
             _healthCheckTimer = new System.Timers.Timer(interval: 1 * 60 * 1000);

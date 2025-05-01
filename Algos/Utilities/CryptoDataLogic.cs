@@ -17,9 +17,9 @@ namespace Algos.Utilities
             DataAccess.QuestDB.InsertObject(order).Wait();
         }
 
-        public void UpdateAlgoPnl(int algoInstance, decimal pnl, DateTime currentTime)
+        public void UpdateAlgoPnl(int algoInstance, decimal pnl, DateTime currentTime, string tag)
         {
-            DataAccess.QuestDB.InsertObject(algoInstance, Math.Round(pnl, 0), currentTime).Wait();
+            DataAccess.QuestDB.InsertObject(algoInstance, Math.Round(pnl, 0), currentTime, tag).Wait();
         }
     }
 }

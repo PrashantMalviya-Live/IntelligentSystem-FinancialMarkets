@@ -142,9 +142,9 @@ namespace Algorithms.Algorithms
                 (float)candleTimeSpan.TotalMinutes, CandleType.Time, 0, _targetProfit, _stopLoss, 0,
                 0, 0, positionSizing: _positionSizing, maxLossPerTrade: _maxLossPerTrade);
 
-            ZConnect.Login();
-            //KoConnect.Login(userId:uid);
-            _user = KoConnect.GetUser(userId: uid);
+            ////ZConnect.Login();
+            ////KoConnect.Login(userId:uid);
+            ////_user = KoConnect.GetUser(userId: uid);
 
             //health check after 1 mins
             _healthCheckTimer = new System.Timers.Timer(interval: 1 * 60 * 1000);

@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
-    <Configurations>Debug;Release;Market;Local;BackTest</Configurations>
+    <Configurations>Debug;Release;Market;Local;BackTest;awsmarket</Configurations>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
@@ -24,6 +24,11 @@
     <DefineConstants>TRACE;market</DefineConstants>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='awsmarket|AnyCPU'">
+    <WarningLevel>3</WarningLevel>
+    <DefineConstants>TRACE;market</DefineConstants>
+  </PropertyGroup>
+
   <ItemGroup>
     <Compile Remove="Algorithms\Alerts\AlertGenerator_corrupted.cs" />
     <Compile Remove="Algorithms\BOX - 01092018.cs" />
@@ -32,7 +37,13 @@
     <Compile Remove="Algorithms\BOX - NIFTY.cs" />
     <Compile Remove="Algorithms\BOX -11092018.cs" />
     <Compile Remove="Algorithms\BOX.cs" />
+    <Compile Remove="Algorithms\Crypto\PriceDirectionalFutureOptions - back up working double side but issues with high reversal.cs" />
     <Compile Remove="Algorithms\Crypto\PriceDirectionalFutureOptions - Backupwithonesideonly.cs" />
+    <Compile Remove="Algorithms\Crypto\PriceDirectionalFutureOptions both side..latest and messed up.cs" />
+    <Compile Remove="Algorithms\Crypto\PriceDirectionalFutureOptions-one side..working fine.cs" />
+    <Compile Remove="Algorithms\Crypto\PriceDirectionalFutureOptions_incremental tps but not profitable.cs" />
+    <Compile Remove="Algorithms\Crypto\PriceDirectionalFutureOptions_notusedoneside.cs" />
+    <Compile Remove="Algorithms\Crypto\PriceDirectionalFutureOptions_wroking 2 sides.cs" />
     <Compile Remove="Algorithms\ExpiryTrade_StrangleValue.cs" />
     <Compile Remove="Algorithms\InstantBox.cs" />
     <Compile Remove="Algorithms\Managed Strangle\ActiveBuyStrangleManagerWithVariableQty - Copy.cs" />
@@ -315,7 +326,7 @@
 
   <ItemGroup>
     <PackageReference Include="Flee" Version="2.0.0" />
-    <PackageReference Include="Google.Protobuf" Version="3.25.2" />
+    <PackageReference Include="Google.Protobuf" Version="3.30.2" />
     <PackageReference Include="MathNet.Numerics" Version="4.12.0" />
     <PackageReference Include="Microsoft.AspNetCore.Hosting.Abstractions" Version="2.2.0" />
     <PackageReference Include="Microsoft.AspNetCore.Server.Kestrel.Core" Version="2.2.0" />

@@ -37,7 +37,7 @@ namespace LocalDBData.Test
         private CryptoRBC ExecuteAlgo(CryptoPriceActionInputs paInputs)
         {
             CryptoRBC paTrader =
-              new CryptoRBC(paInputs.BSymbol, paInputs.Expiry, paInputs.Qty, paInputs.uid,
+              new CryptoRBC(paInputs.BSymbol, paInputs.Expiry, paInputs.Qty, paInputs.UID,
               paInputs.TP, paInputs.SL, algoIndex: AlgoIndex.Crypto_ActiveStrangleBuy, algoInstance: 0, httpClientFactory: null);
 
             return paTrader;

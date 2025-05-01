@@ -182,7 +182,7 @@ namespace Algorithms.Algorithms
                 (float)candleTimeSpan.TotalMinutes, Arg1: _sEMALength, Arg2: lEMALength, 
                 Arg3: _targetProfit, Arg4: _stopLoss, Arg5:_signalEMALength);
 
-            ZConnect.Login();
+            ////ZConnect.Login();
 
             //health check after 1 mins
             _healthCheckTimer = new System.Timers.Timer(interval: 1 * 60 * 1000);

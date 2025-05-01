@@ -189,7 +189,7 @@ namespace Algorithms.Algorithms
                 Arg1:_emaLength, Arg2:_targetProfit, upperLimit:_rsiUpperLimit, 
                 Arg3: _futureBuyLevel, Arg6: _futureSellLevel);
 
-            ZConnect.Login();
+            //ZConnect.Login();
 
             //health check after 1 mins
             _healthCheckTimer = new System.Timers.Timer(interval: 1 * 60 * 1000);

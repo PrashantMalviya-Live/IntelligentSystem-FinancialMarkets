@@ -138,9 +138,9 @@ namespace Algorithms.Algorithms
             int algoInstance = 0, bool positionSizing = false,
             decimal maxLossPerTrade = 0, IHttpClientFactory httpClientFactory = null)
         {
-            ZConnect.Login();
+            //ZConnect.Login();
             //KoConnect.Login(userId:uid);
-            _user = KoConnect.GetUser(userId: uid);
+            //_user = KoConnect.GetUser(userId: uid);
 
             _httpClientFactory = httpClientFactory;
             //_firebaseMessaging = firebaseMessaging;

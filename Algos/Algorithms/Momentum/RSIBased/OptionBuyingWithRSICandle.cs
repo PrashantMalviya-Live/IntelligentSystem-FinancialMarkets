@@ -228,7 +228,7 @@ namespace Algorithms.Algorithms
                 Arg3: _lowerLimitForCEBuy, Arg6: _upperLimitForPEBuy, Arg7: _entryDecisiveCandleHighLow,
                 Arg8: _exitDecisiveCandleHighLow);
 
-            ZConnect.Login();
+            //ZConnect.Login();
 
             //health check after 1 mins
             _healthCheckTimer = new System.Timers.Timer(interval: 1 * 60 * 1000);

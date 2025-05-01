@@ -191,8 +191,8 @@ namespace Algorithms.Algorithms
                 0, 0, positionSizing: _positionSizing, maxLossPerTrade: _maxLossPerTrade);
 
             uid = "PM27031981";
-            ZConnect.Login();
-            _user = KoConnect.GetUser(userId: uid);
+            ////ZConnect.Login();
+            ////_user = KoConnect.GetUser(userId: uid);
 
             MappedTokens = new Dictionary<uint, uint>();
 

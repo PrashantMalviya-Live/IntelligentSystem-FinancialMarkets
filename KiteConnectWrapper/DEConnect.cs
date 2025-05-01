@@ -11,6 +11,7 @@ using System.Configuration;
 using DataAccess;
 using System.Data;
 using System.Net.Http.Headers;
+using DBAccess;
 
 namespace BrokerConnectWrapper
 {
@@ -30,36 +31,39 @@ namespace BrokerConnectWrapper
         public static string CurrentUser = "Prashant Malviya";
         public static string RequestToken = "";
 
-        public static User GetUser(string userId)
+       private readonly IRDSDAO _irdsDAO;
+
+        public DEConnect(IRDSDAO irdsDAO)
+        {
+            _irdsDAO = irdsDAO;
+        }
+
+        public  User GetUser(string userId)
         {
             User user = null;
             if (userId != "")
             {
-                MarketDAO dao = new MarketDAO();
-                DataSet dsUser = dao.GetActiveUser(3, userId);
+                DataSet dsUser = _irdsDAO.GetActiveUser(3, userId);
                 user = new User(dsUser.Tables[0]);
             }
             else
             {
-                MarketDAO dao = new MarketDAO();
-                DataSet dsUser = dao.GetActiveUser(3);
+                DataSet dsUser = _irdsDAO.GetActiveUser(3);
                 user = new User(dsUser.Tables[0]);
             }
             return user;
         }
-        public static User GetUserByApplicationUserId(string userId, int brokerId)
+        public  User GetUserByApplicationUserId(string userId, int brokerId)
         {
-            MarketDAO dao = new MarketDAO();
-            DataSet dsUser = dao.GetUserByApplicationUserId(userId, brokerId);
+            DataSet dsUser = _irdsDAO.GetUserByApplicationUserId(userId, brokerId);
             return new User(dsUser.Tables[0]);
         }
 
-        public static bool Login(User user = null)
+        public  bool Login(User user = null)
         {
             if (user == null)
             {
-                MarketDAO dao = new MarketDAO();
-                DataSet dsUser = dao.GetActiveUser(brokerId:3);
+                DataSet dsUser = _irdsDAO.GetActiveUser(brokerId:3);
                 user = new User(dsUser.Tables[0]);
             }
             ZObjects.deltaExchange = new DeltaExchangeConnect.DeltaExchange(user.APIKey, user.AppSecret, Debug: true);
@@ -125,8 +129,8 @@ namespace BrokerConnectWrapper
         //    //if access token is not available retrieve from database
         //    if (_accesstoken == "" && zobjects.kite == null)
         //    {
-        //        marketdao dao = new marketdao();
-        //        _accesstoken = dao.getactiveuser();
+        //        marketdao _irdsDAO = new marketdao();
+        //        _accesstoken = _irdsDAO.getactiveuser();
         //    }
         //    zobjects.kite = new kite(myapikey, debug: true);
 

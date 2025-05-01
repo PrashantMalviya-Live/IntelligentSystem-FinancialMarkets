@@ -23,7 +23,7 @@ namespace Algos.Utilities.Views
         /// <summary>
         /// Target Profit for the trade
         /// </summary>
-        public string uid { get; set; }
+        public string UID { get; set; }
 
         /// <summary>
         /// Stop loss for the trade
@@ -34,6 +34,11 @@ namespace Algos.Utilities.Views
         /// Target Profit for the trade
         /// </summary>
         public decimal TP { get; set; }
+
+        /// <summary>
+        /// PnL for the trade
+        /// </summary>
+        public decimal PnL { get; set; }
 
     }
 }

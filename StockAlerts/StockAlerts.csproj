@@ -4,7 +4,7 @@
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <Configurations>Debug;Release;Market;BackTest</Configurations>
+    <Configurations>Debug;Release;Market;BackTest;awsmarket</Configurations>
   </PropertyGroup>
 
   <ItemGroup>

@@ -9,7 +9,7 @@ namespace LocalDBData.Test
     {
         PriceDirectionalFutureOptions paTrader;
 
-        public void Execute(PriceActionInput paInputs)
+        public void Execute(CryptoPriceActionInputs paInputs)
         {
             paTrader = ExecuteAlgo(paInputs);
             paTrader.OnTradeEntry += OptionSellwithRSI_OnTradeEntry;
@@ -34,7 +34,7 @@ namespace LocalDBData.Test
         {
 
         }
-        private PriceDirectionalFutureOptions ExecuteAlgo(PriceActionInput paInputs)
+        private PriceDirectionalFutureOptions ExecuteAlgo(CryptoPriceActionInputs paInputs)
         {
             PriceDirectionalFutureOptions paTrader =
               new PriceDirectionalFutureOptions(paInputs.Expiry, paInputs.Qty,

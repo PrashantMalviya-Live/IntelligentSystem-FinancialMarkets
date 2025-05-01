@@ -40,7 +40,7 @@ namespace MarketView.Controllers
             ObjectResult result;
             try
             {
-//#if MARKET
+//#if MARKET || AWSMARKET
 //                ZObjects.kotak ??= new Kotak();
                 
                
@@ -94,21 +94,21 @@ namespace MarketView.Controllers
             }
         }
 
-        [HttpGet]
-        public IActionResult LoadTokens()
-        {
-            try
-            {
-                Utility.LoadKotakTokens();
+        //[HttpGet]
+        //public IActionResult LoadTokens()
+        //{
+        //    try
+        //    {
+        //        Utility.LoadKotakTokens();
 
-                return Ok(StatusCode(200));
-            }
-            catch (Exception ex)
-            {
-                Logger.LogWrite(String.Format("{0}, {1}", ex.Message, ex.StackTrace));
-                return StatusCode(500);
-            }
-        }
+        //        return Ok(StatusCode(200));
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        Logger.LogWrite(String.Format("{0}, {1}", ex.Message, ex.StackTrace));
+        //        return StatusCode(500);
+        //    }
+        //}
 
         public class LoginParams
         {

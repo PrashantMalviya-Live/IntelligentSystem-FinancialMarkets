@@ -9,6 +9,7 @@ using GlobalLayer;
 using DataAccess;
 using ZMQFacade;
 using GlobalCore;
+using DBAccess;
 namespace KiteConnect
 {
     /// <summary>
@@ -146,7 +147,7 @@ namespace KiteConnect
         /// <param name="Reconnect">Enables WebSocket autreconnect in case of network failure/disconnection.</param>
         /// <param name="ReconnectInterval">Interval (in seconds) between auto reconnection attemptes. Defaults to 5 seconds.</param>
         /// <param name="ReconnectTries">Maximum number reconnection attempts. Defaults to 50 attempts.</param>
-        public Ticker(string APIKey, string AccessToken, string Root = null, bool Reconnect = false, 
+        public Ticker(string APIKey, string AccessToken, ITimeStreamDAO iTimeStreamDAO, string Root = null, bool Reconnect = false, 
             int ReconnectInterval = 5, int ReconnectTries = 50, bool Debug = false, IWebSocket CustomWebSocket = null)
         {
             _debug = Debug;
@@ -200,7 +201,7 @@ namespace KiteConnect
             //}
             //storage = new Storage(_storeTicks, _storeCandles);
             _storeTicks = true; _storeCandles = false;
-            storage = new Storage(true, false);
+            storage = new Storage(true, false, iTimeStreamDAO);
         }
 
         private void _onError(string Message)

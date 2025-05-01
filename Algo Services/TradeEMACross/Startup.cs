@@ -18,6 +18,8 @@ using System.Net.Http;
 using TradeEMACross.Controllers;
 using System.Net.Http.Headers;
 using BrokerConnectWrapper;
+using DataAccess;
+using DBAccess;
 
 namespace TradeEMACross
 {
@@ -59,7 +61,32 @@ namespace TradeEMACross
 
             services.AddHttpClient("KotakPostOrder", httpClient =>
             {
-            }).AddPolicyHandler(retryPolicy)  .AddPolicyHandler(timeoutPolicy)  .SetHandlerLifetime(TimeSpan.FromMinutes(5));
+            }).AddPolicyHandler(retryPolicy).AddPolicyHandler(timeoutPolicy).SetHandlerLifetime(TimeSpan.FromMinutes(5));
+
+
+            var environment = Configuration["Environment"] ?? "Development";
+            var secretName = environment == "Production" ? "prod/db/credentials" : "dev/db/credentials";
+
+            using var scope = services.BuildServiceProvider().CreateScope();
+            var secretHelper = scope.ServiceProvider.GetRequiredService<AwsSecretHelper>();
+            var dbSecret = secretHelper.GetDbSecretAsync(secretName).Result;
+
+            var connectionString = $"Server={dbSecret.host};Database={dbSecret.database};User Id={dbSecret.username};Password={dbSecret.password};";
+
+            // Register DAO with constructor parameter (connection string)
+            services.AddScoped<IRDSDAO>(sp =>
+            {
+                return environment == "Production"
+                    ? new AWSRDSDAO(connectionString)
+                    : new SQlDAO(connectionString);
+            });
+
+            services.AddScoped<ITimeStreamDAO>(sp =>
+            {
+                return environment == "Production"
+                    ? new AWSTimestreamdb()
+                    : new SQlDAO(connectionString);
+            });
 
             //services.AddHttpClient("KotakPostOrder", httpClient =>
             //{

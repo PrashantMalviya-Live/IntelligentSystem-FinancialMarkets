@@ -4,10 +4,14 @@
     <TargetFramework>net8.0</TargetFramework>
     <UserSecretsId>838d96e2-7971-4e0f-9b12-8937c91f12be</UserSecretsId>
     <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
-    <Configurations>Debug;Release;Local;Market;BackTest</Configurations>
+    <Configurations>Debug;Release;Local;Market;BackTest;awsmarket</Configurations>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Market|AnyCPU'">
+    <DefineConstants>TRACE;market</DefineConstants>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='awsmarket|AnyCPU'">
     <DefineConstants>TRACE;market</DefineConstants>
   </PropertyGroup>
 
@@ -26,7 +30,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Google.Protobuf" Version="3.25.2" />
+    <PackageReference Include="Google.Protobuf" Version="3.30.2" />
     <PackageReference Include="Microsoft.AspNetCore.Hosting.WindowsServices" Version="3.1.9" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="3.1.4" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="3.1.4" />

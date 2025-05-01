@@ -172,8 +172,8 @@ namespace Algorithms.Algorithms
             InstrumentSuperTrend = new Dictionary<decimal, SuperTrend>();
             _premiumStrikeSold = new Dictionary<decimal, decimal>();
 
-            ZConnect.Login();
-            KoConnect.Login(userId:uid);
+            ////ZConnect.Login();
+            //KoConnect.Login(userId:uid);
             //health check after 1 mins
             _healthCheckTimer = new System.Timers.Timer(interval: 1 * 60 * 1000);
             _healthCheckTimer.Elapsed += CheckHealth;

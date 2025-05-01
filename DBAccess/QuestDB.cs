@@ -144,13 +144,14 @@ namespace DataAccess
             await _sender.SendAsync();
         }
 
-        public static async Task InsertObject(decimal algoInstance, decimal pnl, DateTime currentTime)
+        public static async Task InsertObject(decimal algoInstance, decimal pnl, DateTime currentTime, string tag)
         {
             //var now = DateTime.UtcNow;
 
             await _sender.Table("AlgoPnl")
-            .Symbol("algo_instance_id", algoInstance.ToString())
-            .Symbol("pnl", pnl.ToString())
+            .Column("algo_instance_id", (long) algoInstance)
+            .Column("pnl", Convert.ToDouble(pnl))
+            .Column("tag", tag)
                 .AtAsync(currentTime);
 
             await _sender.SendAsync();

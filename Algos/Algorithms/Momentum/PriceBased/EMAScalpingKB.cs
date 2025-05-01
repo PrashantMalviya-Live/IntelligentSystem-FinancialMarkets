@@ -155,8 +155,8 @@ namespace Algorithms.Algorithms
         public EMAScalpingKB(TimeSpan candleTimeSpan, uint baseInstrumentToken,
             int quantity, string uid, int algoInstance = 0, IHttpClientFactory httpClientFactory = null)
         {
-            ZConnect.Login();
-            _user = KoConnect.GetUser(userId: uid);
+            //ZConnect.Login();
+            //_user = KoConnect.GetUser(userId: uid);
 
             _httpClientFactory = httpClientFactory;
             _candleTimeSpan = candleTimeSpan;

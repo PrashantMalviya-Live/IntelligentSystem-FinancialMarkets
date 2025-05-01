@@ -174,7 +174,7 @@ namespace Algorithms.Algorithms
                 _nearExpiry.GetValueOrDefault(DateTime.Now), quantity, candleTimeFrameInMins:0, Arg1: 0, Arg2: 0, 
                 Arg3: _targetProfit, Arg4: _stopLoss, Arg5:0);
 
-            ZConnect.Login();
+            ////ZConnect.Login();
 
             //health check after 1 mins
             _healthCheckTimer = new System.Timers.Timer(interval: 1 * 60 * 1000);

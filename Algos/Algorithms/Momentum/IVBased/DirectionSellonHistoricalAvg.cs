@@ -163,9 +163,9 @@ namespace Algorithms.Algorithms
             _callOrderTrioList = new Dictionary<decimal, List<OrderTrio>>();
             _putOrderTrioList = new Dictionary<decimal, List<OrderTrio>>();
 
-            ZConnect.Login();
-            //KoConnect.Login(userId:"PM27031981");
-            _user = KoConnect.GetUser(userId: uid);
+            //ZConnect.Login();
+            ////KoConnect.Login(userId:"PM27031981");
+            //_user = KoConnect.GetUser(userId: uid);
 
             //health check after 1 mins
             _healthCheckTimer = new System.Timers.Timer(interval: 1 * 60 * 1000);

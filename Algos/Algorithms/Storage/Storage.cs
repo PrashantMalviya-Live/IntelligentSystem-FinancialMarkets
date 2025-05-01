@@ -123,8 +123,9 @@ namespace Algos.TLogics
 
             if (_sqlStorage)
             {
-                DataAccess.MarketDAO dao = new MarketDAO();
-                dao.StoreTickData(localCopyTicks);
+                string connectionString = "";
+                DataAccess.SQlDAO dao = new SQlDAO(connectionString);
+                dao.WriteTicksAsync(localCopyTicks).Wait();
             }
 
         }

@@ -219,8 +219,8 @@ namespace Algorithms.Algorithms
         {
             _httpClientFactory = httpClientFactory;
 
-            ZConnect.Login();
-            _user = KoConnect.GetUser(userId: uid);
+            //ZConnect.Login();
+            //_user = KoConnect.GetUser(userId: uid);
 
             _candleTimeSpan = candleTimeSpan;
             //_candleShortTimeSpan = new TimeSpan(0, 5, 0);

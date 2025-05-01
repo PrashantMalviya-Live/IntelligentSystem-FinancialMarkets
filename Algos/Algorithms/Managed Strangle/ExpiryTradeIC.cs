@@ -153,8 +153,8 @@ namespace Algorithms.Algorithms
         {
             _httpClientFactory = httpClientFactory;
 
-            ZConnect.Login();
-            _user = KoConnect.GetUser(userId: uid);
+            ////ZConnect.Login();
+            ////_user = KoConnect.GetUser(userId: uid);
             _strikePriceIncrement = strikePriceIncrement;
             //_endDateTime = endTime;
             _candleTimeSpan = candleTimeSpan;
@@ -307,7 +307,7 @@ namespace Algorithms.Algorithms
                     }
                     else if (_referenceIndexValue == 0)
                     {
-#if MARKET
+#if MARKET || AWSMARKET
                         List<Historical> bCandle = ZObjects.kite.GetHistoricalData(_baseInstrumentToken.ToString(), currentTime.Date.Add(new TimeSpan(09, 15, 00)),
                         currentTime.Date.Add(new TimeSpan(09, 16, 00)), "minute");
 
@@ -838,7 +838,7 @@ namespace Algorithms.Algorithms
                     _referencePut = OptionUniverse[(int)InstrumentType.PE][atmStrike];
                 }
 
-#if MARKET
+#if MARKET || AWSMARKET
                 List<Historical> referenceCallCandle = ZObjects.kite.GetHistoricalData(_referenceCall.InstrumentToken.ToString(), currentTime.Date.Add(new TimeSpan(09, 15, 00)),
                     currentTime.Date.Add(new TimeSpan(09, 16, 00)), "minute");
                 List<Historical> referencePutCandle = ZObjects.kite.GetHistoricalData(_referencePut.InstrumentToken.ToString(), currentTime.Date.Add(new TimeSpan(09, 15, 00)),

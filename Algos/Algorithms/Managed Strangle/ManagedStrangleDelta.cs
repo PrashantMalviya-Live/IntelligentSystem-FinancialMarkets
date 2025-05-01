@@ -163,12 +163,12 @@ namespace Algorithms.Algorithms
             //    StopLossPoints = (double)_stopLoss
             //};
 
-            ZConnect.Login();
+            ////ZConnect.Login();
 
-            //User user = new User();
-            //_userId = "ARIJIT80";
-            //KoConnect.Login(userId: _userId);
-            _user = KoConnect.GetUser(userId: userid);
+            ////User user = new User();
+            ////_userId = "ARIJIT80";
+            ////KoConnect.Login(userId: _userId);
+            //_user = KoConnect.GetUser(userId: userid);
 
             //health check after 1 mins
             _healthCheckTimer = new System.Timers.Timer(interval: 1 * 60 * 1000);

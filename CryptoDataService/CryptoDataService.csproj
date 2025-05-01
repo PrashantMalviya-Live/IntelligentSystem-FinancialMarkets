@@ -5,7 +5,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UserSecretsId>dotnet-CryptoDataService-c599c0db-7fa8-4568-9a7b-0adf7621a5fa</UserSecretsId>
-    <Configurations>Debug;Release;Market;BackTest;Local</Configurations>
+    <Configurations>Debug;Release;Market;BackTest;Local;awsmarket</Configurations>
   </PropertyGroup>
 
   <ItemGroup>
